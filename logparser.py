@@ -1,4 +1,5 @@
-
+from datetime import datetime
+from base import *
 
 class LogParser:
 	def __init__( self ):
@@ -52,6 +53,23 @@ class WELogInfo:
 	def setDummy( self, dummy ):
 		pass
 
+	def __str__( self ):
+		#return str(self.__dict__)
+		log = str_time( self.__dict__['rtime'] )
+		for key in self.__dict__.keys():
+			if key != 'rtime':
+				log += '\t' + str( self.__dict__[key] )
+		return log
+#		print 'cip:', self.cip
+#		print 'uri:', self.uri
+#		print 'method:', self.method
+#		print 'rtime:', self.rtime
+#		print 'sent:', self.sent
+#		print 'allSent:', self.allSent
+#		print 'status:', self.status
+#		print 'requestDes:', self.requestDes
+#		print 'mimeType:', self.mimeType
+
 #private global variables
 __weStrFmtSet = ['%b', '%D', '%I', ]
 __weIntFmtSet = ['%a', '%A', '%h', '%H', 'm']
@@ -65,35 +83,41 @@ def __parse_integer( field ):
 	return int(field)
 
 class WELogParser( LogParser ):
-	__fmtmap = {
-			'%a':(WELogParser.__parseString, WELogInfo.setCip),
-			'%A':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%b':(WELogParser.__parseInt, WELogInfo.setSent),
-			'%D':(WELogParser.__parseInt, WELogInfo.setStime),
-			'%h':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%H':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%I':(WELogParser.__parseInt, WELogInfo.setDummy),
-			'%m':(WELogParser.__parseString, WELogInfo.setMethod),
-			'%M':(WELogParser.__parseString, WELogInfo.setMimeType),
-			'%O':(WELogParser.__parseInt, WELogInfo.setAllSent),
-			'%q':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%r':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%R':(WELogParser.__parseString, WELogInfo.setRequestDes),
-			'%>s':(WELogParser.__parseInt, WELogInfo.setStatus),
-			'%t':(WELogParser.__parseStandardTime, WELogInfo.setDummy),
-			'%T':(WELogParser.__parseFloat, WELogInfo.setDummy),
-			'%u':(WELogParser.__parseString,WELogInfo.setUri),
-			'%U':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%V':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%X':(WELogParser.__parseString, WELogInfo.setDummy),
-			'%Z':(WELogParser.__parseRecvdTime, WELogInfo.setRtime)
+	fmtmap = None
+
+	def __init_parser( self ):
+		WELogParser.fmtmap = {
+			'%a':(WELogParser.parseString, WELogInfo.setCip),
+			'%A':(WELogParser.parseString, WELogInfo.setDummy),
+			'%b':(WELogParser.parseInt, WELogInfo.setSent),
+			'%D':(WELogParser.parseInt, WELogInfo.setStime),
+			'%h':(WELogParser.parseString, WELogInfo.setDummy),
+			'%H':(WELogParser.parseString, WELogInfo.setDummy),
+			'%I':(WELogParser.parseInt, WELogInfo.setDummy),
+			'%m':(WELogParser.parseString, WELogInfo.setMethod),
+			'%M':(WELogParser.parseString, WELogInfo.setMimeType),
+			'%O':(WELogParser.parseInt, WELogInfo.setAllSent),
+			'%q':(WELogParser.parseString, WELogInfo.setDummy),
+			'%r':(WELogParser.parseString, WELogInfo.setDummy),
+			'%R':(WELogParser.parseString, WELogInfo.setRequestDes),
+			'%>s':(WELogParser.parseInt, WELogInfo.setStatus),
+			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),
+			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
+			'%u':(WELogParser.parseString,WELogInfo.setUri),
+			'%U':(WELogParser.parseString, WELogInfo.setDummy),
+			'%V':(WELogParser.parseString, WELogInfo.setDummy),
+			'%X':(WELogParser.parseString, WELogInfo.setDummy),
+			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setRtime)
 			}
 
 
 	def __init__( self, fmt = None ):
+		if WELogParser.fmtmap is None:
+			self.__init_parser()
 		self.__parsefuncs = None
+		self.timeFmt = '[%d/%b/%Y:%H:%M:%S'
 		if fmt is not None:
-			init_format( self, fmt )
+			self.init_format( fmt )
 
 	def init_format( self, fmt ):
 		self.__parsefuncs = list()
@@ -101,8 +125,8 @@ class WELogParser( LogParser ):
 		segs = fmt.split()
 		for seg in segs:
 			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy)
-			if seg in __fmtmap:
-				pfuncs = __fmtmap[seg]
+			if seg in WELogParser.fmtmap:
+				pfuncs = WELogParser.fmtmap[seg]
 			self.__parsefuncs.append( pfuncs )
 
 	def parse_line( self, line ):
@@ -113,17 +137,17 @@ class WELogParser( LogParser ):
 		fields = line.split()
 		logInfo = WELogInfo()
 		for funcs in self.__parsefuncs:
-			if not funcs[0]( field, logInfo, funcs[1] ):
+			if not funcs[0]( self, fields[i], logInfo, funcs[1] ):
 				print 'parse line failed', line
 				return None
 			i += 1
 		return logInfo
 
-	def __parseString( field, logInfo, set_func ):
+	def parseString( self, field, logInfo, set_func ):
 		set_func( logInfo, field )
 		return True
 
-	def __parseInt( field, logInfo, set_func ):
+	def parseInt( self, field, logInfo, set_func ):
 		try:
 			value = int( field )
 			set_func( logInfo, value )
@@ -132,7 +156,7 @@ class WELogParser( LogParser ):
 			return False
 		return True
 
-	def __parseFloat( field, logInfo, set_func ):
+	def parseFloat( self, field, logInfo, set_func ):
 		try:
 			value = float( field )
 			set_func( logInfo, value )
@@ -141,20 +165,25 @@ class WELogParser( LogParser ):
 			return False
 		return True
 
-	def __parseStandardTime( field, logInfo, set_func ):
+	def parseStandardTime( self, field, logInfo, set_func ):
 		#set_func( logInfo, int(field) )
 		return True
 
-	def __parseServedTime( field, logInfo, set_func ):
+	def parseServedTime( self, field, logInfo, set_func ):
 		#set_func( logInfo, int(field) )
 		return True
-
-	def __parseRecvdTime( field, logInfo, set_func ):
-		#set_func( logInfo, int(field) )
+	
+	#[21/Apr/2013:00:54:59.848+0000]
+	#%d/%b/%Y:%H:%M:%S.%f
+	def parseRecvdTime( self, field, logInfo, set_func ):
+		segs = field.split( '.' )
+		dtime = datetime.strptime( segs[0], self.timeFmt )
+		set_func( logInfo, dtime )
 		return True
 
-	def __parseOthers( field, logInfo, set_func ):
+	def parseOthers( self, field, logInfo, set_func ):
 		return True
 
-	def __parseDummy( field, logInfo, set_func ):
+	def parseDummy( self, field, logInfo, set_func ):
 		return True
+
