@@ -1,12 +1,12 @@
 from datetime import datetime
 from base import *
 
-class LogParser:
+class LogParser( object ):
 	def __init__( self ):
 		pass
 
 	def parse_line( self, line ):
-		raise 'derived class must implement function parse_line'
+		raise Exception( 'derived class must implement function parse_line' )
 
 
 #======================================================================
@@ -32,6 +32,9 @@ class WELogInfo:
 	def setRtime( self, rtime ):
 		self.rtime = rtime
 
+	def setRtimeT( self, rtime ):
+		self.rtime = rtime
+
 	def setSent( self, sent ):
 		self.sent = sent
 
@@ -54,12 +57,12 @@ class WELogInfo:
 		pass
 
 	def __str__( self ):
-		#return str(self.__dict__)
-		log = str_time( self.__dict__['rtime'] )
-		for key in self.__dict__.keys():
-			if key != 'rtime':
-				log += '\t' + str( self.__dict__[key] )
-		return log
+		return str(self.__dict__)
+		#log = str_time( self.__dict__['rtime'] )
+		#for key in self.__dict__.keys():
+		#	if key != 'rtime':
+		#		log += '\t' + key + ':' + str( self.__dict__[key] )
+		#return log
 #		print 'cip:', self.cip
 #		print 'uri:', self.uri
 #		print 'method:', self.method
@@ -101,7 +104,7 @@ class WELogParser( LogParser ):
 			'%r':(WELogParser.parseString, WELogInfo.setDummy),
 			'%R':(WELogParser.parseString, WELogInfo.setRequestDes),
 			'%>s':(WELogParser.parseInt, WELogInfo.setStatus),
-			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),
+			'%t':(WELogParser.parseStandardTime, WELogInfo.setRtimeT),
 			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
 			'%u':(WELogParser.parseString,WELogInfo.setUri),
 			'%U':(WELogParser.parseString, WELogInfo.setDummy),
@@ -134,9 +137,14 @@ class WELogParser( LogParser ):
 			print 'fatal error, format not setted'
 			return None
 		i = 0
-		fields = line.split()
+		fields = line.split( ' ' )
+		if len(fields) < len(self.__parsefuncs):
+			print 'invalid line:', line
+			return None
 		logInfo = WELogInfo()
+		#print 'size:', len( self.__parsefuncs )
 		for funcs in self.__parsefuncs:
+			#print funcs, i
 			if not funcs[0]( self, fields[i], logInfo, funcs[1] ):
 				print 'parse line failed', line
 				return None
@@ -152,7 +160,7 @@ class WELogParser( LogParser ):
 			value = int( field )
 			set_func( logInfo, value )
 		except:
-			print 'not a integer string', field
+			print 'not a integer string', field, set_func
 			return False
 		return True
 
@@ -161,12 +169,17 @@ class WELogParser( LogParser ):
 			value = float( field )
 			set_func( logInfo, value )
 		except:
-			print 'not a float string', field
+			print 'not a float string', field, set_func
 			return False
 		return True
 
 	def parseStandardTime( self, field, logInfo, set_func ):
-		#set_func( logInfo, int(field) )
+		idx = field.rfind( '+' )
+		tstr = field[ 0:idx ]
+		timeFmt = '[%d/%b/%Y:%H:%M:%S'
+		dtime = datetime.strptime( tstr, timeFmt )
+		dtime = total_seconds( dtime )
+		set_func( logInfo, dtime )
 		return True
 
 	def parseServedTime( self, field, logInfo, set_func ):
@@ -178,6 +191,7 @@ class WELogParser( LogParser ):
 	def parseRecvdTime( self, field, logInfo, set_func ):
 		segs = field.split( '.' )
 		dtime = datetime.strptime( segs[0], self.timeFmt )
+		dtime = total_seconds( dtime )
 		set_func( logInfo, dtime )
 		return True
 
