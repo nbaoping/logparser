@@ -1,17 +1,18 @@
 import sys
 from parxact import *
 
+#args.fmt = '%a %A %b %D %h %H %I %m %O %q %r %>s %t %T %U %V %X'
 def parse_args():
 	args = InputArgs()
-	args.path = sys.argv[1]
-	args.type = 'extsqu'
-	args.pace = int( sys.argv[2] )
-	#args.fmt = '%a %A %b %D %h %H %I %m %O %q %r %>s %t %T %U %V %X'
-	args.fmt = None
+	if not args.parse_argv( sys.argv ):
+		print 'invalid input arguments'
+		return None
 	return args
 
 def main():
 	args = parse_args()
+	if not args:
+		return ;
 	parser = XactParser( )
 	parser.parse( args )
 

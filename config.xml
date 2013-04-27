@@ -1,0 +1,11 @@
+
+<translog>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>60</pace>
+	</analyser>
+</translog>

@@ -21,15 +21,51 @@ def delta_time( dtime1, dtime2 ):
 def str_time( dtime ):
 	return datetime.strftime( dtime, __TIME_FMT )
 
+def time_str( tstr ):
+	return datetime.strptime( tstr, __TIME_FMT )
+
+def seconds_str( tstr ):
+	dtime = datetime.strptime( tstr, __TIME_FMT )
+	return total_seconds( dtime )
+
 def mkdir( dname ):
 	if not os.path.exists( dname ):
 		os.makedirs( dname )
 
 class InputArgs:
 	def __init__( self ):
-		self.path = ''
-		self.pace = 0
-		self.type = ''
-		self.analyseType = 0
+		self.path = None
+		self.type = 'extsqu'
 		self.fmt = None
+		self.configPath = None
+
+	def parse_argv( self, argv ):
+		idx = 1
+		size = len(argv)
+		while idx < size:
+			if idx+1 >= size:
+				print 'invalid input arguments'
+				self.__print_usage()
+				return False
+			arg = argv[ idx ]
+			value = argv[ idx+1 ]
+			if arg == '-i':
+				self.path = value
+			elif arg == '-x':
+				self.configPath = value
+			elif arg == '-f':
+				self.fmt = value
+			elif arg == '-t':
+				self.type = value
+			idx += 2
+		if not self.path or not self.configPath:
+			print 'invalid input arguments'
+			print '\tlogs path and config file must be setted\n'
+			self.__print_usage()
+			return False
+		return True
+						
+	def __print_usage( self ):
+		print 'Usage:'
+		print '\tmain.py -i <logs path> -x <config file> [ -t <log type>  -f <log format> ]'
 
