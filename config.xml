@@ -3,9 +3,25 @@
 	<analyser>
 		<type>bandwidth</type>
 		<pace>10</pace>
+		<startTime>2013/04/20-21:02:43</startTime>
+		<endTime>2013/04/20-23:30:43</endTime>
 	</analyser>
 	<analyser>
-		<type>bandwidth</type>
-		<pace>60</pace>
+		<type>status</type>
+		<pace>-1</pace>
+		<startTime>2013/04/20-20:02:43</startTime>
+		<endTime>2013/04/21-00:50:43</endTime>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<pace>10</pace>
+		<startTime>2013/04/20-22:02:43</startTime>
+		<endTime>2013/04/20-23:50:43</endTime>
+	</analyser>
+	<analyser>
+		<type>xactrate</type>
+		<pace>1</pace>
+		<startTime>2013/04/20-23:02:43</startTime>
+		<endTime>2013/04/20-23:10:43</endTime>
 	</analyser>
 </translog>

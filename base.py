@@ -28,6 +28,10 @@ def seconds_str( tstr ):
 	dtime = datetime.strptime( tstr, __TIME_FMT )
 	return total_seconds( dtime )
 
+def str_seconds( seconds ):
+	dtime = to_datetime( seconds )
+	return str_time( dtime )
+
 def mkdir( dname ):
 	if not os.path.exists( dname ):
 		os.makedirs( dname )

@@ -1,8 +1,10 @@
-from logparser import *
 import os
 import sys
 from operator import itemgetter
+
 from analyser import *
+from logparser import *
+from factory import *
 
 
 class XactParser:
@@ -24,11 +26,54 @@ class XactParser:
 		files = self.__stat_files( args.path, parser )
 		startTime = files[0][0]
 		endTime = files[-1][0]
-		print 'start time:', startTime, 'end time:', endTime
+		print 'all files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
 		anlyList = self.anlyFactory.create_from_args( args, startTime, endTime )
+		files = self.__sample_files( files, anlyList )
+		if len(files) == 0:
+			print 'no file need to be parsed'
+			return
+		startTime = files[0][0]
+		endTime = files[-1][0]
+		print 'sampled files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
 		self.__analyse_files( files, parser, anlyList )
 		for anly in anlyList:
 			anly.close()
+
+	def __sample_files( self, fileList, anlyList ):
+		stime = -1
+		etime = -1
+		for anly in anlyList:
+			if anly.startTime > 0:
+				if stime < 0 or anly.startTime < stime:
+					stime = anly.startTime
+			else:
+				stime = -1
+				break
+		for anly in anlyList:
+			if anly.endTime > 0:
+				if etime < 0 or anly.endTime > etime:
+					etime = anly.endTime
+			else:
+				etime = -1
+				break
+		#sample the files based on the time range
+		if stime < 0 and etime < 0:
+			return fileList
+		sidx = -1
+		eidx = 0
+		size = len(fileList)
+		while eidx < size:
+			time = fileList[eidx][0]
+			if stime > 0 and sidx < 0 and time > stime:
+				sidx = eidx
+				if etime < 0:
+					break
+			if etime > 0 and time > etime:
+				break
+			eidx += 1
+		if sidx < 0:
+			sidx = 0
+		return fileList[ sidx:eidx ]
 
 
 	def __stat_files( self, path, parser ):
@@ -56,7 +101,8 @@ class XactParser:
 		for item in files:
 			count += 1
 			path = item[1]
-			print 'analyse the', str(count), 'th file>>', path
+			tstr = str_seconds( item[0] )
+			print 'analyse the', str(count), 'th file>>[', tstr, ']', path
 			self.__analyse_file( path, parser, anlyList )
 
 	def __analyse_file( self, path, parser, anlyList ):

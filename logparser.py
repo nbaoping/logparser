@@ -127,9 +127,10 @@ class WELogParser( LogParser ):
 		fmt = fmt.strip()
 		segs = fmt.split()
 		for seg in segs:
-			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy)
+			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy, seg)
 			if seg in WELogParser.fmtmap:
 				pfuncs = WELogParser.fmtmap[seg]
+				pfuncs = (pfuncs[0], pfuncs[1], seg)
 			self.__parsefuncs.append( pfuncs )
 
 	def parse_line( self, line ):
@@ -145,17 +146,17 @@ class WELogParser( LogParser ):
 		#print 'size:', len( self.__parsefuncs )
 		for funcs in self.__parsefuncs:
 			#print funcs, i
-			if not funcs[0]( self, fields[i], logInfo, funcs[1] ):
+			if not funcs[0]( self, fields[i], logInfo, funcs[1], funcs[2] ):
 				print 'parse line failed', line
 				return None
 			i += 1
 		return logInfo
 
-	def parseString( self, field, logInfo, set_func ):
+	def parseString( self, field, logInfo, set_func, fmt ):
 		set_func( logInfo, field )
 		return True
 
-	def parseInt( self, field, logInfo, set_func ):
+	def parseInt( self, field, logInfo, set_func, fmt ):
 		try:
 			value = int( field )
 			set_func( logInfo, value )
@@ -164,7 +165,7 @@ class WELogParser( LogParser ):
 			return False
 		return True
 
-	def parseFloat( self, field, logInfo, set_func ):
+	def parseFloat( self, field, logInfo, set_func, fmt ):
 		try:
 			value = float( field )
 			set_func( logInfo, value )
@@ -173,7 +174,7 @@ class WELogParser( LogParser ):
 			return False
 		return True
 
-	def parseStandardTime( self, field, logInfo, set_func ):
+	def parseStandardTime( self, field, logInfo, set_func, fmt ):
 		idx = field.rfind( '+' )
 		tstr = field[ 0:idx ]
 		timeFmt = '[%d/%b/%Y:%H:%M:%S'
@@ -182,22 +183,89 @@ class WELogParser( LogParser ):
 		set_func( logInfo, dtime )
 		return True
 
-	def parseServedTime( self, field, logInfo, set_func ):
+	def parseServedTime( self, field, logInfo, set_func, fmt ):
 		#set_func( logInfo, int(field) )
 		return True
 	
 	#[21/Apr/2013:00:54:59.848+0000]
 	#%d/%b/%Y:%H:%M:%S.%f
-	def parseRecvdTime( self, field, logInfo, set_func ):
+	def parseRecvdTime( self, field, logInfo, set_func, fmt ):
 		segs = field.split( '.' )
 		dtime = datetime.strptime( segs[0], self.timeFmt )
 		dtime = total_seconds( dtime )
 		set_func( logInfo, dtime )
 		return True
 
-	def parseOthers( self, field, logInfo, set_func ):
+	def parseOthers( self, field, logInfo, set_func, fmt ):
+		if fmt[0] == '%':
+			return self.__parse_combined( field, logInfo, fmt )
 		return True
 
-	def parseDummy( self, field, logInfo, set_func ):
+	def __parse_combined( self, field, logInfo, fmt ):
+		fmtList = self.__split_fmt( fmt )
+		fieldList = self.__split_fields( field, fmtList )
+		for item in fieldList:
+			if item[0] in WELogParser.fmtmap:
+				funcs = WELogParser.fmtmap[ item[0] ]
+				funcs[0]( self, item[1], logInfo, funcs[1], item[0] )
+		return True
+
+
+	def __split_fmt( self, fmt ):
+		idx = 0
+		fmtList = list()
+		size = len(fmt)
+		while idx < size:
+			off = 2
+			if fmt[idx] == '%':
+				if idx+1 >= size:
+					break
+				item = None
+				if fmt[idx+1] == '>':
+					if idx+2 >= size:
+						break
+					item = fmt[idx:idx+3]
+					off = 3
+				else:
+					item = fmt[idx:idx+2]
+				if item:
+					fmtList.append( item )
+			else:
+				print 'error char', fmt[idx]
+				break
+			nidx = fmt.find( '%', idx+off )
+			if nidx == -1:
+				item = fmt[idx+off:size]
+				if len(item) > 0:
+					fmtList.append( item )
+				break
+			item = fmt[idx+off:nidx]
+			fmtList.append( item )
+			idx = nidx
+		return fmtList
+
+	def __split_fields( self, field, fmtList ):
+		idx = 1
+		fsize = len(fmtList)
+		fidx = 0
+		fieldList = list()
+		while idx < fsize:
+			nidx = field.find( fmtList[idx], fidx )
+			if nidx < 0:
+				break
+			fmt = fmtList[idx-1]
+			item = field[ fidx:nidx ]
+			fieldList.append( (fmt, item) )
+			fidx = nidx + len(fmtList[idx])		#skip the split string
+			idx += 2
+		fieldSize = len(field)
+		if fidx < fieldSize:
+			item = field[ fidx:fieldSize]
+			fmt = fmtList[ idx-1 ]
+			fieldList.append( (fmt, item) )
+		return fieldList
+
+
+	def parseDummy( self, field, logInfo, set_func, fmt ):
 		return True
 
