@@ -1,0 +1,27 @@
+
+<translog>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>xactrate</type>
+		<pace>1</pace>
+	</analyser>
+	<analyser>
+		<type>requestdes</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>consumed</type>
+		<pace>10</pace>
+	</analyser>
+</translog>
