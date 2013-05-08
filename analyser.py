@@ -66,16 +66,16 @@ class Analyser( object ):
 			return self.anly_pace( logInfo )
 
 	def anly_zero_pace( self, logInfo ):
-		raise Exception( 'derived must implement anly_zero_pace virtual function' )
+		raise_virtual( func_name() )
 
 	def anly_negative_pace( self, logInfo ):
-		raise Exception( 'derived must implement anly_negative_pace virtual function' )
+		raise_virtual( func_name() )
 
 	def anly_pace( self, logInfo ):
-		raise Exception( 'derived must implement anly_pace virtual function' )
+		raise_virtual( func_name() )
 
 	def close( self ):
-		raise Exception( 'derived must implement close virtual function' )
+		raise_virtual( func_name() )
 
 
 class BandwidthAnalyser( Analyser ):
@@ -229,7 +229,7 @@ class StatusAnalyser( Analyser ):
 				sampleTime = curTime + toAdd
 				tstr = str_seconds( sampleTime )
 				bufio.write( tstr )
-				bufio.write( ',' )
+				bufio.write( ';' )
 				bufio.write( str(item) )
 				bufio.write( '\n' )
 			curTime += sampler.pace
@@ -299,4 +299,167 @@ class XactRateAnalyser( Analyser ):
 			self.sampler = None
 		self.fout.close()
 
+
+class DescAnalyser( Analyser ):
+	def __init__( self, config ):
+		super( DescAnalyser, self ).__init__( config )
+		self.sampler = None
+
+	def anly_zero_pace( self, logInfo ):
+		tstr = str_seconds( logInfo.rtime )
+		log = tstr + ',' + str(logInfo) + '\n'
+		self.fout.write( log )
+		return True
+
+	def anly_negative_pace( self, logInfo ):
+		return self.anly_pace( logInfo )
+
+	def anly_pace( self, logInfo ):
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		if not logInfo.exist( 'requestDes' ):
+			logInfo.requestDes = 'null'
+		value = dict()
+		value[logInfo.requestDes] = 1
+		servTime = logInfo.stime / 1000000 + 1
+		ret = self.sampler.add_sample( logInfo.rtime + servTime, value )
+		if ret != 0:
+			return False
+		return True
+
+	def __create_sampler( self, logInfo ):
+		startTime = self.get_sample_start_time( logInfo )
+		endTime = self.get_sample_end_time( logInfo )
+		sargs = SamplerArgs( startTime, endTime, self.pace,
+				BUF_TIME, NUM_THRES, DescAnalyser.__flush_callback, self )
+		self.sampler = MutableSampler( sargs, DescAnalyser.__init_value, DescAnalyser.__update_value )
+
+	def __init_value( self, value ):
+		return dict()
+	
+	def __update_value( self, oldValue, sampleValue ):
+		for des in sampleValue.keys():
+			count = sampleValue[ des ]
+			if des in oldValue:
+				count += oldValue[ des ]
+			oldValue[des] = count
+		return oldValue
+
+	def __flush_callback( self, sampler, blist ):
+		curTime = sampler.startTime
+		toAdd = 0
+		if sampler.pace > 0:
+			toAdd = sampler.pace / 2
+		bufio = StringIO()
+		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		for item in blist:
+			if len(item) != 0:
+				sampleTime = curTime + toAdd
+				tstr = str_seconds( sampleTime )
+				bufio.write( tstr )
+				bufio.write( ';' )
+				bufio.write( str(item) )
+				bufio.write( '\n' )
+			curTime += sampler.pace
+		logs = bufio.getvalue()
+		self.fout.write( logs )
+
+	def close( self ):
+		print 'close', self.__class__, self
+		if self.sampler is not None:
+			self.sampler.flush()
+			self.sampler = None
+		self.fout.close()
+
+class AnalyserHelper( object ):
+	def __init__( self ):
+		pass
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		raise_virtual( func_name() )
+
+	def init_value( self, value ):
+		raise_virtual( func_name() )
+	
+	def update_value( self, oldValue, sampleValue ):
+		raise_virtual( func_name() )
+
+	def is_empty( self, value ):
+		raise_virtual( func_name() )
+
+	def str_value( self, value ):
+		raise_virtual( func_name() )
+
+	def get_split( self ):
+		return ';'
+
+
+class SingleAnalyser( Analyser ):
+	def __init__( self, config, helper ):
+		super( SingleAnalyser, self ).__init__( config )
+		self.sampler = None
+		self.__helper = helper
+
+	def anly_zero_pace( self, logInfo ):
+		tstr = str_seconds( logInfo.rtime )
+		log = tstr + ',' + str(logInfo) + '\n'
+		self.fout.write( log )
+		return True
+
+	def anly_negative_pace( self, logInfo ):
+		return self.anly_pace( logInfo )
+
+	def anly_pace( self, logInfo ):
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		if not logInfo.exist( 'requestDes' ):
+			logInfo.requestDes = 'null'
+		value = self.__helper.get_value( logInfo )
+		servTime = logInfo.stime / 1000000 + 1
+		ret = self.sampler.add_sample( logInfo.rtime + servTime, value )
+		if ret != 0:
+			return False
+		return True
+
+	def __create_sampler( self, logInfo ):
+		startTime = self.get_sample_start_time( logInfo )
+		endTime = self.get_sample_end_time( logInfo )
+		sargs = SamplerArgs( startTime, endTime, self.pace,
+				BUF_TIME, NUM_THRES, SingleAnalyser.__flush_callback, self )
+		self.sampler = MutableSampler( sargs, SingleAnalyser.__init_value, SingleAnalyser.__update_value )
+
+	def __init_value( self, value ):
+		return self.__helper.init_value( value )
+	
+	def __update_value( self, oldValue, sampleValue ):
+		return self.__helper.update_value( oldValue, sampleValue )
+
+	def __flush_callback( self, sampler, blist ):
+		curTime = sampler.startTime
+		toAdd = 0
+		if sampler.pace > 0:
+			toAdd = sampler.pace / 2
+		bufio = StringIO()
+		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		split = self.__helper.get_split()
+		for item in blist:
+			if not self.__helper.is_empty( item ):
+				sampleTime = curTime + toAdd
+				tstr = str_seconds( sampleTime )
+				bufio.write( tstr )
+				bufio.write( split )
+				vstr = self.__helper.str_value( item )
+				bufio.write( vstr )
+				bufio.write( '\n' )
+			curTime += sampler.pace
+		logs = bufio.getvalue()
+		self.fout.write( logs )
+
+	def close( self ):
+		print 'close', self.__class__, self
+		if self.sampler is not None:
+			self.sampler.flush()
+			self.sampler = None
+		self.fout.close()
 

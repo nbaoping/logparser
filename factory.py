@@ -1,7 +1,62 @@
 from analyser import *
 
+#======================================================================
+#===========parse xml config and create the analysers==================
+#======================================================================
 
-#parse analysers xml config
+class DesHelper( AnalyserHelper ):
+	def __init__( self ):
+		pass
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		if not logInfo.exist( 'requestDes' ):
+			logInfo.requestDes = 'null'
+		value = dict()
+		value[logInfo.requestDes] = 1
+		return value
+
+	def init_value( self, value ):
+		return dict()
+	
+	def update_value( self, oldValue, sampleValue ):
+		for des in sampleValue.keys():
+			count = sampleValue[ des ]
+			if des in oldValue:
+				count += oldValue[ des ]
+			oldValue[des] = count
+		return oldValue
+
+	def is_empty( self, value ):
+		return len(value) == 0
+
+	def str_value( self, value ):
+		return str( value )
+
+
+class ConsumedHelper( AnalyserHelper ):
+	def __init__( self ):
+		pass
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		if not logInfo.exist( 'stime' ):
+			logInfo.stime = 0
+		return logInfo.stime / 1000000
+
+	def init_value( self, value ):
+		return 0
+	
+	def update_value( self, oldValue, sampleValue ):
+		return oldValue + sampleValue
+
+	def is_empty( self, value ):
+		return value <= 0
+
+	def str_value( self, value ):
+		value = round( value, 3 )
+		return str( value )
+
 
 
 def get_attrvalue(node, attrname):
@@ -19,7 +74,10 @@ class AnalyserFactory:
 	def __init__( self ):
 		self.__standardMap = {
 				'bandwidth' : (AnalyserFactory.__parse_bandwidth, AnalyserFactory.__create_bandwidth),
-				'status' : (AnalyserFactory.__parse_status, AnalyserFactory.__create_status)
+				'status' : (AnalyserFactory.__parse_status, AnalyserFactory.__create_status),
+				'xactrate' : (AnalyserFactory.__parse_xactrate, AnalyserFactory.__create_xactrate),
+				'requestdes' : (AnalyserFactory.__parse_requestdes, AnalyserFactory.__create_requestdes),
+				'consumed' : (AnalyserFactory.__parse_consumed, AnalyserFactory.__create_others)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -114,6 +172,33 @@ class AnalyserFactory:
 		anly = StatusAnalyser( config )
 		return anly
 
+	def __parse_xactrate( self, node ):
+		pass
+
+	def __create_xactrate( self, config ):
+		anly = XactRateAnalyser( config )
+		return anly
+
+	def __parse_requestdes( self, node ):
+		pass
+
+	def __create_requestdes( self, config ):
+		helper = DesHelper()
+		anly = SingleAnalyser( config, helper )
+		return anly
+
+	def __parse_consumed( self, node ):
+		pass
+
+	def __create_others( self, config ):
+		atype = 'single'
+		helper = None
+		anly = None
+		if config.type == 'consumed':
+			helper = ConsumedHelper()
+		if atype == 'single':
+			anly = SingleAnalyser( config, helper )
+		return anly
 
 def register_anlyser( anlyType, parse_func, create_func, obj ):
 	AnalyserFactory.anlyMap[anlyType] = ( parse_func, create_func, obj )

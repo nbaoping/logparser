@@ -22,7 +22,7 @@ class XactParser:
 		if args.fmt is not None:
 			fmt = args.fmt
 		print 'translog format:', fmt
-		parser = WELogParser( fmt )
+		parser = WELogParser( fmt, args.fieldParser )
 		files = self.__stat_files( args.path, parser )
 		startTime = files[0][0]
 		endTime = files[-1][0]
@@ -102,7 +102,7 @@ class XactParser:
 			count += 1
 			path = item[1]
 			tstr = str_seconds( item[0] )
-			print 'analyse the', str(count), 'th file>>[', tstr, ']', path
+			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
 			self.__analyse_file( path, parser, anlyList )
 
 	def __analyse_file( self, path, parser, anlyList ):

@@ -56,6 +56,9 @@ class WELogInfo:
 	def setDummy( self, dummy ):
 		pass
 
+	def exist( self, member ):
+		return member in self.__dict__
+
 	def __str__( self ):
 		return str(self.__dict__)
 		#log = str_time( self.__dict__['rtime'] )
@@ -78,6 +81,14 @@ __weStrFmtSet = ['%b', '%D', '%I', ]
 __weIntFmtSet = ['%a', '%A', '%h', '%H', 'm']
 
 #implement parser for extsqu format
+
+class IFieldParser( object ):
+	def __init__( self ):
+		pass
+
+	def parse_field( self, logInfo, field, fmt ):
+		raise Exception( 'derived class must implement function parse_field' )
+
 
 def __parse_string( field ):
 	return field
@@ -113,12 +124,12 @@ class WELogParser( LogParser ):
 			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setRtime)
 			}
 
-
-	def __init__( self, fmt = None ):
+	def __init__( self, fmt = None, fieldParser = None ):
 		if WELogParser.fmtmap is None:
 			self.__init_parser()
 		self.__parsefuncs = None
 		self.timeFmt = '[%d/%b/%Y:%H:%M:%S'
+		self.__fieldParser = fieldParser
 		if fmt is not None:
 			self.init_format( fmt )
 
@@ -197,18 +208,26 @@ class WELogParser( LogParser ):
 		return True
 
 	def parseOthers( self, field, logInfo, set_func, fmt ):
+		ret = False
 		if fmt[0] == '%':
-			return self.__parse_combined( field, logInfo, fmt )
-		return True
+			ret = self.__parse_combined( field, logInfo, fmt )
+		if not ret and self.__fieldParser:
+			ret = self.__fieldParser.parse_field( logInfo, field, fmt )
+		return ret
 
 	def __parse_combined( self, field, logInfo, fmt ):
 		fmtList = self.__split_fmt( fmt )
 		fieldList = self.__split_fields( field, fmtList )
+		ret = False
 		for item in fieldList:
 			if item[0] in WELogParser.fmtmap:
 				funcs = WELogParser.fmtmap[ item[0] ]
 				funcs[0]( self, item[1], logInfo, funcs[1], item[0] )
-		return True
+				ret = True
+			else:
+				if self.__fieldParser is not None:
+					self.__fieldParser.parse_field( logInfo, item[1], item[0] )
+		return ret
 
 
 	def __split_fmt( self, fmt ):

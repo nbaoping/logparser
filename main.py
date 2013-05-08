@@ -2,26 +2,55 @@ import sys
 from parxact import *
 from factory import *
 
+class TestAnalyser( Analyser ):
+	def __init__( self, config ):
+		super( TestAnalyser, self ).__init__( config )
+		pass
+
+	def anly_zero_pace( self, logInfo ):
+		#TODO
+		return True
+
+	def anly_negative_pace( self, logInfo ):
+		#TODO
+		return True
+
+	def anly_pace( self, logInfo ):
+		#TODO
+		return True
+
+	def close( self ):
+		#TODO
+		return True
+
+
+
 class TestFactory( object ):
 	def __init__( self ):
 		pass
 
 	def register( self ):
-		register_anlyser( 'xactrate', TestFactory.__parse, TestFactory.__create, self )
+		register_anlyser( 'test', TestFactory.__parse, TestFactory.__create, self )
 
 	def __parse( self, node ):
 		print 'parse TestFactory'
 
 	def __create( self, config ):
-		anly = XactRateAnalyser( config )
+		anly = TestAnalyser( config )
 		return anly
 
+class TestFieldParser( IFieldParser ):
+	def __init__( self ):
+		pass
+
+	def parse_field( self, logInfo, field, fmt ):
+		#TODO add customized parsing here
+		return True
 
 #args.fmt = '%a %A %b %D %h %H %I %m %O %q %r %>s %t %T %U %V %X'
 def parse_args():
 	args = InputArgs()
 	if not args.parse_argv( sys.argv ):
-		print 'invalid input arguments'
 		return None
 	return args
 
@@ -31,6 +60,8 @@ def main():
 		return ;
 	factory = TestFactory()
 	factory.register()
+	#use customized field parser
+	args.fieldParser = TestFieldParser()
 	parser = XactParser( )
 	parser.parse( args )
 

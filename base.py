@@ -1,6 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
 import os
+import inspect
 
 RES_DIR = 'output'
 
@@ -36,12 +37,20 @@ def mkdir( dname ):
 	if not os.path.exists( dname ):
 		os.makedirs( dname )
 
+def func_name():
+	#print inspect.stack()
+	return inspect.stack()[1][3]
+
+def raise_virtual( func ):
+	raise Exception( 'derived must implement '+func+' virtual function' )
+
 class InputArgs:
 	def __init__( self ):
 		self.path = None
 		self.type = 'extsqu'
 		self.fmt = None
 		self.configPath = None
+		self.fieldParser = None
 
 	def parse_argv( self, argv ):
 		idx = 1

@@ -1,4 +1,6 @@
 from logparser import *
+import inspect
+from base import *
 
 class TestObj:
 	sname = 'class TestObj'
@@ -13,6 +15,9 @@ class TestObj:
 
 	def printout( self, string ):
 		print 'printout function', string
+		print '======================'
+		print func_name()
+		print '**********************'
 
 	def test( self ):
 		self.newName = 'new name'
@@ -47,4 +52,4 @@ def test_parser():
 	total = total_seconds( logInfo.rtime )
 	print total
 
-test_parser()
+#test_parser()
