@@ -24,6 +24,9 @@ class XactParser:
 		print 'translog format:', fmt
 		parser = WELogParser( fmt, args.fieldParser )
 		files = self.__stat_files( args.path, parser )
+		if len(files) == 0:
+			print 'no translog files, please check the logs path:', args.path
+			return
 		startTime = files[0][0]
 		endTime = files[-1][0]
 		print 'all files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
