@@ -3,6 +3,8 @@ from datetime import timedelta
 import os
 import inspect
 
+from customer import *
+
 RES_DIR = 'output'
 
 __TIME_FMT = '%Y/%m/%d-%H:%M:%S'
@@ -51,6 +53,7 @@ class InputArgs:
 		self.fmt = None
 		self.configPath = None
 		self.fieldParser = None
+		self.customer = None
 
 	def parse_argv( self, argv ):
 		idx = 1
@@ -70,12 +73,17 @@ class InputArgs:
 				self.fmt = value
 			elif arg == '-t':
 				self.type = value
+			elif arg == '-c':
+				self.customer = value
 			idx += 2
 		if not self.path or not self.configPath:
 			print 'invalid input arguments'
 			print '\tlogs path and config file must be setted\n'
 			self.__print_usage()
 			return False
+		if self.fmt is None and self.customer is not None:
+			print 'format not set, use customer', self.customer, ' standard format'
+			self.fmt = get_log_fmt( self.customer )
 		return True
 						
 	def __print_usage( self ):
