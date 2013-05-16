@@ -27,7 +27,7 @@ class DesHelper( AnalyserHelper ):
 			oldValue[des] = count
 		return oldValue
 
-	def is_empty( self, value ):
+	def exclude_value( self, value ):
 		return len(value) == 0
 
 	def str_value( self, value ):
@@ -50,12 +50,87 @@ class ConsumedHelper( AnalyserHelper ):
 	def update_value( self, oldValue, sampleValue ):
 		return oldValue + sampleValue
 
-	def is_empty( self, value ):
+	def exclude_value( self, value ):
 		return value <= 0
 
 	def str_value( self, value ):
 		value = round( value, 3 )
 		return str( value )
+
+class TmpconnHelper( AnalyserHelper ):
+	def __init__( self, config ):
+		self.servTime = config.servTime
+		if config.exist( 'clientMap' ):
+			self.clientMap = config.clientMap
+		else:
+			self.clientMap = None
+		print self.clientMap
+		if config.exist( 'thresCount' ):
+			self.thresCount = config.thresCount
+		else:
+			self.thresCount = -1
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		cip = logInfo.cip
+		count = 0
+		if self.__is_valid_response(logInfo):
+			servTime = self.servTime + 1
+			if logInfo.exist( 'stime' ):
+				servTime = int( logInfo.stime / 1000 )		#in millisecond
+			if servTime <= self.servTime:
+				count = 1
+		if self.clientMap is not None:
+			if self.__is_target_client(cip):
+				return (cip, count)
+			return None
+		return count
+
+	def __is_valid_response( self, logInfo ):
+		status = logInfo.status
+		return status == 200 or status == 206 or status == 304
+
+	def __is_target_client( self, cip ):
+		if 'all' in self.clientMap or cip in self.clientMap:
+			return True
+		return False
+
+	def init_value( self, value ):
+		if self.clientMap is not None:
+			return dict()
+		return 0
+	
+	def update_value( self, oldValue, sampleValue ):
+		if self.clientMap is None:
+			return oldValue + sampleValue
+		if sampleValue is not None:
+			count = sampleValue[1]
+			cip = sampleValue[0]
+			if cip in oldValue:
+				count += oldValue[cip]
+			oldValue[cip] = count
+		return oldValue
+
+	def exclude_value( self, value ):
+		if self.clientMap is None:
+			return value <= 0
+		return len(value) == 0
+
+	def str_value( self, value ):
+		if self.clientMap is None:
+			return str( value )
+		vstr = None
+		for cip in value.keys():
+			count = value[ cip ]
+			if self.thresCount > 0 and count < self.thresCount:
+				continue
+			cstr = cip + ':' + str( count )
+			if vstr is None:
+				vstr = cstr
+			else:
+				vstr += ', ' + cstr
+		return vstr
+
 
 
 
@@ -73,11 +148,12 @@ class AnalyserFactory:
 
 	def __init__( self ):
 		self.__standardMap = {
-				'bandwidth' : (AnalyserFactory.__parse_bandwidth, AnalyserFactory.__create_bandwidth),
-				'status' : (AnalyserFactory.__parse_status, AnalyserFactory.__create_status),
-				'xactrate' : (AnalyserFactory.__parse_xactrate, AnalyserFactory.__create_xactrate),
-				'requestdes' : (AnalyserFactory.__parse_requestdes, AnalyserFactory.__create_requestdes),
-				'consumed' : (AnalyserFactory.__parse_consumed, AnalyserFactory.__create_others)
+				'bandwidth' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_bandwidth),
+				'status' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_status),
+				'xactrate' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_xactrate),
+				'requestdes' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_requestdes),
+				'consumed' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
+				'tmpconn' : (AnalyserFactory.__parse_tmpconn, AnalyserFactory.__create_common)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -152,17 +228,11 @@ class AnalyserFactory:
 				config.outPath = os.path.join( inputPath, fname )
 			funcItem = self.__get_parse_func( config.type )
 			if funcItem is not None:
-				funcItem[1]( funcItem[0], node )
+				funcItem[1]( funcItem[0], config, node )
 			print 'parsed anlyser', config
 			configList.append( config )
 		print 'total ', count, 'Analysers parsed'
 		return configList
-
-	def __parse_bandwidth( self, node ):
-		pass
-
-	def __parse_status( self, node ):
-		pass
 
 	def __create_bandwidth( self, config ):
 		anly = BandwidthAnalyser( config )
@@ -172,30 +242,52 @@ class AnalyserFactory:
 		anly = StatusAnalyser( config )
 		return anly
 
-	def __parse_xactrate( self, node ):
-		pass
-
 	def __create_xactrate( self, config ):
 		anly = XactRateAnalyser( config )
 		return anly
-
-	def __parse_requestdes( self, node ):
-		pass
 
 	def __create_requestdes( self, config ):
 		helper = DesHelper()
 		anly = SingleAnalyser( config, helper )
 		return anly
 
-	def __parse_consumed( self, node ):
+	def __parse_dummy( self, config, node ):
 		pass
 
-	def __create_others( self, config ):
+	def __parse_tmpconn( self, config, node ):
+		snode = get_xmlnode( node, 'servTime' )
+		servTime = int( get_nodevalue(snode[0]) )
+		config.servTime = servTime
+
+		cnodeList = get_xmlnode( node, 'client' )
+		cmap = None
+		if cnodeList is not None:
+			for cnode in cnodeList:
+				cip = get_nodevalue( cnode )
+				if cip == 'all':
+					cmap = dict()
+					cmap['all'] = 0
+					break
+				else:
+					if cmap is None:
+						cmap = dict()
+					cmap[cip] = 0
+		if cmap is not None:
+			config.clientMap = cmap
+
+		tnode = get_xmlnode( node, 'thresCount' )
+		if len(tnode) > 0:
+			config.thresCount = get_nodevalue( tnode[0] )
+
+
+	def __create_common( self, config ):
 		atype = 'single'
 		helper = None
 		anly = None
 		if config.type == 'consumed':
 			helper = ConsumedHelper()
+		elif config.type == 'tmpconn':
+			helper = TmpconnHelper( config )
 		if atype == 'single':
 			anly = SingleAnalyser( config, helper )
 		return anly

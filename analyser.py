@@ -21,6 +21,10 @@ class AnalyConfig( object ):
 	def __str__( self ):
 		return str( self.__dict__ )
 
+	def exist( self, member ):
+		return member in self.__dict__
+
+
 class Analyser( object ):
 	def __init__( self, config, toFile = True ):
 		self.startTime = config.startTime
@@ -76,6 +80,9 @@ class Analyser( object ):
 
 	def close( self ):
 		raise_virtual( func_name() )
+
+	def exist( self, member ):
+		return member in self.__dict__
 
 
 class BandwidthAnalyser( Analyser ):
@@ -385,7 +392,7 @@ class AnalyserHelper( object ):
 	def update_value( self, oldValue, sampleValue ):
 		raise_virtual( func_name() )
 
-	def is_empty( self, value ):
+	def exclude_value( self, value ):
 		raise_virtual( func_name() )
 
 	def str_value( self, value ):
@@ -444,14 +451,15 @@ class SingleAnalyser( Analyser ):
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		split = self.__helper.get_split()
 		for item in blist:
-			if not self.__helper.is_empty( item ):
-				sampleTime = curTime + toAdd
-				tstr = str_seconds( sampleTime )
-				bufio.write( tstr )
-				bufio.write( split )
+			if not self.__helper.exclude_value( item ):
 				vstr = self.__helper.str_value( item )
-				bufio.write( vstr )
-				bufio.write( '\n' )
+				if vstr is not None:
+					sampleTime = curTime + toAdd
+					tstr = str_seconds( sampleTime )
+					bufio.write( tstr )
+					bufio.write( split )
+					bufio.write( vstr )
+					bufio.write( '\n' )
 			curTime += sampler.pace
 		logs = bufio.getvalue()
 		self.fout.write( logs )

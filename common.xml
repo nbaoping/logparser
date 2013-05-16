@@ -28,4 +28,15 @@
 		<type>consumed</type>
 		<pace>10</pace>
 	</analyser>
+	<analyser>
+		<type>tmpconn</type>
+		<servTime>100</servTime>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>tmpconn</type>
+		<client>all</client>
+		<servTime>100</servTime>
+		<pace>-1</pace>
+	</analyser>
 </translog>
