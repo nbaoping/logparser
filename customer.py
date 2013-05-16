@@ -1,7 +1,8 @@
 
 
 fmt_map = {
-		'ft' : '%a %A %b %D %h %H %I %m %O %q %r %>s %t %T %U %V %X' 
+		'ft' : '%a %A %b %D %h %H %I %m %O %q %r %>s %t %T %U %V %X',
+		'telstra' : '%Z %D %a %R/%>s %O %m %u %M'
 }
 
 def get_log_fmt( customer ):

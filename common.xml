@@ -21,6 +21,10 @@
 		<pace>10</pace>
 	</analyser>
 	<analyser>
+		<type>requestdes</type>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
 		<type>consumed</type>
 		<pace>10</pace>
 	</analyser>
