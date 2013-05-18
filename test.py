@@ -25,31 +25,21 @@ class TestObj:
 
 	def s_test():
 		print 'static func'
+	
+	def set_value( self, mname, value ):
+		self.__dict__[mname] = value
 
-__func = TestObj.printout
+	def get_value( self, mname ):
+		return self.__dict__[mname]
 
-dd = {
-		'fdfadsf':908080,
-		'ljldsfjsd':423423
-	}
-print dd
-to = TestObj()
-to.test()
-print TestObj.sname
-print to.sname
-print to.name
-print to.newName
-print '=============================================='
-func = TestObj.printout
-func( to, 'call outside' )
+class Derived( TestObj ):
+	pass
 
 
-def test_parser():
-	line = '[21/Apr/2013:00:54:59.848+0000] 161136 192.148.158.11 TCP_MEM_HIT/200 661052 GET http://smoothorigin.vos.bigpond.com/987_afl_c3004_tbox.isml/QualityLevels(3500000)/Fragments(video=17988522580555) video/mp4 '
-	parser = WELogParser( WE_XACTLOG_EXT_SQUID_STR )
-	logInfo = parser.parse_line( line )
-	print logInfo
-	total = total_seconds( logInfo.rtime )
-	print total
-
-#test_parser()
+tobj = Derived()
+mname = 'clientIp'
+tobj.set_value( mname, 'all' )
+value = tobj.get_value( mname )
+print 'from dict:', value
+value = tobj.clientIp
+print 'from member:', value

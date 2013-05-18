@@ -16,7 +16,7 @@ WE_XACTLOG_APACHE_STR = "%a %u %O %b %I %m %>s %t %D"
 WE_XACTLOG_EXT_SQUID_STR = "%Z %D %a %R/%>s %O %m %u %M"
 
 
-class WELogInfo:
+class WELogInfo( BaseObject ):
 	def __init__( self ):
 		pass
 	
@@ -61,24 +61,93 @@ class WELogInfo:
 
 	def __str__( self ):
 		return str(self.__dict__)
-		#log = str_time( self.__dict__['rtime'] )
-		#for key in self.__dict__.keys():
-		#	if key != 'rtime':
-		#		log += '\t' + key + ':' + str( self.__dict__[key] )
-		#return log
-#		print 'cip:', self.cip
-#		print 'uri:', self.uri
-#		print 'method:', self.method
-#		print 'rtime:', self.rtime
-#		print 'sent:', self.sent
-#		print 'allSent:', self.allSent
-#		print 'status:', self.status
-#		print 'requestDes:', self.requestDes
-#		print 'mimeType:', self.mimeType
 
 #private global variables
 __weStrFmtSet = ['%b', '%D', '%I', ]
 __weIntFmtSet = ['%a', '%A', '%h', '%H', 'm']
+
+__fmtNameMap = {
+	'%a' : 'clientIp',
+	'%A' : 'seIp',
+	'%b' : 'bytesSent',
+	'%B' : 'bitrate',
+	'%C' : 'lookupTime',
+	'%D' : 'servTime',
+	'%E' : 'encType',
+	'%g' : 'storageUrl',
+	'%G' : 'sourceUrl',
+	'%h' : 'remoteHost',
+	'%H' : 'protocol',
+	'%i' : 'sessionId',
+	'%I' : 'bytesRecvd',
+	'%k' : 'trackMethod',
+	'%m' : 'method',
+	'%M' : 'mimeType',
+	'%O' : 'bytesSentAll',
+	'%q' : 'queryString',
+	'%r' : 'firstLine',
+	'%R' : 'description',
+	'%>s' : 'status',
+	'%S' : 'sessionStatus',
+	'%t' : 'standardTime',
+	'%T' : 'servSeconds',
+	'%u' : 'urlAll',
+	'%U' : 'url',
+	'%V' : 'hostHeader',
+	'%y' : 'abrType',
+	'%X' : 'connStatus',
+	'%Z' : 'recvdTime'
+}
+
+__nameFmtMap = {
+	'clientIp'		: '%a',
+	'seIp'			: '%A',
+	'bytesSent'		: '%b',
+	'bitrate'		: '%B',
+	'lookupTime'	: '%C',
+	'servTime'		: '%D',
+	'encType'		: '%E',
+	'storageUrl'	: '%g',
+	'sourceUrl'		: '%G',
+	'remoteHost'	: '%h',
+	'protocol'		: '%H',
+	'sessionId'		: '%i',
+	'bytesRecvd'	: '%I',
+	'trackMethod'	: '%k',
+	'method'		: '%m',
+	'mimeType'		: '%M',
+	'bytesSentAll'	: '%O',
+	'queryString'	: '%q',
+	'firstLine'		: '%r',
+	'description'	: '%R',
+	'status'		: '%>s',
+	'sessionStatus'	: '%S',
+	'standardTime'	: '%t',
+	'servSeconds'	: '%T',
+	'urlAll'		: '%u',
+	'url'			: '%U',
+	'hostHeader'	: '%V',
+	'abrType'		: '%y',
+	'connStatus'	: '%X',
+	'recvdTime'		: '%Z'
+}
+
+def get_fmt_by_name( name ):
+	if name in __nameFmtMap:
+		return __nameFmtMap[name]
+	return None
+
+def get_name_by_fmt( fmt ):
+	if fmt in __fmtNameMap:
+		return __fmtNameMap[fmt]
+	return None
+
+def set_log_info( logInfo, fmt, value ):
+	name = get_name_by_fmt( fmt )
+	if name is None:
+		return
+	logInfo.set_member( name, value )
+
 
 #implement parser for extsqu format
 
@@ -101,27 +170,27 @@ class WELogParser( LogParser ):
 
 	def __init_parser( self ):
 		WELogParser.fmtmap = {
-			'%a':(WELogParser.parseString, WELogInfo.setCip),
+			'%a':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
 			'%A':(WELogParser.parseString, WELogInfo.setDummy),
-			'%b':(WELogParser.parseInt, WELogInfo.setSent),
-			'%D':(WELogParser.parseInt, WELogInfo.setStime),
+			'%b':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
+			'%D':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStime),
 			'%h':(WELogParser.parseString, WELogInfo.setDummy),
 			'%H':(WELogParser.parseString, WELogInfo.setDummy),
 			'%I':(WELogParser.parseInt, WELogInfo.setDummy),
-			'%m':(WELogParser.parseString, WELogInfo.setMethod),
-			'%M':(WELogParser.parseString, WELogInfo.setMimeType),
-			'%O':(WELogParser.parseInt, WELogInfo.setAllSent),
+			'%m':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMethod),
+			'%M':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMimeType),
+			'%O':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setAllSent),
 			'%q':(WELogParser.parseString, WELogInfo.setDummy),
 			'%r':(WELogParser.parseString, WELogInfo.setDummy),
-			'%R':(WELogParser.parseString, WELogInfo.setRequestDes),
-			'%>s':(WELogParser.parseInt, WELogInfo.setStatus),
-			'%t':(WELogParser.parseStandardTime, WELogInfo.setRtimeT),
+			'%R':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setRequestDes),
+			'%>s':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStatus),
+			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),# WELogInfo.setRtimeT),
 			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
-			'%u':(WELogParser.parseString,WELogInfo.setUri),
+			'%u':(WELogParser.parseString, WELogInfo.setDummy),#WELogInfo.setUri),
 			'%U':(WELogParser.parseString, WELogInfo.setDummy),
 			'%V':(WELogParser.parseString, WELogInfo.setDummy),
 			'%X':(WELogParser.parseString, WELogInfo.setDummy),
-			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setRtime)
+			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setDummy)# WELogInfo.setRtime)
 			}
 
 	def __init__( self, fmt = None, fieldParser = None ):
@@ -137,11 +206,11 @@ class WELogParser( LogParser ):
 		self.__parsefuncs = list()
 		fmt = fmt.strip()
 		segs = fmt.split()
-		for seg in segs:
-			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy, seg)
-			if seg in WELogParser.fmtmap:
-				pfuncs = WELogParser.fmtmap[seg]
-				pfuncs = (pfuncs[0], pfuncs[1], seg)
+		for token in segs:
+			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy, token )
+			if token in WELogParser.fmtmap:
+				pfuncs = WELogParser.fmtmap[token]
+				pfuncs = (pfuncs[0], pfuncs[1], token )
 			self.__parsefuncs.append( pfuncs )
 
 	def parse_line( self, line ):
@@ -154,36 +223,39 @@ class WELogParser( LogParser ):
 			print 'invalid line:', line
 			return None
 		logInfo = WELogInfo()
+		logInfo.originLine = line
 		#print 'size:', len( self.__parsefuncs )
 		for funcs in self.__parsefuncs:
 			#print funcs, i
-			if not funcs[0]( self, fields[i], logInfo, funcs[1], funcs[2] ):
+			value = funcs[0]( self, fields[i], logInfo, funcs[1], funcs[2] )
+			if value is None:
 				print 'parse line failed', line
 				return None
+			set_log_info( logInfo, funcs[2], value )
 			i += 1
 		return logInfo
 
 	def parseString( self, field, logInfo, set_func, fmt ):
 		set_func( logInfo, field )
-		return True
+		return field
 
 	def parseInt( self, field, logInfo, set_func, fmt ):
 		try:
 			value = int( field )
 			set_func( logInfo, value )
+			return value
 		except:
 			print 'not a integer string', field, set_func
-			return False
-		return True
+			return None
 
 	def parseFloat( self, field, logInfo, set_func, fmt ):
 		try:
 			value = float( field )
 			set_func( logInfo, value )
+			return value
 		except:
 			print 'not a float string', field, set_func
-			return False
-		return True
+			return None
 
 	def parseStandardTime( self, field, logInfo, set_func, fmt ):
 		idx = field.rfind( '+' )
@@ -192,12 +264,8 @@ class WELogParser( LogParser ):
 		dtime = datetime.strptime( tstr, timeFmt )
 		dtime = total_seconds( dtime )
 		set_func( logInfo, dtime )
-		return True
+		return dtime
 
-	def parseServedTime( self, field, logInfo, set_func, fmt ):
-		#set_func( logInfo, int(field) )
-		return True
-	
 	#[21/Apr/2013:00:54:59.848+0000]
 	#%d/%b/%Y:%H:%M:%S.%f
 	def parseRecvdTime( self, field, logInfo, set_func, fmt ):
@@ -205,7 +273,7 @@ class WELogParser( LogParser ):
 		dtime = datetime.strptime( segs[0], self.timeFmt )
 		dtime = total_seconds( dtime )
 		set_func( logInfo, dtime )
-		return True
+		return dtime
 
 	def parseOthers( self, field, logInfo, set_func, fmt ):
 		ret = False
@@ -222,7 +290,8 @@ class WELogParser( LogParser ):
 		for item in fieldList:
 			if item[0] in WELogParser.fmtmap:
 				funcs = WELogParser.fmtmap[ item[0] ]
-				funcs[0]( self, item[1], logInfo, funcs[1], item[0] )
+				value = funcs[0]( self, item[1], logInfo, funcs[1], item[0] )
+				set_log_info( logInfo, item[0], value )
 				ret = True
 			else:
 				if self.__fieldParser is not None:

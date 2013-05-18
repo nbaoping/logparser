@@ -2,6 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 import os
 import inspect
+from  xml.dom import  minidom
 
 from customer import *
 
@@ -45,6 +46,31 @@ def func_name():
 
 def raise_virtual( func ):
 	raise Exception( 'derived must implement '+func+' virtual function' )
+
+def get_attrvalue(node, attrname):
+     return node.getAttribute(attrname)
+
+def get_nodevalue(node, index = 0):
+    return node.childNodes[index].nodeValue.encode('utf-8','ignore')
+
+def get_xmlnode(node, name):
+    return node.getElementsByTagName(name)
+
+class BaseObject( object ):
+	def __init__( self ):
+		pass
+
+	def set_member( self, mname, value ):
+		self.__dict__[mname] = value
+
+	def get_member( self, mname ):
+		return self.__dict__[mname]
+
+	def exist_member( self, mname ):
+		return mname in self.__dict__
+
+	def __str__( self ):
+		return str( self.__dict__ )
 
 class InputArgs:
 	def __init__( self ):

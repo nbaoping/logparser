@@ -33,7 +33,9 @@ class Analyser( object ):
 		if toFile:
 			self.outPath = config.outPath
 			self.fout = open( config.outPath, 'w' )
+			self.ferr = open( config.outPath + '.errlog', 'w' )
 			print self.fout
+		self.filter = config.filter
 
 	def __str__( self ):
 		buf = 'startTime:' + str(self.startTime) + ','
@@ -46,7 +48,7 @@ class Analyser( object ):
 	def get_sample_start_time( self, logInfo ):
 		startTime = self.startTime
 		if startTime <= 0:
-			startTime = logInfo.rtime - BUF_TIME
+			startTime = logInfo.recvdTime - BUF_TIME
 		return startTime
 
 	def get_sample_end_time( self, logInfo ):
@@ -55,19 +57,25 @@ class Analyser( object ):
 	def analyse_log( self, logInfo ):
 		#control the startTime
 		if self.startTime > 0:
-			etime = logInfo.rtime + logInfo.stime / 1000000
+			etime = logInfo.recvdTime + logInfo.servTime / 1000000
 			if etime < self.startTime:
 				return False
 		#control the endTime
 		if self.endTime > 0:
-			if logInfo.rtime > self.endTime:
+			if logInfo.recvdTime > self.endTime:
 				return False
+		if self.filter is not None:
+			if not self.filter.filter(logInfo):
+				return False
+		ret = False
 		if self.pace == 0:
-			return self.anly_zero_pace( logInfo )
+			ret = self.anly_zero_pace( logInfo )
 		elif self.pace < 0:
-			return self.anly_negative_pace( logInfo )
+			ret = self.anly_negative_pace( logInfo )
 		else:
-			return self.anly_pace( logInfo )
+			ret = self.anly_pace( logInfo )
+		if not ret:
+			self.ferr.write( logInfo.originLine )
 
 	def anly_zero_pace( self, logInfo ):
 		raise_virtual( func_name() )
@@ -79,6 +87,7 @@ class Analyser( object ):
 		raise_virtual( func_name() )
 
 	def close( self ):
+		self.ferr.close()
 		raise_virtual( func_name() )
 
 	def exist( self, member ):
@@ -93,9 +102,9 @@ class BandwidthAnalyser( Analyser ):
 		self.hasWritten = False
 
 	def anly_zero_pace( self, logInfo ):
-		servTime = logInfo.stime / 1000000.0		#to second
-		sampleTime = logInfo.rtime
-		totalSent = logInfo.allSent
+		servTime = logInfo.servTime / 1000000.0		#to second
+		sampleTime = logInfo.recvdTime
+		totalSent = logInfo.bytesSentAll
 		#print 'total sent:', self.totalSent, 'serv time:', self.servTime
 		band = totalSent * 8.0 / servTime / 1024 / 1024
 		band = round( band, 3 )
@@ -107,31 +116,31 @@ class BandwidthAnalyser( Analyser ):
 	def anly_negative_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
-		servTime = logInfo.stime / 1000000
+		servTime = logInfo.servTime / 1000000
 		if servTime == 0:
 			servTime = 1
-		value = logInfo.allSent
-		#print 'servTime', servTime, 'num', num, logInfo.stime, value
-		if self.sampler.add_sample( logInfo.rtime, value ) != 0:
+		value = logInfo.bytesSentAll
+		#print 'servTime', servTime, 'num', num, logInfo.servTime, value
+		if self.sampler.add_sample( logInfo.recvdTime, value ) != 0:
 			return False
 		return True
 
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
-		servTime = logInfo.stime / 1000000
+		servTime = logInfo.servTime / 1000000
 		if servTime == 0:
 			servTime = 1
 		num = servTime / self.sampler.pace + 1
-		value = logInfo.allSent / float(num)
-		#print 'servTime', servTime, 'num', num, logInfo.stime, value
-		ret = self.sampler.add_samples( logInfo.rtime, value, num )
+		value = logInfo.bytesSentAll / float(num)
+		#print 'servTime', servTime, 'num', num, logInfo.servTime, value
+		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
 		if ret < 0:
 			if self.hasWritten:
 				print 'old log', logInfo
 			return False	#TODO
 		elif ret > 0:		#need to flash the buffer to the file
-			ctime = logInfo.rtime
+			ctime = logInfo.recvdTime
 			while ret > 0:
 				ctime += ret * self.sampler.pace
 				num -= ret
@@ -187,7 +196,7 @@ class StatusAnalyser( Analyser ):
 		self.sampler = None
 
 	def anly_zero_pace( self, logInfo ):
-		tstr = str_seconds( logInfo.rtime )
+		tstr = str_seconds( logInfo.recvdTime )
 		log = tstr + ',' + str(logInfo) + '\n'
 		self.fout.write( log )
 		return True
@@ -200,8 +209,8 @@ class StatusAnalyser( Analyser ):
 			self.__create_sampler( logInfo )
 		value = dict()
 		value[logInfo.status] = 1
-		servTime = logInfo.stime / 1000000 + 1
-		ret = self.sampler.add_sample( logInfo.rtime + servTime, value )
+		servTime = logInfo.servTime / 1000000 + 1
+		ret = self.sampler.add_sample( logInfo.recvdTime + servTime, value )
 		if ret != 0:
 			return False
 		return True
@@ -257,7 +266,7 @@ class XactRateAnalyser( Analyser ):
 		self.sampler = None
 
 	def anly_zero_pace( self, logInfo ):
-		tstr = str_seconds( logInfo.rtime )
+		tstr = str_seconds( logInfo.recvdTime )
 		log = tstr + ',' + str(logInfo) + '\n'
 		self.fout.write( log )
 		return True
@@ -268,7 +277,7 @@ class XactRateAnalyser( Analyser ):
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
-		ret = self.sampler.add_sample( logInfo.rtime, 1 )
+		ret = self.sampler.add_sample( logInfo.recvdTime, 1 )
 		if ret != 0:
 			return False
 		return True
@@ -313,7 +322,7 @@ class DescAnalyser( Analyser ):
 		self.sampler = None
 
 	def anly_zero_pace( self, logInfo ):
-		tstr = str_seconds( logInfo.rtime )
+		tstr = str_seconds( logInfo.recvdTime )
 		log = tstr + ',' + str(logInfo) + '\n'
 		self.fout.write( log )
 		return True
@@ -328,8 +337,8 @@ class DescAnalyser( Analyser ):
 			logInfo.requestDes = 'null'
 		value = dict()
 		value[logInfo.requestDes] = 1
-		servTime = logInfo.stime / 1000000 + 1
-		ret = self.sampler.add_sample( logInfo.rtime + servTime, value )
+		servTime = logInfo.servTime / 1000000 + 1
+		ret = self.sampler.add_sample( logInfo.recvdTime + servTime, value )
 		if ret != 0:
 			return False
 		return True
@@ -380,7 +389,7 @@ class DescAnalyser( Analyser ):
 
 class AnalyserHelper( object ):
 	def __init__( self ):
-		pass
+		self.sampleThres = NUM_THRES
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
@@ -409,7 +418,7 @@ class SingleAnalyser( Analyser ):
 		self.__helper = helper
 
 	def anly_zero_pace( self, logInfo ):
-		tstr = str_seconds( logInfo.rtime )
+		tstr = str_seconds( logInfo.recvdTime )
 		log = tstr + ',' + str(logInfo) + '\n'
 		self.fout.write( log )
 		return True
@@ -423,8 +432,8 @@ class SingleAnalyser( Analyser ):
 		if not logInfo.exist( 'requestDes' ):
 			logInfo.requestDes = 'null'
 		value = self.__helper.get_value( logInfo )
-		servTime = logInfo.stime / 1000000 + 1
-		ret = self.sampler.add_sample( logInfo.rtime + servTime, value )
+		servTime = logInfo.servTime / 1000000 + 1
+		ret = self.sampler.add_sample( logInfo.recvdTime + servTime, value )
 		if ret != 0:
 			return False
 		return True
@@ -433,7 +442,7 @@ class SingleAnalyser( Analyser ):
 		startTime = self.get_sample_start_time( logInfo )
 		endTime = self.get_sample_end_time( logInfo )
 		sargs = SamplerArgs( startTime, endTime, self.pace,
-				BUF_TIME, NUM_THRES, SingleAnalyser.__flush_callback, self )
+				BUF_TIME, self.__helper.sampleThres, SingleAnalyser.__flush_callback, self )
 		self.sampler = MutableSampler( sargs, SingleAnalyser.__init_value, SingleAnalyser.__update_value )
 
 	def __init_value( self, value ):
@@ -454,10 +463,11 @@ class SingleAnalyser( Analyser ):
 			if not self.__helper.exclude_value( item ):
 				vstr = self.__helper.str_value( item )
 				if vstr is not None:
-					sampleTime = curTime + toAdd
-					tstr = str_seconds( sampleTime )
-					bufio.write( tstr )
-					bufio.write( split )
+					if split is not None:
+						sampleTime = curTime + toAdd
+						tstr = str_seconds( sampleTime )
+						bufio.write( tstr )
+						bufio.write( split )
 					bufio.write( vstr )
 					bufio.write( '\n' )
 			curTime += sampler.pace

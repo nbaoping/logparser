@@ -1,12 +1,14 @@
 from analyser import *
+from filter import *
 
+from operator import itemgetter
 #======================================================================
 #===========parse xml config and create the analysers==================
 #======================================================================
 
 class DesHelper( AnalyserHelper ):
 	def __init__( self ):
-		pass
+		super(DesHelper, self).__init__()
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
@@ -36,7 +38,7 @@ class DesHelper( AnalyserHelper ):
 
 class ConsumedHelper( AnalyserHelper ):
 	def __init__( self ):
-		pass
+		super(ConsumedHelper, self).__init__()
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
@@ -59,6 +61,7 @@ class ConsumedHelper( AnalyserHelper ):
 
 class TmpconnHelper( AnalyserHelper ):
 	def __init__( self, config ):
+		super(TmpconnHelper, self).__init__()
 		self.servTime = config.servTime
 		if config.exist( 'clientMap' ):
 			self.clientMap = config.clientMap
@@ -72,7 +75,7 @@ class TmpconnHelper( AnalyserHelper ):
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
-		cip = logInfo.cip
+		cip = logInfo.clientIp
 		count = 0
 		if self.__is_valid_response(logInfo):
 			servTime = self.servTime + 1
@@ -132,16 +135,56 @@ class TmpconnHelper( AnalyserHelper ):
 		return vstr
 
 
+class AssembleHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(AssembleHelper, self).__init__()
+		self.sampleThres = 1000
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		return (logInfo.recvdTime, logInfo.originLine)
 
+	def init_value( self, value ):
+		return list()
+	
+	def update_value( self, oldValue, sampleValue ):
+		oldValue.append( sampleValue )
+		return oldValue
 
-def get_attrvalue(node, attrname):
-     return node.getAttribute(attrname)
+	def exclude_value( self, value ):
+		return len(value) == 0
 
-def get_nodevalue(node, index = 0):
-    return node.childNodes[index].nodeValue.encode('utf-8','ignore')
+	def str_value( self, value ):
+		itemList = sorted( value, key=itemgetter(0) )
+		bufio = StringIO()
+		for item in itemList:
+			line = item[1]
+			bufio.write( line )
+			bufio.write( '\n' )
+		return bufio.getvalue()
 
-def get_xmlnode(node, name):
-    return node.getElementsByTagName(name)
+	def get_split( self ):
+		return None
+
+class CounterHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(CounterHelper, self).__init__()
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		return 1
+
+	def init_value( self, value ):
+		return 0
+	
+	def update_value( self, oldValue, sampleValue ):
+		return oldValue + sampleValue
+
+	def exclude_value( self, value ):
+		return value <= 0
+
+	def str_value( self, value ):
+		return str( value )
 
 class AnalyserFactory:
 	anlyMap = dict()
@@ -153,7 +196,9 @@ class AnalyserFactory:
 				'xactrate' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_xactrate),
 				'requestdes' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_requestdes),
 				'consumed' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
-				'tmpconn' : (AnalyserFactory.__parse_tmpconn, AnalyserFactory.__create_common)
+				'tmpconn' : (AnalyserFactory.__parse_tmpconn, AnalyserFactory.__create_common),
+				'assemble' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
+				'counter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -226,6 +271,15 @@ class AnalyserFactory:
 			else:
 				fname = config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
 				config.outPath = os.path.join( inputPath, fname )
+
+			filtersList = get_xmlnode( node, 'filters' )
+			config.filter = None
+			if filtersList is not None and len(filtersList) > 0:
+				filtersNode= filtersList[0]
+				baseFilter = BaseFilter()
+				if baseFilter.parse_xml( filtersNode ):
+					config.filter = baseFilter
+
 			funcItem = self.__get_parse_func( config.type )
 			if funcItem is not None:
 				funcItem[1]( funcItem[0], config, node )
@@ -288,6 +342,11 @@ class AnalyserFactory:
 			helper = ConsumedHelper()
 		elif config.type == 'tmpconn':
 			helper = TmpconnHelper( config )
+		elif config.type == 'assemble':
+			helper = AssembleHelper( )
+		elif config.type == 'counter':
+			helper = CounterHelper()
+
 		if atype == 'single':
 			anly = SingleAnalyser( config, helper )
 		return anly

@@ -1,6 +1,9 @@
 import sys
+import signal 
+
 from parxact import *
 from factory import *
+
 
 class TestAnalyser( Analyser ):
 	def __init__( self, config ):
@@ -63,6 +66,17 @@ def main():
 	#use customized field parser
 	args.fieldParser = TestFieldParser()
 	parser = XactParser( )
+
+	def signal_handler(signal, frame):
+		print 'You pressed Ctrl+C!'
+		if parser is not None:
+			parser.close()
+		else:
+			print 'parser none'
+		sys.exit(0)
+
+	signal.signal(signal.SIGINT, signal_handler)
+	print 'begin to parse ...'
 	parser.parse( args )
 
 if __name__ == '__main__':

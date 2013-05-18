@@ -10,11 +10,17 @@ from factory import *
 class XactParser:
 	def __init__( self ):
 		self.anlyFactory = AnalyserFactory()
+		self.anlyList = None
 		pass
 
 	def parse( self, args ):
 		if args.type == 'extsqu':
 			self.__parse_extsqu( args )
+	
+	def close( self ):
+		if self.anlyList is not None:
+			for anly in self.anlyList:
+				anly.close()
 
 	def __parse_extsqu( self, args ):
 		print 'parse extsqu translog in', args.path
@@ -31,6 +37,7 @@ class XactParser:
 		endTime = files[-1][0]
 		print 'all files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
 		anlyList = self.anlyFactory.create_from_args( args, startTime, endTime )
+		self.anlyList = anlyList
 		files = self.__sample_files( files, anlyList )
 		if len(files) == 0:
 			print 'no file need to be parsed'
@@ -140,6 +147,6 @@ class XactParser:
 			num += 1
 		fin.close()
 		if logInfo is not None:
-			return logInfo.rtime
+			return logInfo.recvdTime
 		return -1
 
