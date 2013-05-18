@@ -49,6 +49,9 @@ def get_name_type( name ):
 		return __nameTypeMap[name]
 	return None
 
+def check_name( name ):
+	return name in __nameTypeMap
+
 class Filter( Expression ):
 	def __init__( self, fmtName ):
 		self.fmtName = fmtName
@@ -174,12 +177,14 @@ class BaseFilter( object ):
 		return None
 
 	def __parse_filter( self, node ):
-		print 'paring filter', node.nodeName
 		fmtNodeList = get_xmlnode( node, 'fmtName' )
 		if fmtNodeList is None or len(fmtNodeList) == 0:
 			print 'no fmtName in filter'
 			return None
 		fmtName = get_nodevalue( fmtNodeList[0] )
+		if not check_name(fmtName):
+			print 'invalid filter name:', fmtName
+			return None
 
 		typeNodeList = get_xmlnode( node, 'type' )
 		if typeNodeList is not None and len(typeNodeList) > 0:
@@ -199,7 +204,6 @@ class BaseFilter( object ):
 		elif ftype == 'string':
 			slist = parse_exp_from_xml( node, BaseFilter.__parse_string_args, self )
 			exp = None
-			print slist
 			if slist is not None and len(slist) > 0:
 				if len(slist) == 1:
 					exp = slist[0]
@@ -208,6 +212,8 @@ class BaseFilter( object ):
 			strFilter = StringFilter( fmtName, exp )
 			print 'parsed one filter', strFilter
 			expList.append( strFilter )
+		else:
+			print 'invalid filter, wrong type:', ftype
 		return expList
 
 	def __parse_low_high( self, node ):
@@ -226,12 +232,10 @@ class BaseFilter( object ):
 	def __parse_string_args( self, node ):
 		expList = list()
 		name = node.nodeName
-		print '******************', name
 		if name == 'keyword':
 			value = get_nodevalue( node )
 			kwordExp = KeywordExp( value )
 			expList.append( kwordExp )
-			print kwordExp
 		elif name == 'prefix':
 			value = get_nodevalue( node )
 			prefixExp = PrefixExp( value )
@@ -254,7 +258,6 @@ class BaseFilter( object ):
 			expList.append( lenExp )
 		else:
 			return None
-		print '=====================', expList
 		return expList
 
 

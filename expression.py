@@ -53,7 +53,6 @@ def parse_exp_from_xml( node, parse_func, arg ):
 	if node is None:
 		return expList
 	for cnode in node.childNodes:
-		print cnode, cnode.nodeName
 		name = cnode.nodeName
 		if name == 'andExp':
 			childList = parse_exp_from_xml( cnode, parse_func, arg )
