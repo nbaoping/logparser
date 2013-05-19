@@ -9,6 +9,7 @@
 import os
 import sys
 from operator import itemgetter
+import time
 
 from analyser import *
 from logparser import *
@@ -121,7 +122,10 @@ class XactParser:
 			path = item[1]
 			tstr = str_seconds( item[0] )
 			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
+			start = time.time()
 			self.__analyse_file( path, parser, anlyList )
+			elapsed = time.time() - start
+			print '===============================:', elapsed * 1000, 'ms'
 
 	def __analyse_file( self, path, parser, anlyList ):
 		fin = open( path, 'r' )

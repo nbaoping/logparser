@@ -232,10 +232,8 @@ class WELogParser( LogParser ):
 			return None
 		logInfo = WELogInfo()
 		logInfo.originLine = line
-		#print 'size:', len( self.__parsefuncs )
 		for funcs in self.__parsefuncs:
-			#print funcs, i
-			value = funcs[0]( self, fields[i], logInfo, funcs[1], funcs[2] )
+			value = funcs[0]( self, fields[i], logInfo, funcs[2] )
 			if value is None:
 				print 'parse line failed', line
 				return None
@@ -243,47 +241,42 @@ class WELogParser( LogParser ):
 			i += 1
 		return logInfo
 
-	def parseString( self, field, logInfo, set_func, fmt ):
-		set_func( logInfo, field )
+	def parseString( self, field, logInfo, fmt ):
 		return field
 
-	def parseInt( self, field, logInfo, set_func, fmt ):
+	def parseInt( self, field, logInfo, fmt ):
 		try:
 			value = int( field )
-			set_func( logInfo, value )
 			return value
 		except:
-			print 'not a integer string', field, set_func
+			print 'not a integer string', field
 			return None
 
-	def parseFloat( self, field, logInfo, set_func, fmt ):
+	def parseFloat( self, field, logInfo, fmt ):
 		try:
 			value = float( field )
-			set_func( logInfo, value )
 			return value
 		except:
-			print 'not a float string', field, set_func
+			print 'not a float string', field
 			return None
 
-	def parseStandardTime( self, field, logInfo, set_func, fmt ):
+	def parseStandardTime( self, field, logInfo, fmt ):
 		idx = field.rfind( '+' )
 		tstr = field[ 0:idx ]
 		timeFmt = '[%d/%b/%Y:%H:%M:%S'
 		dtime = datetime.strptime( tstr, timeFmt )
 		dtime = total_seconds( dtime )
-		set_func( logInfo, dtime )
 		return dtime
 
 	#[21/Apr/2013:00:54:59.848+0000]
 	#%d/%b/%Y:%H:%M:%S.%f
-	def parseRecvdTime( self, field, logInfo, set_func, fmt ):
+	def parseRecvdTime( self, field, logInfo, fmt ):
 		segs = field.split( '.' )
 		dtime = datetime.strptime( segs[0], self.timeFmt )
 		dtime = total_seconds( dtime )
-		set_func( logInfo, dtime )
 		return dtime
 
-	def parseOthers( self, field, logInfo, set_func, fmt ):
+	def parseOthers( self, field, logInfo, fmt ):
 		ret = False
 		if fmt[0] == '%':
 			ret = self.__parse_combined( field, logInfo, fmt )
@@ -298,7 +291,7 @@ class WELogParser( LogParser ):
 		for item in fieldList:
 			if item[0] in WELogParser.fmtmap:
 				funcs = WELogParser.fmtmap[ item[0] ]
-				value = funcs[0]( self, item[1], logInfo, funcs[1], item[0] )
+				value = funcs[0]( self, item[1], logInfo, item[0] )
 				set_log_info( logInfo, item[0], value )
 				ret = True
 			else:
