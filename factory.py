@@ -164,10 +164,15 @@ class AssembleHelper( AnalyserHelper ):
 	def str_value( self, value ):
 		itemList = sorted( value, key=itemgetter(0) )
 		bufio = StringIO()
+		first = True
 		for item in itemList:
 			line = item[1]
-			bufio.write( line )
-			bufio.write( '\n' )
+			if first:
+				bufio.write( line )
+				first = False
+			else:
+				bufio.write( '\n' )
+				bufio.write( line )
 		return bufio.getvalue()
 
 	def get_split( self ):
@@ -254,30 +259,32 @@ class AnalyserFactory:
 		root = doc.documentElement
 		anlyNodes = get_xmlnode( root, 'analyser' )
 		count = 0
+		total = 0
 		for node in anlyNodes:
 			config = AnalyConfig()
-			nodeType = get_xmlnode( node, 'type' )
-			if nodeType is None:
+			nodeTypeList = get_xmlnode( node, 'type' )
+			if nodeTypeList is None or len(nodeTypeList) == 0:
 				print 'invalid node', node
 				continue
 			count += 1
-			nodePace = get_xmlnode( node, 'pace' )
-			nodeStime = get_xmlnode( node, 'startTime' )
-			nodeEtime = get_xmlnode( node, 'endTime' )
+			nodePaceList = get_xmlnode( node, 'pace' )
+			nodeStimeList = get_xmlnode( node, 'startTime' )
+			nodeEtimeList = get_xmlnode( node, 'endTime' )
 			nodePath = get_xmlnode( node, 'outPath' )
 
-			config.type = get_nodevalue( nodeType[0] )
-			if nodePace:
-				config.pace = int( get_nodevalue( nodePace[0] ) )
-			if nodeStime:
-				config.startTime = seconds_str( get_nodevalue( nodeStime[0] ) )
-			if nodeEtime:
-				config.endTime = seconds_str( get_nodevalue(nodeEtime[0]) )
+			config.type = get_nodevalue( nodeTypeList[0] )
+			if nodePaceList:
+				config.pace = int( get_nodevalue( nodePaceList[0] ) )
+			if nodeStimeList:
+				config.startTime = seconds_str( get_nodevalue( nodeStimeList[0] ) )
+			if nodeEtimeList:
+				config.nodeEtimeList = seconds_str( get_nodevalue(nodeEtimeList[0]) )
 			if nodePath:
 				config.outPath = get_nodevalue( nodePath[0] )
 			else:
-				fname = config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
-				config.outPath = os.path.join( inputPath, fname )
+				if len(nodeTypeList) == 1:
+					fname = config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
+					config.outPath = os.path.join( inputPath, fname )
 
 			filtersList = get_xmlnode( node, 'filters' )
 			config.filter = None
@@ -287,12 +294,24 @@ class AnalyserFactory:
 				if baseFilter.parse_xml( filtersNode ):
 					config.filter = baseFilter
 
-			funcItem = self.__get_parse_func( config.type )
-			if funcItem is not None:
-				funcItem[1]( funcItem[0], config, node )
-			print 'parsed anlyser', config
-			configList.append( config )
-		print 'total ', count, 'Analysers parsed'
+			ownFile = len(nodeTypeList) > 1
+			incount = 0
+			for typeNode in nodeTypeList:
+				nconfig = AnalyConfig()
+				config.copy_object( nconfig )
+				incount += 1
+				ntype = get_nodevalue( typeNode )
+				nconfig.type = ntype
+				funcItem = self.__get_parse_func( ntype )
+				if funcItem is not None:
+					funcItem[1]( funcItem[0], nconfig, node )
+				if ownFile:
+					fname = ntype + '_' + str(nconfig.pace) + '_' + str(count) + '_' + str(incount) + '.txt'
+					nconfig.outPath = os.path.join( inputPath, fname )
+				print 'parsed anlyser', nconfig
+				configList.append( nconfig )
+			total += incount
+		print 'total ', total, 'Analysers parsed'
 		return configList
 
 	def __create_bandwidth( self, config ):

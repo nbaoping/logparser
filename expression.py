@@ -26,6 +26,19 @@ class AndExp( Expression ):
 				return False
 		return True
 
+	def __str__( self ):
+		ss = None
+		if self.expList is None:
+			ss = None
+		else:
+			for exp in self.expList:
+				if ss is None:
+					ss = str( exp )
+				else:
+					ss += ' and ' + str(exp)
+		return ss
+
+
 class OrExp( Expression ):
 	def __init__( self, expList ):
 		self.expList = expList
@@ -38,15 +51,36 @@ class OrExp( Expression ):
 				return True
 		return False
 
+	def __str__( self ):
+		ss = None
+		if self.expList is None:
+			ss = None
+		else:
+			for exp in self.expList:
+				if ss is None:
+					ss = str( exp )
+				else:
+					ss += ' or ' + str(exp)
+		return ss
+
 
 class NotExp( Expression ):
 	def __init__( self, exp ):
 		self.exp = exp
 
 	def is_true( self, input ):
-		v = False
+		ret  = True 
 		if self.exp is not None:
-			v = self.exp.is_true(input)
+			ret = not self.exp.is_true(input)
+		return ret
+
+	def __str__( self ):
+		ss = None
+		if self.exp is None:
+			ss = None
+		else:
+			ss = 'not ' + str( self.exp )
+		return ss
 
 def parse_exp_from_xml( node, parse_func, arg ):
 	expList = list()

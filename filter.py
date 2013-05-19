@@ -63,6 +63,16 @@ class Filter( Expression ):
 	def filter( self, value ):
 		raise_virtual( func_name() )
 
+class SingleFilter( Filter ):
+	def __init__( self, fmtName, exp ):
+		super(SingleFilter, self).__init__( fmtName )
+		self.exp = exp
+	
+	def filter( self, value ):
+		if self.exp is None:
+			return True
+		return self.exp.is_true( value )
+
 
 class ValueFilter( Filter ):
 	def __init__( self, fmtName, low, high ):
@@ -78,6 +88,38 @@ class ValueFilter( Filter ):
 			return value >= self.low
 		else:
 			return value >= self.low and value <= self.high
+
+
+class LowValueExp( Expression ):
+	def __init__( self, lowValue ):
+		super(LowValueExp, self).__init__()
+		self.lowValue = lowValue 
+
+	def is_true( self, value ):
+		if self.lowValue == 'min':
+			return True
+		return self.lowValue <= value
+
+
+class HighValueExp( Expression ):
+	def __init__( self, highValue ):
+		super(HighValueExp, self).__init__()
+		self.highValue = highValue 
+
+	def is_true( self, value ):
+		if self.highValue == 'max':
+			return True
+		return self.highValue >= value
+
+
+class EqualExp( Expression ):
+	def __init__( self, value ):
+		super(EqualExp, self).__init__()
+		self.value = value
+
+	def is_true( self, value ):
+		value = str( value )
+		return self.value == value
 
 
 class LengthExp( Expression ):
@@ -196,24 +238,18 @@ class BaseFilter( object ):
 				return None
 		expList = list()
 
-		if ftype == 'value':
-			(low, high) = self.__parse_low_high( node )
-			valueFilter = ValueFilter( fmtName, low, high )
-			print 'parsed one filter', valueFilter
-			expList.append( valueFilter )
-		elif ftype == 'string':
-			slist = parse_exp_from_xml( node, BaseFilter.__parse_string_args, self )
-			exp = None
-			if slist is not None and len(slist) > 0:
-				if len(slist) == 1:
-					exp = slist[0]
-				else:
-					exp = AndExp( slist )
-			strFilter = StringFilter( fmtName, exp )
-			print 'parsed one filter', strFilter
-			expList.append( strFilter )
-		else:
-			print 'invalid filter, wrong type:', ftype
+		slist = parse_exp_from_xml( node, BaseFilter.__parse_filter_args, self )
+		exp = None
+		if slist is not None and len(slist) > 0:
+			if len(slist) == 1:
+				exp = slist[0]
+			else:
+				exp = AndExp( slist )
+		print 'expression:', exp
+		filter = SingleFilter( fmtName, exp )
+		expList.append( filter )
+		print 'parsed one filter', filter
+
 		return expList
 
 	def __parse_low_high( self, node ):
@@ -229,7 +265,7 @@ class BaseFilter( object ):
 			high = float( get_nodevalue(highNode) )
 		return (low, high)
 
-	def __parse_string_args( self, node ):
+	def __parse_filter_args( self, node ):
 		expList = list()
 		name = node.nodeName
 		if name == 'keyword':
@@ -256,6 +292,22 @@ class BaseFilter( object ):
 			(low, high) = self.__parse_low_high( node )
 			lenExp = LengthExp( low, high )
 			expList.append( lenExp )
+		elif name == 'equal':
+			value = get_nodevalue( node )
+			equalExp = EqualExp( value )
+			expList.append( equalExp )
+		elif name == 'low':
+			value = get_nodevalue( node )
+			if value != 'min':
+				value = float( value )
+			lowExp = LowValueExp( value )
+			expList.append( lowExp )
+		elif name == 'high':
+			value = get_nodevalue( node )
+			if value != 'max':
+				value = float( value )
+			highExp = HighValueExp( value )
+			expList.append( highExp )
 		else:
 			return None
 		return expList

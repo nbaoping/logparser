@@ -18,7 +18,7 @@ BUF_TIME = 36000		#in seconds
 NUM_THRES = 36000
 
 
-class AnalyConfig( object ):
+class AnalyConfig( BaseObject ):
 	def __init__( self ):
 		self.type = ''
 		self.startTime = 0

@@ -76,6 +76,11 @@ class BaseObject( object ):
 	def exist_member( self, mname ):
 		return mname in self.__dict__
 
+	def copy_object( self, obj ):
+		for mname in self.__dict__.keys():
+			value = self.__dict__[mname]
+			obj.set_member( mname, value )
+
 	def __str__( self ):
 		return str( self.__dict__ )
 
