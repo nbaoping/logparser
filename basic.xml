@@ -1,0 +1,42 @@
+
+<translog>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<type>requestdes</type>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<type>xactrate</type>
+		<type>counter</type>
+		<pace>1</pace>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<type>assemble</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>servTime</fmtName>
+				<high>20000</high>
+			</filter>
+			<filter>
+				<fmtName>status</fmtName>
+				<orExp>
+					<equal>200</equal>
+					<equal>206</equal>
+					<equal>304</equal>
+				</orExp>
+			</filter>
+			<notExp>
+				<filter>
+					<fmtName>urlAll</fmtName>
+					<suffix>m3u8</suffix>
+				</filter>
+			</notExp>
+		</filters>
+	</analyser>
+</translog>
