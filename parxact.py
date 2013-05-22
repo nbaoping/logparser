@@ -131,13 +131,13 @@ class XactParser:
 		fin = open( path, 'r' )
 		first = True
 		for line in fin:
-			if first:
-				first = False
+			line = line.strip()
+			if len(line) == 0:
 				continue
 			if line[0] == '#':
 				continue
-			line = line.strip()
-			if len(line) == 0:
+			if first:
+				first = False
 				continue
 			logInfo = parser.parse_line( line )
 			for anly in anlyList:
@@ -150,10 +150,12 @@ class XactParser:
 		num = 0
 		logInfo = None
 		for line in fin:
+			line = line.strip()
+			if len(line) == 0:
+				continue
+			if line[0] == '#':
+				continue
 			if num == 1:
-				line = line.strip()
-				if len(line) == 0:
-					continue
 				logInfo = parser.parse_line( line )
 				break
 			num += 1

@@ -100,6 +100,7 @@ def parse_exp_from_xml( node, parse_func, arg ):
 			childList = parse_exp_from_xml( cnode, parse_func, arg )
 			if childList is not None and len(childList) > 0:
 				notExp = NotExp( childList[0] )
+				print '***************', notExp
 				expList.append( notExp )
 		else:
 			clist = parse_func( arg, cnode )

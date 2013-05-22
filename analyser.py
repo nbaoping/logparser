@@ -83,7 +83,7 @@ class Analyser( object ):
 		else:
 			ret = self.anly_pace( logInfo )
 		if not ret:
-			self.ferr.write( logInfo.originLine )
+			self.ferr.write( logInfo.originLine + '\n' )
 
 	def anly_zero_pace( self, logInfo ):
 		raise_virtual( func_name() )
@@ -443,6 +443,8 @@ class SingleAnalyser( Analyser ):
 		servTime = logInfo.servTime / 1000000 + 1
 		ret = self.sampler.add_sample( logInfo.recvdTime + servTime, value )
 		if ret != 0:
+			print 'add sample failed', servTime, value, ret
+			print self.sampler
 			return False
 		return True
 
@@ -466,6 +468,7 @@ class SingleAnalyser( Analyser ):
 			toAdd = sampler.pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		print '\tanalyser:', self
 		split = self.__helper.get_split()
 		for item in blist:
 			if not self.__helper.exclude_value( item ):

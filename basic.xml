@@ -11,7 +11,8 @@
 	</analyser>
 	<analyser>
 		<type>xactrate</type>
-		<type>counter</type>
+		<type>status</type>
+		<type>requestdes</type>
 		<pace>1</pace>
 	</analyser>
 	<analyser>
@@ -21,7 +22,7 @@
 		<filters>
 			<filter>
 				<fmtName>servTime</fmtName>
-				<high>20000</high>
+				<high>10000</high>
 			</filter>
 			<filter>
 				<fmtName>status</fmtName>
@@ -33,8 +34,24 @@
 			</filter>
 			<notExp>
 				<filter>
-					<fmtName>urlAll</fmtName>
-					<suffix>m3u8</suffix>
+					<fmtName>mimeType</fmtName>
+					<equal>application/x-mpegurl</equal>
+				</filter>
+			</notExp>
+		</filters>
+	</analyser>
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+		<filters>
+			<notExp>
+				<filter>
+					<fmtName>status</fmtName>
+					<orExp>
+						<equal>200</equal>
+						<equal>206</equal>
+						<equal>304</equal>
+					</orExp>
 				</filter>
 			</notExp>
 		</filters>

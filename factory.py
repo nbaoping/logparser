@@ -19,10 +19,10 @@ class DesHelper( AnalyserHelper ):
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
-		if not logInfo.exist( 'requestDes' ):
-			logInfo.requestDes = 'null'
+		if not logInfo.exist( 'description' ):
+			logInfo.description = 'null'
 		value = dict()
-		value[logInfo.requestDes] = 1
+		value[logInfo.description] = 1
 		return value
 
 	def init_value( self, value ):

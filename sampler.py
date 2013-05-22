@@ -5,6 +5,8 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 
+from base import *
+
 class SamplerArgs( object ):
 	def __init__( self, startTime, endTime, pace, bufTime, numThres, flush_cb, obj ):
 		self.startTime = startTime
@@ -126,7 +128,7 @@ class Sampler( object ):
 			idx += 1
 
 
-class MutableSampler( object ):
+class MutableSampler( BaseObject ):
 	def __init__( self, args, init_value, update_value ):
 		if args.pace == 0:
 			raise Exception( 'sampler not support zero pace' )
@@ -170,12 +172,21 @@ class MutableSampler( object ):
 		if self.pace > 0:
 			idx = int( (time - self.startTime) / self.pace )
 		if idx < 0:
+			print 'old time', time, self.startTime
 			return -1
+		#if idx is out of the buffer, reset the buffer to the current sample
+		if idx > self.__total*2:
+			print 'out of buffer', idx, self.__total
+			self.flush()
+			self.startTime = time
+			idx = 0
 		ret = self.__add_sample( idx, value )
 		if ret == 1:
 			self.__flush_buffer()
 			#try again
-			ret = self.__add_sample( idx, value )
+			ret = self.add_sample( time, value )
+		if ret == 1:
+			print 'failed to add', 'idx:', idx, 'total:', self.__total
 		return ret
 
 	def add_samples( self, startTime, value, num ):
@@ -245,3 +256,11 @@ class MutableSampler( object ):
 				value = self.init_value( self.cbobj, value )
 			blist[idx] = value
 			idx += 1
+
+	def __str__( self ):
+		ss = 'startTime:' + str(self.startTime) + '\t'
+		ss += 'endTime:' + str(self.endTime) + '\t'
+		ss += 'pace:' + str(self.pace)
+		return ss
+
+

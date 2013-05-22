@@ -204,7 +204,8 @@ class BaseFilter( object ):
 				self.exp = expList[0]
 			else:
 				andExp = AndExp( expList )
-				self.exp = andExp
+				self.exp = andExp 
+		print 'parse_xml ---------------', self.exp
 		return self.exp is not None
 
 	def filter( self, logInfo ):
