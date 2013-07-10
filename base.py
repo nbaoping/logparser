@@ -43,6 +43,10 @@ def str_seconds( seconds ):
 	dtime = to_datetime( seconds )
 	return str_time( dtime )
 
+def cur_timestr( ):
+	now = datetime.now()
+	return str_time( now )
+
 def mkdir( dname ):
 	if not os.path.exists( dname ):
 		os.makedirs( dname )

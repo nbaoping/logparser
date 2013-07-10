@@ -11,6 +11,8 @@ import signal
 
 from parxact import *
 from factory import *
+import cProfile
+import pstats
 
 
 class TestAnalyser( Analyser ):
@@ -87,5 +89,34 @@ def main():
 	print 'begin to parse ...'
 	parser.parse( args )
 
+def profile_main():
+	args = InputArgs()
+	#args.path = './logs'
+	args.path = './logs'
+	args.path = '/home/neil/customer/telstra/625703709/datas/SR-625703709_haydc-ca-10_logs_20130513/we_translogs'
+	args.configPath = './basic.xml'
+	args.customer = 'telstra'
+	args.fmt = get_log_fmt( args.customer )
+	factory = TestFactory()
+	factory.register()
+	#use customized field parser
+	args.fieldParser = TestFieldParser()
+	parser = XactParser( )
+
+	def signal_handler(signal, frame):
+		print 'You pressed Ctrl+C!'
+		if parser is not None:
+			parser.close()
+		else:
+			print 'parser none'
+		sys.exit(0)
+
+	signal.signal(signal.SIGINT, signal_handler)
+	print 'begin to parse ...'
+	parser.parse( args )
+
 if __name__ == '__main__':
 	main()
+	#profile_main()
+	#cProfile.run( 'profile_main()', 'profile.dat' )
+

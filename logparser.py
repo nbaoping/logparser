@@ -274,6 +274,13 @@ class WELogParser( LogParser ):
 		segs = field.split( '.' )
 		dtime = datetime.strptime( segs[0], self.timeFmt )
 		dtime = total_seconds( dtime )
+		mstr = segs[1]
+		nsegs = mstr.split( '+' )
+		if len(nsegs) < 2:
+			nsegs = mstr.split( '-' )
+		if len(nsegs) >= 2:
+			msec = float( nsegs[0] )
+			dtime += (msec/1000.0)
 		return dtime
 
 	def parseOthers( self, field, logInfo, fmt ):

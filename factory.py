@@ -145,7 +145,7 @@ class TmpconnHelper( AnalyserHelper ):
 class AssembleHelper( AnalyserHelper ):
 	def __init__( self ):
 		super(AssembleHelper, self).__init__()
-		self.sampleThres = 1000
+		self.sampleThres = 10000
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
@@ -260,6 +260,9 @@ class AnalyserFactory:
 		anlyNodes = get_xmlnode( root, 'analyser' )
 		count = 0
 		total = 0
+		curTimeStr = cur_timestr() + '_'
+		curTimeStr = curTimeStr.replace( '/', '' )
+		curTimeStr = curTimeStr.replace( ':', '' )
 		for node in anlyNodes:
 			config = AnalyConfig()
 			nodeTypeList = get_xmlnode( node, 'type' )
@@ -277,13 +280,15 @@ class AnalyserFactory:
 				config.pace = int( get_nodevalue( nodePaceList[0] ) )
 			if nodeStimeList:
 				config.startTime = seconds_str( get_nodevalue( nodeStimeList[0] ) )
+				print config.startTime
 			if nodeEtimeList:
-				config.nodeEtimeList = seconds_str( get_nodevalue(nodeEtimeList[0]) )
+				config.endTime = seconds_str( get_nodevalue(nodeEtimeList[0]) )
+				print config.endTime
 			if nodePath:
 				config.outPath = get_nodevalue( nodePath[0] )
 			else:
 				if len(nodeTypeList) == 1:
-					fname = config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
+					fname = curTimeStr + config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
 					config.outPath = os.path.join( inputPath, fname )
 
 			filtersList = get_xmlnode( node, 'filters' )

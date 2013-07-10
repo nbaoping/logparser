@@ -75,12 +75,14 @@ class XactParser:
 			else:
 				etime = -1
 				break
+		print '-----', stime, etime
 		#sample the files based on the time range
 		if stime < 0 and etime < 0:
 			return fileList
 		sidx = -1
 		eidx = 0
 		size = len(fileList)
+		print fileList[0][0], fileList[-1][0]
 		while eidx < size:
 			time = fileList[eidx][0]
 			if stime > 0 and sidx < 0 and time > stime:
@@ -92,6 +94,10 @@ class XactParser:
 			eidx += 1
 		if sidx < 0:
 			sidx = 0
+		if etime <= 0:
+			eidx = size
+		print sidx, eidx
+		print fileList[sidx][0]
 		return fileList[ sidx:eidx ]
 
 
@@ -117,6 +123,7 @@ class XactParser:
 
 	def __analyse_files( self, files, parser, anlyList ):
 		count = 0
+		print 'total ', len(files), ' files to be analyzed'
 		for item in files:
 			count += 1
 			path = item[1]
