@@ -210,7 +210,8 @@ class AnalyserFactory:
 				'consumed' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
 				'tmpconn' : (AnalyserFactory.__parse_tmpconn, AnalyserFactory.__create_common),
 				'assemble' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
-				'counter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
+				'counter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
+				'activeSessions' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_active_sessions)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -311,7 +312,7 @@ class AnalyserFactory:
 				if funcItem is not None:
 					funcItem[1]( funcItem[0], nconfig, node )
 				if ownFile:
-					fname = ntype + '_' + str(nconfig.pace) + '_' + str(count) + '_' + str(incount) + '.txt'
+					fname = curTimeStr + ntype + '_' + str(nconfig.pace) + '_' + str(count) + '_' + str(incount) + '.txt'
 					nconfig.outPath = os.path.join( inputPath, fname )
 				print 'parsed anlyser', nconfig
 				configList.append( nconfig )
@@ -321,6 +322,10 @@ class AnalyserFactory:
 
 	def __create_bandwidth( self, config ):
 		anly = BandwidthAnalyser( config )
+		return anly
+
+	def __create_active_sessions( self, config ):
+		anly = ActiveSessionsAnalyser( config )
 		return anly
 	
 	def __create_status( self, config ):

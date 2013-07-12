@@ -535,3 +535,103 @@ class SingleAnalyser( Analyser ):
 			self.sampler = None
 		self.fout.close()
 
+
+class ActiveSessionsAnalyser( Analyser ):
+	def __init__( self, config ):
+		super( ActiveSessionsAnalyser, self ).__init__( config )
+		self.totalSent = 0
+		self.sampler = None
+		self.hasWritten = False
+		self.zeroValueCount = 0
+		self.zeroStartTime = 0
+		self.hasNoneZero = False
+
+	def anly_zero_pace( self, logInfo ):
+		return True
+
+	def anly_negative_pace( self, logInfo ):
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		if self.sampler.add_sample( logInfo.recvdTime, 1 ) != 0:
+			return False
+		return True
+
+	def anly_pace( self, logInfo ):
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		servTime = logInfo.servTime / 1000000
+		if servTime == 0:
+			servTime = 1
+		num = servTime / self.sampler.pace + 1
+		value = 1
+		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
+		if ret < 0:
+			if self.hasWritten:
+				print 'old log', logInfo
+			return False	#TODO
+		elif ret > 0:		#need to flash the buffer to the file
+			ctime = logInfo.recvdTime
+			while ret > 0:
+				ctime += ret * self.sampler.pace
+				num -= ret
+				ret = self.sampler.add_samples( ctime, value, num )
+		return True
+
+	def __create_sampler( self, logInfo ):
+		startTime = self.get_sample_start_time( logInfo )
+		endTime = self.get_sample_end_time( logInfo )
+		sargs = SamplerArgs( startTime, endTime, self.pace,
+				BUF_TIME, NUM_THRES, ActiveSessionsAnalyser.__flush_callback, self )
+		self.sampler = Sampler( sargs )
+
+	def __flush_callback( self, sampler, blist ):
+		curTime = sampler.startTime
+		toAdd = 0
+		pace = sampler.pace
+		if pace > 0:
+			toAdd = pace / 2
+		bufio = StringIO()
+		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		for value in blist:
+			if value != 0:
+				if self.hasNoneZero:
+					if self.zeroValueCount > 0:
+						zcount = 0
+						total = self.zeroValueCount
+						ztime = self.zeroStartTime
+						while zcount < total:
+							self.__write_line( bufio, 0, ztime, toAdd, pace )
+							ztime += pace
+							zcount += 1
+						self.zeroValueCount = 0
+				else:
+					self.hasNoneZero = True
+				self.__write_line( bufio, value, curTime, toAdd, pace )
+			elif self.hasNoneZero:
+				if self.zeroValueCount == 0:
+					self.zeroStartTime = curTime
+				self.zeroValueCount += 1
+			curTime += pace
+		ostr = bufio.getvalue()
+		self.fout.write( ostr )
+		self.hasWritten = True
+
+	def __write_line( self, bufio, value, curTime, toAdd, pace ):
+		dtime = to_datetime( curTime + toAdd )
+		tstr = str_time( dtime )
+		bufio.write( tstr )
+		bufio.write( '\t' )
+		bufio.write( str(value) )
+		bufio.write( '\t' )
+		bufio.write( str(curTime) )
+		bufio.write( '\n' )
+
+	def close( self ):
+		print 'close', self.__class__, self
+		if self.sampler is not None:
+			#print self.sampler.slist1
+			#print self.sampler.slist2
+			self.sampler.flush()
+			self.sampler = None
+		self.fout.close()
+

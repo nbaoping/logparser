@@ -76,6 +76,7 @@ class XactParser:
 				etime = -1
 				break
 		print '-----', stime, etime
+		print '-----', str_seconds(stime), str_seconds(etime)
 		#sample the files based on the time range
 		if stime < 0 and etime < 0:
 			return fileList
@@ -92,12 +93,17 @@ class XactParser:
 			if etime > 0 and time > etime:
 				break
 			eidx += 1
+		#in case we miss some logs
+		sidx -= 2
+		if eidx >= 0:
+			eidx += 2
 		if sidx < 0:
 			sidx = 0
 		if etime <= 0:
 			eidx = size
 		print sidx, eidx
 		print fileList[sidx][0]
+		print str_seconds(fileList[sidx][0])
 		return fileList[ sidx:eidx ]
 
 
@@ -109,6 +115,8 @@ class XactParser:
 				dirs.remove( RES_DIR )
 			for fname in files:
 				if fname.endswith( '.status' ):
+					continue
+				if fname == 'working.log':
 					continue
 				#print 'stat file', root, fname
 				fpath = os.path.join( root, fname )
