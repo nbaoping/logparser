@@ -254,11 +254,37 @@ class AnalyserFactory:
 				print 'no create function for analyser', config 
 		return analysers
 
+	def __parse_gloabl_config( self, rootNode ):
+		paceNode = stimeNode = etimeNode = None
+		for cnode in rootNode.childNodes:
+			name = cnode.nodeName
+			if name == 'pace':
+				paceNode = cnode
+			elif name == 'startTime':
+				stimeNode = cnode 
+			elif name == 'endTime':
+				etimeNode = cnode
+
+		pace = None
+		stime = None
+		etime = None
+		if paceNode:
+			pace = int( get_nodevalue(paceNode) )
+		if stimeNode:
+			stime = seconds_str( get_nodevalue(stimeNode) )
+			print stime, str_seconds( stime )
+		if etimeNode:
+			etime = seconds_str( get_nodevalue(etimeNode) )
+			print etime, str_seconds( etime )
+		return (pace, stime, etime)
+
 	def __parse_xml( self, inputPath, xmlfile ):
 		configList = list()
 		doc = minidom.parse( xmlfile )
 		root = doc.documentElement
 		anlyNodes = get_xmlnode( root, 'analyser' )
+		(gpace, gstime, getime) = self.__parse_gloabl_config( root )
+		print 'global config', gpace, gstime, getime
 		count = 0
 		total = 0
 		curTimeStr = cur_timestr() + '_'
@@ -266,6 +292,14 @@ class AnalyserFactory:
 		curTimeStr = curTimeStr.replace( ':', '' )
 		for node in anlyNodes:
 			config = AnalyConfig()
+			#load the default global config
+			if gpace is not None:
+				config.pace = gpace
+			if gstime is not None:
+				config.startTime = gstime
+			if getime is not None:
+				config.endTime = getime
+
 			nodeTypeList = get_xmlnode( node, 'type' )
 			if nodeTypeList is None or len(nodeTypeList) == 0:
 				print 'invalid node', node
@@ -299,7 +333,7 @@ class AnalyserFactory:
 				baseFilter = BaseFilter()
 				if baseFilter.parse_xml( filtersNode ):
 					config.filter = baseFilter
-
+			
 			ownFile = len(nodeTypeList) > 1
 			incount = 0
 			for typeNode in nodeTypeList:

@@ -336,13 +336,13 @@ class XactRateAnalyser( Analyser ):
 						total = self.zeroValueCount
 						ztime = self.zeroStartTime
 						while zcount < total:
-							self.__write_line( bufio, 0, ztime, toAdd )
+							self.__write_line( bufio, 0, ztime, toAdd, self.pace )
 							ztime += sampler.pace
 							zcount += 1
 						self.zeroValueCount = 0
 				else:
 					self.hasNoneZero = True
-				self.__write_line( bufio, item, curTime, toAdd )
+				self.__write_line( bufio, item, curTime, toAdd, self.pace )
 			elif self.hasNoneZero:
 				if self.zeroValueCount == 0:
 					self.zeroStartTime = curTime
@@ -351,11 +351,13 @@ class XactRateAnalyser( Analyser ):
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
-	def __write_line( self, bufio, value, time, toAdd ):
+	def __write_line( self, bufio, value, time, toAdd, pace ):
 		sampleTime = time + toAdd
 		tstr = str_seconds( sampleTime )
 		bufio.write( tstr )
 		bufio.write( ',' )
+		value /= float(pace)
+		value = int( value + 0.5 )
 		bufio.write( str(value) )
 		bufio.write( '\n' )
 
@@ -441,7 +443,10 @@ class DescAnalyser( Analyser ):
 class AnalyserHelper( object ):
 	def __init__( self ):
 		self.sampleThres = NUM_THRES
-	
+
+	def get_sample_time( self, logInfo ):
+		return logInfo.recvdTime
+
 	#return the statistics value
 	def get_value( self, logInfo ):
 		raise_virtual( func_name() )
@@ -483,8 +488,9 @@ class SingleAnalyser( Analyser ):
 		if not logInfo.exist( 'requestDes' ):
 			logInfo.requestDes = 'null'
 		value = self.__helper.get_value( logInfo )
-		servTime = logInfo.servTime / 1000000 + 1
-		ret = self.sampler.add_sample( logInfo.recvdTime + servTime, value )
+		#servTime = logInfo.servTime / 1000000 + 1
+		sampleTime = self.__helper.get_sample_time( logInfo )
+		ret = self.sampler.add_sample( sampleTime, value )
 		if ret != 0:
 			print 'add sample failed', servTime, value, ret
 			print self.sampler

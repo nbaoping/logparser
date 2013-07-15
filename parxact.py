@@ -58,7 +58,93 @@ class XactParser:
 		for anly in anlyList:
 			anly.close()
 
+	def __parse_anly_time_ranges( self, anlyList ):
+		timeList = list()
+		eflag = False
+		#generate the time list
+		for anly in anlyList:
+			stime = anly.startTime
+			if stime < 0:
+				stime = -1
+			etime = anly.endTime
+			if etime <= 0:
+				etime = -1
+			timeList.append( (stime, etime) )
+				
+		#sort the time list
+		timeList = sorted( timeList, key=itemgetter(0) )
+		self.__print_range_list( timeList )
+
+		rangeList = list()
+		stime = -10000
+		etime = -10000
+		for item in timeList:
+			if stime == -10000:
+				stime = item[0]
+				etime = item[1]
+			elif etime < 0:				#it covers all the rest range, break here
+				rangeList.append( (stime, etime) )
+				stime = -10000
+				break
+			else:
+				s = item[0]
+				e = item[1]
+				if s > etime:		#we got a complete range here
+					rangeList.append( (stime, etime) )
+					stime = -10000
+				elif e < 0 or e > etime:		#merge the two ranges
+					etime = e
+		if stime != -10000:
+			rangeList.append( (stime, etime) )
+
+		return rangeList
+
 	def __sample_files( self, fileList, anlyList ):
+		rangeList = self.__parse_anly_time_ranges( anlyList )
+		self.__print_range_list( rangeList )
+
+		tarList = None
+		for rg in rangeList:
+			stime = rg[0]
+			etime = rg[1]
+			clist = self.__find_files_in_range( fileList, stime, etime )
+			if len(clist) == 0:
+				print 'error, no files for range(',  stime, ',', etime, ')'
+				continue
+			if tarList is None:
+				tarList = clist
+			else:
+				#merge clist and tarList
+				if clist[0][0] >= tarList[-1][0]:
+					tarList += clist
+				else:
+					idx = 0
+					size = len(tarList)
+					fitem = clist[0]
+					while idx < size:
+						if tarList[idx] == fitem:
+							break
+						idx += 1
+					tarList = tarList[0:idx] + clist
+
+		return tarList
+
+	def __print_range_list( self, rangeList ):
+		ss = None
+		print 'time range list'
+		for rg in rangeList:
+			sstr = str_seconds( rg[0] )
+			estr = str_seconds( rg[1] )
+			if rg[1] < 0:
+				estr = '-1'
+			tmp = '(' + sstr + ',' + estr + ')'
+			if ss is None:
+				ss = tmp
+			else:
+				ss += ', ' + tmp
+		print '\t', ss
+
+	def __sample_files_old( self, fileList, anlyList ):
 		stime = -1
 		etime = -1
 		for anly in anlyList:
@@ -106,6 +192,35 @@ class XactParser:
 		print str_seconds(fileList[sidx][0])
 		return fileList[ sidx:eidx ]
 
+
+	def __find_files_in_range( self, fileList, stime, etime ):
+		if stime < 0 and etime < 0:
+			return fileList
+		sidx = -1
+		eidx = 0
+		size = len(fileList)
+		print fileList[0][0], fileList[-1][0]
+		while eidx < size:
+			time = fileList[eidx][0]
+			if stime > 0 and sidx < 0 and time > stime:
+				sidx = eidx
+				if etime < 0:
+					break
+			if etime > 0 and time > etime:
+				break
+			eidx += 1
+		#in case we miss some logs
+		sidx -= 2
+		if eidx >= 0:
+			eidx += 2
+		if sidx < 0:
+			sidx = 0
+		if etime <= 0:
+			eidx = size
+		print sidx, eidx
+		print fileList[sidx][0]
+		print str_seconds(fileList[sidx][0])
+		return fileList[ sidx:eidx ]
 
 	def __stat_files( self, path, parser ):
 		fileList = list()
