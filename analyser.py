@@ -492,7 +492,7 @@ class SingleAnalyser( Analyser ):
 		sampleTime = self.__helper.get_sample_time( logInfo )
 		ret = self.sampler.add_sample( sampleTime, value )
 		if ret != 0:
-			print 'add sample failed', servTime, value, ret
+			print 'add sample failed', logInfo.recvdTime, sampleTime, value, ret
 			print self.sampler
 			return False
 		return True

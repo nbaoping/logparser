@@ -10,35 +10,9 @@
 		<pace>-1</pace>
 	</analyser>
 	<analyser>
-		<type>xactrate</type>
-		<type>status</type>
-		<type>requestdes</type>
-		<pace>1</pace>
-	</analyser>
-	<analyser>
 		<type>counter</type>
-		<type>assemble</type>
+		<type>activeSessions</type>
 		<pace>1</pace>
-		<filters>
-			<filter>
-				<fmtName>servTime</fmtName>
-				<high>10000</high>
-			</filter>
-			<filter>
-				<fmtName>status</fmtName>
-				<orExp>
-					<equal>200</equal>
-					<equal>206</equal>
-					<equal>304</equal>
-				</orExp>
-			</filter>
-			<notExp>
-				<filter>
-					<fmtName>mimeType</fmtName>
-					<equal>application/x-mpegurl</equal>
-				</filter>
-			</notExp>
-		</filters>
 	</analyser>
 	<analyser>
 		<type>assemble</type>
