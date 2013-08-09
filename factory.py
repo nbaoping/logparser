@@ -49,22 +49,29 @@ class ConsumedHelper( AnalyserHelper ):
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
-		if not logInfo.exist( 'stime' ):
-			logInfo.stime = 0
-		return logInfo.stime / 1000000
+		if not logInfo.exist( 'servTime' ):
+			logInfo.servTime = 0
+		return (logInfo.servTime / 1000000.0, 1)
 
 	def init_value( self, value ):
-		return 0
+		return (0, 0)
 	
 	def update_value( self, oldValue, sampleValue ):
-		return oldValue + sampleValue
+		consumed = oldValue[0] + sampleValue[0]
+		total = oldValue[1] + sampleValue[1]
+		return (consumed, total)
 
 	def exclude_value( self, value ):
-		return value <= 0
+		return value[0] < 0
 
 	def str_value( self, value ):
-		value = round( value, 3 )
-		return str( value )
+		consumed = value[0]
+		total = value[1]
+		if total <= 0:
+			return '0'
+		average = consumed / total
+		average = round( average, 3 )
+		return str( average )
 
 class TmpconnHelper( AnalyserHelper ):
 	def __init__( self, config ):
@@ -145,7 +152,7 @@ class TmpconnHelper( AnalyserHelper ):
 class AssembleHelper( AnalyserHelper ):
 	def __init__( self ):
 		super(AssembleHelper, self).__init__()
-		self.sampleThres = 10000
+		self.sampleThres = 1000
 	
 	#return the statistics value
 	def get_value( self, logInfo ):
@@ -193,7 +200,7 @@ class CounterHelper( AnalyserHelper ):
 		return oldValue + sampleValue
 
 	def exclude_value( self, value ):
-		return value <= 0
+		return value < 0
 
 	def str_value( self, value ):
 		return str( value )
@@ -323,7 +330,7 @@ class AnalyserFactory:
 				config.outPath = get_nodevalue( nodePath[0] )
 			else:
 				if len(nodeTypeList) == 1:
-					fname = curTimeStr + config.type + '_' + str(config.pace) + '_' + str(count) + '.txt'
+					fname = curTimeStr + '_' + str(count) + '_' + config.type + '_' + str(config.pace) + '.txt'
 					config.outPath = os.path.join( inputPath, fname )
 
 			filtersList = get_xmlnode( node, 'filters' )
@@ -346,7 +353,7 @@ class AnalyserFactory:
 				if funcItem is not None:
 					funcItem[1]( funcItem[0], nconfig, node )
 				if ownFile:
-					fname = curTimeStr + ntype + '_' + str(nconfig.pace) + '_' + str(count) + '_' + str(incount) + '.txt'
+					fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + ntype + '_' + str(nconfig.pace) + '.txt'
 					nconfig.outPath = os.path.join( inputPath, fname )
 				print 'parsed anlyser', nconfig
 				configList.append( nconfig )

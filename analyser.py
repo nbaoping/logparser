@@ -38,6 +38,7 @@ class Analyser( object ):
 		self.startTime = config.startTime
 		self.endTime = config.endTime
 		self.pace = config.pace
+		self.sampler = None
 		if toFile:
 			self.outPath = config.outPath
 			self.fout = open( config.outPath, 'w' )
@@ -82,7 +83,7 @@ class Analyser( object ):
 			ret = self.anly_negative_pace( logInfo )
 		else:
 			ret = self.anly_pace( logInfo )
-		if not ret:
+		if not ret and self.sampler is not None and self.sampler.startTime > self.startTime:
 			self.ferr.write( logInfo.originLine + '\n' )
 
 	def anly_zero_pace( self, logInfo ):
@@ -173,29 +174,42 @@ class BandwidthAnalyser( Analyser ):
 			toAdd = pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
 		for value in blist:
-			if value != 0:
-				if self.hasNoneZero:
-					if self.zeroValueCount > 0:
-						zcount = 0
-						total = self.zeroValueCount
-						ztime = self.zeroStartTime
-						while zcount < total:
-							self.__write_line( bufio, 0, ztime, toAdd, pace )
-							ztime += pace
-							zcount += 1
-						self.zeroValueCount = 0
-				else:
-					self.hasNoneZero = True
-				self.__write_line( bufio, value, curTime, toAdd, pace )
-			elif self.hasNoneZero:
-				if self.zeroValueCount == 0:
-					self.zeroStartTime = curTime
-				self.zeroValueCount += 1
+			if curTime < minTime:
+				curTime += pace
+				continue
+
+			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-		ostr = bufio.getvalue()
-		self.fout.write( ostr )
-		self.hasWritten = True
+			if maxTime > 0 and curTime > maxTime:
+				break
+#		for value in blist:
+#			if value != 0:
+#				if self.hasNoneZero:
+#					if self.zeroValueCount > 0:
+#						zcount = 0
+#						total = self.zeroValueCount
+#						ztime = self.zeroStartTime
+#						while zcount < total:
+#							self.__write_line( bufio, 0, ztime, toAdd, pace )
+#							ztime += pace
+#							zcount += 1
+#						self.zeroValueCount = 0
+#				else:
+#					self.hasNoneZero = True
+#				self.__write_line( bufio, value, curTime, toAdd, pace )
+#			elif self.hasNoneZero:
+#				if self.zeroValueCount == 0:
+#					self.zeroStartTime = curTime
+#				self.zeroValueCount += 1
+#			curTime += pace
+#			if curTime > sampler.endTime and sampler.endTime > 0:
+#				break
+#		ostr = bufio.getvalue()
+#		self.fout.write( ostr )
+#		self.hasWritten = True
 
 	def __write_line( self, bufio, value, curTime, toAdd, pace ):
 		dtime = to_datetime( curTime + toAdd )
@@ -265,11 +279,18 @@ class StatusAnalyser( Analyser ):
 	def __flush_callback( self, sampler, blist ):
 		curTime = sampler.startTime
 		toAdd = 0
+		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
 		for item in blist:
+			if curTime < minTime:
+				curTime += pace
+				continue
+
 			if len(item) != 0:
 				sampleTime = curTime + toAdd
 				tstr = str_seconds( sampleTime )
@@ -277,7 +298,9 @@ class StatusAnalyser( Analyser ):
 				bufio.write( ';' )
 				bufio.write( str(item) )
 				bufio.write( '\n' )
-			curTime += sampler.pace
+			curTime += pace
+			if maxTime > 0 and curTime > maxTime:
+				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -324,30 +347,44 @@ class XactRateAnalyser( Analyser ):
 	def __flush_callback( self, sampler, blist ):
 		curTime = sampler.startTime
 		toAdd = 0
+		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
-		for item in blist:
-			if item > 0:
-				if self.hasNoneZero:
-					if self.zeroValueCount > 0:
-						zcount = 0
-						total = self.zeroValueCount
-						ztime = self.zeroStartTime
-						while zcount < total:
-							self.__write_line( bufio, 0, ztime, toAdd, self.pace )
-							ztime += sampler.pace
-							zcount += 1
-						self.zeroValueCount = 0
-				else:
-					self.hasNoneZero = True
-				self.__write_line( bufio, item, curTime, toAdd, self.pace )
-			elif self.hasNoneZero:
-				if self.zeroValueCount == 0:
-					self.zeroStartTime = curTime
-				self.zeroValueCount += 1
-			curTime += sampler.pace
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
+		for value in blist:
+			if curTime < minTime:
+				curTime += pace
+				continue
+
+			self.__write_line( bufio, value, curTime, toAdd, pace )
+			curTime += pace
+			if maxTime > 0 and curTime > maxTime:
+				break
+#		for item in blist:
+#			if item > 0:
+#				if self.hasNoneZero:
+#					if self.zeroValueCount > 0:
+#						zcount = 0
+#						total = self.zeroValueCount
+#						ztime = self.zeroStartTime
+#						while zcount < total:
+#							self.__write_line( bufio, 0, ztime, toAdd, self.pace )
+#							ztime += sampler.pace
+#							zcount += 1
+#						self.zeroValueCount = 0
+#				else:
+#					self.hasNoneZero = True
+#				self.__write_line( bufio, item, curTime, toAdd, self.pace )
+#			elif self.hasNoneZero:
+#				if self.zeroValueCount == 0:
+#					self.zeroStartTime = curTime
+#				self.zeroValueCount += 1
+#			curTime += sampler.pace
+#			if curTime > sampler.endTime and sampler.endTime > 0:
+#				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -417,11 +454,17 @@ class DescAnalyser( Analyser ):
 	def __flush_callback( self, sampler, blist ):
 		curTime = sampler.startTime
 		toAdd = 0
+		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
 		for item in blist:
+			if curTime < minTime:
+				curTime += pace
+				continue
 			if len(item) != 0:
 				sampleTime = curTime + toAdd
 				tstr = str_seconds( sampleTime )
@@ -429,7 +472,9 @@ class DescAnalyser( Analyser ):
 				bufio.write( ';' )
 				bufio.write( str(item) )
 				bufio.write( '\n' )
-			curTime += sampler.pace
+			curTime += pace
+			if maxTime > 0 and curTime > maxTime:
+				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -513,13 +558,19 @@ class SingleAnalyser( Analyser ):
 	def __flush_callback( self, sampler, blist ):
 		curTime = sampler.startTime
 		toAdd = 0
+		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		print '\tanalyser:', self
 		split = self.__helper.get_split()
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
 		for item in blist:
+			if curTime < minTime:
+				curTime += pace
+				continue
 			if not self.__helper.exclude_value( item ):
 				vstr = self.__helper.str_value( item )
 				if vstr is not None:
@@ -530,7 +581,9 @@ class SingleAnalyser( Analyser ):
 						bufio.write( split )
 					bufio.write( vstr )
 					bufio.write( '\n' )
-			curTime += sampler.pace
+			curTime += pace
+			if maxTime > 0 and curTime > maxTime:
+				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -565,10 +618,15 @@ class ActiveSessionsAnalyser( Analyser ):
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
-		servTime = logInfo.servTime / 1000000
+		servTime = logInfo.servTime / 1000000.0
 		if servTime == 0:
 			servTime = 1
-		num = servTime / self.sampler.pace + 1
+		num = servTime / self.sampler.pace
+		diff = num - int(num)	#in case it's a integer
+		if diff > 0:
+			num = int( num+1 )
+		else:
+			num = int( num )
 		value = 1
 		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
 		if ret < 0:
@@ -598,26 +656,39 @@ class ActiveSessionsAnalyser( Analyser ):
 			toAdd = pace / 2
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		minTime = sampler.minTime
+		maxTime = sampler.maxTime
 		for value in blist:
-			if value != 0:
-				if self.hasNoneZero:
-					if self.zeroValueCount > 0:
-						zcount = 0
-						total = self.zeroValueCount
-						ztime = self.zeroStartTime
-						while zcount < total:
-							self.__write_line( bufio, 0, ztime, toAdd, pace )
-							ztime += pace
-							zcount += 1
-						self.zeroValueCount = 0
-				else:
-					self.hasNoneZero = True
-				self.__write_line( bufio, value, curTime, toAdd, pace )
-			elif self.hasNoneZero:
-				if self.zeroValueCount == 0:
-					self.zeroStartTime = curTime
-				self.zeroValueCount += 1
+			if curTime < minTime:
+				curTime += pace
+				continue
+
+			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
+			if maxTime > 0 and curTime > maxTime:
+				break
+#		for value in blist:
+#			if value != 0:
+#				if self.hasNoneZero:
+#					if self.zeroValueCount > 0:
+#						zcount = 0
+#						total = self.zeroValueCount
+#						ztime = self.zeroStartTime
+#						while zcount < total:
+#							self.__write_line( bufio, 0, ztime, toAdd, pace )
+#							ztime += pace
+#							zcount += 1
+#						self.zeroValueCount = 0
+#				else:
+#					self.hasNoneZero = True
+#				self.__write_line( bufio, value, curTime, toAdd, pace )
+#			elif self.hasNoneZero:
+#				if self.zeroValueCount == 0:
+#					self.zeroStartTime = curTime
+#				self.zeroValueCount += 1
+#			curTime += pace
+#			if curTime > sampler.endTime and sampler.endTime > 0:
+#				break
 		ostr = bufio.getvalue()
 		self.fout.write( ostr )
 		self.hasWritten = True

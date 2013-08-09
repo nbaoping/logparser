@@ -253,14 +253,16 @@ class XactParser:
 			tstr = str_seconds( item[0] )
 			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
 			start = time.time()
-			self.__analyse_file( path, parser, anlyList )
+			lineCount = self.__analyse_file( path, parser, anlyList )
 			elapsed = time.time() - start
-			print '===============================:', elapsed * 1000, 'ms'
+			print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
 
 	def __analyse_file( self, path, parser, anlyList ):
 		fin = open( path, 'r' )
 		first = True
+		lineCount = 0
 		for line in fin:
+			lineCount += 1
 			line = line.strip()
 			if len(line) == 0:
 				continue
@@ -270,9 +272,14 @@ class XactParser:
 				first = False
 				continue
 			logInfo = parser.parse_line( line )
+			if logInfo.exist_member( 'servTime' ) and logInfo.exist_member( 'bytesSentAll' ):
+				logInfo.transrate = logInfo.bytesSentAll * 1000000 * 8 / logInfo.servTime
+			else:
+				logInfo.transrate = 100000000
 			for anly in anlyList:
 				anly.analyse_log( logInfo )
 		fin.close()
+		return lineCount
 
 	#get the first received time
 	def __get_file_stime( self, path, parser ):

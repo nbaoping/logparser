@@ -1,5 +1,7 @@
 
 <translog>
+	<startTime>2013/08/04-06:30:00</startTime>
+	<endTime>2013/08/04-08:15:00</endTime>
 	<analyser>
 		<type>bandwidth</type>
 		<pace>10</pace>
@@ -11,12 +13,24 @@
 	</analyser>
 	<analyser>
 		<type>counter</type>
-		<type>xactrate</type>
+		<type>status</type>
 		<type>activeSessions</type>
 		<pace>1</pace>
 	</analyser>
 	<analyser>
+		<type>counter</type>
+		<type>activeSessions</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>urlAll</fmtName>
+				<keyword>.m3u8</keyword>
+			</filter>
+		</filters>
+	</analyser>
+	<analyser>
 		<type>assemble</type>
+		<type>counter</type>
 		<pace>1</pace>
 		<filters>
 			<notExp>

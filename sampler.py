@@ -27,11 +27,14 @@ class Sampler( object ):
 		print 'create sampler', args
 		if args.startTime < 0:
 			args.startTime = 0
-		self.startTime = args.startTime
+		self.startTime = int(args.startTime)
+		self.orgStartTime = int(args.startTime)
 		self.pace = args.pace
-		self.endTime = args.endTime
+		self.endTime = int(args.endTime)
 		if self.endTime > 0 and self.endTime < self.startTime:
 			raise Exception( 'endTime < startTime error' )
+		self.maxTime = -1
+		self.minTime = -1
 		self.tailIdx = -1
 		if self.endTime > 0 and self.pace > 0:
 			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
@@ -49,11 +52,21 @@ class Sampler( object ):
 		self.slist1 = self.__buf1
 		self.slist2 = self.__buf2
 
+	def __stat_cur_time( self, stime, etime ):
+		if etime > self.maxTime:
+			self.maxTime = etime
+		if self.minTime <= 0 or stime < self.minTime:
+			self.minTime = stime
+
 	#@return:
 	#	-1: failed
 	#	 0: success
 	#	 1: failed but full
 	def add_sample( self, time, value ):
+		time = int(time)
+		if time < self.orgStartTime:
+			return 0			#should ignore all samples earlier than origion start time
+
 		if self.endTime > 0 and time > self.endTime:
 			return -1
 		idx = 0
@@ -66,10 +79,16 @@ class Sampler( object ):
 			self.__flush_buffer()
 			#try again
 			ret = self.__add_sample( idx, value )
+		if ret == 0:
+			self.__stat_cur_time( time, time )
 		return ret
 
 	def add_samples( self, startTime, value, num ):
-		#print 'add samples', startTime, value, num
+		startTime = int(startTime)
+		etime = startTime + (num-1)*self.pace
+		if etime < self.orgStartTime:
+			return 0			#should ignore all samples earlier than origion start time
+
 		idx = 0
 		if self.pace > 0:
 			idx = int( (startTime - self.startTime) / self.pace )
@@ -89,6 +108,8 @@ class Sampler( object ):
 					return count
 			idx += 1
 			count += 1
+
+		self.__stat_cur_time( startTime, etime )
 		return 0
 
 	def flush( self ):
@@ -108,6 +129,7 @@ class Sampler( object ):
 		return 0
 
 	def __flush_buffer( self ):
+		print '****************', str_seconds(self.minTime), str_seconds(self.maxTime)
 		curList = self.slist1
 		#must call before change the status of the sampler
 		self.flush_cb( self.cbobj, self, curList )
@@ -135,14 +157,17 @@ class MutableSampler( BaseObject ):
 		print 'create sampler', args
 		if args.startTime < 0:
 			args.startTime = 0
-		self.startTime = args.startTime
+		self.startTime = int(args.startTime)
+		self.orgStartTime = int(args.startTime)
 		self.pace = args.pace
-		self.endTime = args.endTime
+		self.endTime = int(args.endTime)
 		if self.endTime > 0 and self.endTime < self.startTime:
 			raise Exception( 'endTime < startTime error' )
 		self.tailIdx = -1
 		if self.endTime > 0 and self.pace > 0:
 			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
+		self.maxTime = -1
+		self.minTime = -1
 
 		self.flush_cb = args.flush_cb
 		self.cbobj = args.cbobj
@@ -161,11 +186,21 @@ class MutableSampler( BaseObject ):
 		self.__init_list( self.slist1, True )
 		self.__init_list( self.slist2, True )
 
+	def __stat_cur_time( self, stime, etime ):
+		if etime > self.maxTime:
+			self.maxTime = etime
+		if self.minTime <= 0 or stime < self.minTime:
+			self.minTime = stime
+
 	#@return:
 	#	-1: failed
 	#	 0: success
 	#	 1: failed but full
 	def add_sample( self, time, value ):
+		time = int(time)
+		if time < self.orgStartTime:
+			return 0			#should ignore all samples earlier than origion start time
+
 		if self.endTime > 0 and time > self.endTime:
 			return -1
 		idx = 0
@@ -187,10 +222,16 @@ class MutableSampler( BaseObject ):
 			ret = self.add_sample( time, value )
 		if ret == 1:
 			print 'failed to add', 'idx:', idx, 'total:', self.__total
+		elif ret == 0:
+			self.__stat_cur_time( time, time )
 		return ret
 
 	def add_samples( self, startTime, value, num ):
-		#print 'add samples', startTime, value, num
+		startTime = int(startTime)
+		etime = startTime + (num-1)*self.pace
+		if etime < self.orgStartTime:
+			return 0			#should ignore all samples earlier than origion start time
+
 		idx = 0
 		if self.pace > 0:
 			idx = int( (startTime - self.startTime) / self.pace )
@@ -210,6 +251,7 @@ class MutableSampler( BaseObject ):
 					return count
 			idx += 1
 			count += 1
+		self.__stat_cur_time( startTime, etime )
 		return 0
 
 	def flush( self ):
@@ -233,6 +275,7 @@ class MutableSampler( BaseObject ):
 		return 0
 
 	def __flush_buffer( self ):
+		print '****************', str_seconds(self.minTime), str_seconds(self.maxTime)
 		curList = self.slist1
 		#must call before change the status of the sampler
 		self.flush_cb( self.cbobj, self, curList )
