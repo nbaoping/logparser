@@ -8,7 +8,8 @@
 
 from datetime import timedelta
 import os
-from cStringIO import StringIO
+#from cStringIO import StringIO
+from StringIO import StringIO
 from  xml.dom import  minidom
 
 from base import *
@@ -581,11 +582,17 @@ class SingleAnalyser( Analyser ):
 						bufio.write( split )
 					bufio.write( vstr )
 					bufio.write( '\n' )
+					if bufio.len > 10485760:	#10Mbytes
+						logs = bufio.getvalue()
+						self.fout.write( logs )
+						bufio.close()
+						bufio = StringIO()
 			curTime += pace
 			if maxTime > 0 and curTime > maxTime:
 				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
+		bufio.close()
 
 	def close( self ):
 		print 'close', self.__class__, self

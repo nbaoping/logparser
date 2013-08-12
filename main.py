@@ -13,7 +13,7 @@ from parxact import *
 from factory import *
 import cProfile
 import pstats
-
+from userdefined import *
 
 class TestAnalyser( Analyser ):
 	def __init__( self, config ):
@@ -73,6 +73,8 @@ def main():
 		return ;
 	factory = TestFactory()
 	factory.register()
+	userDefinedCtx = UserDefinedCtx()
+	userDefinedCtx.register_user_defined()
 	#use customized field parser
 	args.fieldParser = TestFieldParser()
 	parser = XactParser( )
