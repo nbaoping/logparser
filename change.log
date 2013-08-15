@@ -1,0 +1,9 @@
+based on 2.3.5
+
+Features:
+1. add support to parse errorlog
+
+
+Bugs:
+1. useless end line with big time of the output file
+2. remove toAdd for sample time to output
