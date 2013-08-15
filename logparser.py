@@ -16,6 +16,10 @@ class LogParser( object ):
 	def parse_line( self, line ):
 		raise Exception( 'derived class must implement function parse_line' )
 
+class LogInfo( BaseObject ):
+	def __init__( self ):
+		pass
+	
 
 #======================================================================
 #================implement parser for web-engine translog==============
@@ -24,7 +28,7 @@ WE_XACTLOG_APACHE_STR = "%a %u %O %b %I %m %>s %t %D"
 WE_XACTLOG_EXT_SQUID_STR = "%Z %D %a %R/%>s %O %m %u %M"
 
 
-class WELogInfo( BaseObject ):
+class WELogInfo( LogInfo ):
 	def __init__( self ):
 		pass
 	

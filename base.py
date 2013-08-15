@@ -77,6 +77,9 @@ class BaseObject( object ):
 	def get_member( self, mname ):
 		return self.__dict__[mname]
 
+	def exist( self, member ):
+		return member in self.__dict__
+
 	def exist_member( self, mname ):
 		return mname in self.__dict__
 
@@ -91,7 +94,7 @@ class BaseObject( object ):
 class InputArgs:
 	def __init__( self ):
 		self.path = None
-		self.type = 'extsqu'
+		self.type = 'translog'
 		self.fmt = None
 		self.configPath = None
 		self.fieldParser = None

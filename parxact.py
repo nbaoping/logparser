@@ -14,6 +14,7 @@ import time
 from analyser import *
 from logparser import *
 from factory import *
+from errorlog import *
 
 
 class XactParser:
@@ -23,21 +24,32 @@ class XactParser:
 		pass
 
 	def parse( self, args ):
-		if args.type == 'extsqu':
-			self.__parse_extsqu( args )
+		logType = args.type
+		if logType == 'translog':
+			self.__parse_translog( args )
+		elif logType == 'errorlog':
+			self.__parse_errorlog( args )
 	
 	def close( self ):
 		if self.anlyList is not None:
 			for anly in self.anlyList:
 				anly.close()
 
-	def __parse_extsqu( self, args ):
-		print 'parse extsqu translog in', args.path
+	def __parse_errorlog( self, args ):
+		print 'parse errorlog in', args.path
+		parser = ErrorlogParser()
+		self.__parse_logs( args, parser )
+
+	def __parse_translog( self, args ):
+		print 'parse translog in', args.path
 		fmt = WE_XACTLOG_EXT_SQUID_STR
 		if args.fmt is not None:
 			fmt = args.fmt
 		print 'translog format:', fmt
 		parser = WELogParser( fmt, args.fieldParser )
+		self.__parse_logs( args, parser )
+
+	def __parse_logs( self, args, parser ):
 		files = self.__stat_files( args.path, parser )
 		if len(files) == 0:
 			print 'no translog files, please check the logs path:', args.path
@@ -272,6 +284,8 @@ class XactParser:
 				first = False
 				continue
 			logInfo = parser.parse_line( line )
+			if logInfo is None:
+				continue
 			if logInfo.exist_member( 'servTime' ) and logInfo.exist_member( 'bytesSentAll' ):
 				logInfo.transrate = logInfo.bytesSentAll * 1000000 * 8 / logInfo.servTime
 			else:

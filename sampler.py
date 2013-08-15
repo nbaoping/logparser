@@ -28,6 +28,7 @@ class Sampler( object ):
 		if args.startTime < 0:
 			args.startTime = 0
 		self.startTime = int(args.startTime)
+		print 'sample start time:', str_seconds(self.startTime)
 		self.orgStartTime = int(args.startTime)
 		self.pace = args.pace
 		self.endTime = int(args.endTime)

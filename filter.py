@@ -44,6 +44,9 @@ __nameTypeMap = {
 	'recvdTime'		: 'string',
 }
 
+def register_filter( name, ftype ):
+	__nameTypeMap[name] = ftype
+
 def get_name_type( name ):
 	if name in __nameTypeMap:
 		return __nameTypeMap[name]

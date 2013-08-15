@@ -18,6 +18,7 @@ from sampler import *
 BUF_TIME = 36000		#in seconds
 NUM_THRES = 36000
 
+time_offset = False
 
 class AnalyConfig( BaseObject ):
 	def __init__( self ):
@@ -173,19 +174,22 @@ class BandwidthAnalyser( Analyser ):
 		pace = sampler.pace
 		if pace > 0:
 			toAdd = pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist), 'minTime:',\
+				str_seconds(minTime), 'maxTime:', str_seconds(maxTime)
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 #		for value in blist:
 #			if value != 0:
 #				if self.hasNoneZero:
@@ -208,9 +212,9 @@ class BandwidthAnalyser( Analyser ):
 #			curTime += pace
 #			if curTime > sampler.endTime and sampler.endTime > 0:
 #				break
-#		ostr = bufio.getvalue()
-#		self.fout.write( ostr )
-#		self.hasWritten = True
+		ostr = bufio.getvalue()
+		self.fout.write( ostr )
+		self.hasWritten = True
 
 	def __write_line( self, bufio, value, curTime, toAdd, pace ):
 		dtime = to_datetime( curTime + toAdd )
@@ -283,6 +287,8 @@ class StatusAnalyser( Analyser ):
 		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
@@ -291,6 +297,8 @@ class StatusAnalyser( Analyser ):
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
 
 			if len(item) != 0:
 				sampleTime = curTime + toAdd
@@ -300,8 +308,6 @@ class StatusAnalyser( Analyser ):
 				bufio.write( str(item) )
 				bufio.write( '\n' )
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -351,6 +357,8 @@ class XactRateAnalyser( Analyser ):
 		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
@@ -359,11 +367,11 @@ class XactRateAnalyser( Analyser ):
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 #		for item in blist:
 #			if item > 0:
 #				if self.hasNoneZero:
@@ -458,6 +466,8 @@ class DescAnalyser( Analyser ):
 		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
@@ -466,6 +476,9 @@ class DescAnalyser( Analyser ):
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
+
 			if len(item) != 0:
 				sampleTime = curTime + toAdd
 				tstr = str_seconds( sampleTime )
@@ -474,8 +487,6 @@ class DescAnalyser( Analyser ):
 				bufio.write( str(item) )
 				bufio.write( '\n' )
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -511,6 +522,9 @@ class AnalyserHelper( object ):
 
 	def get_split( self ):
 		return ';'
+
+	def on_close( self ):
+		pass
 
 
 class SingleAnalyser( Analyser ):
@@ -562,6 +576,8 @@ class SingleAnalyser( Analyser ):
 		pace = sampler.pace
 		if sampler.pace > 0:
 			toAdd = sampler.pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		print '\tanalyser:', self
@@ -572,6 +588,9 @@ class SingleAnalyser( Analyser ):
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
+
 			if not self.__helper.exclude_value( item ):
 				vstr = self.__helper.str_value( item )
 				if vstr is not None:
@@ -588,8 +607,6 @@ class SingleAnalyser( Analyser ):
 						bufio.close()
 						bufio = StringIO()
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 		bufio.close()
@@ -598,6 +615,7 @@ class SingleAnalyser( Analyser ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			self.sampler.flush()
+			self.__helper.on_close()
 			self.sampler = None
 		self.fout.close()
 
@@ -661,6 +679,8 @@ class ActiveSessionsAnalyser( Analyser ):
 		pace = sampler.pace
 		if pace > 0:
 			toAdd = pace / 2
+		if not time_offset:
+			toAdd = 0
 		bufio = StringIO()
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
@@ -669,11 +689,11 @@ class ActiveSessionsAnalyser( Analyser ):
 			if curTime < minTime:
 				curTime += pace
 				continue
+			if maxTime > 0 and curTime > maxTime:
+				break
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-			if maxTime > 0 and curTime > maxTime:
-				break
 #		for value in blist:
 #			if value != 0:
 #				if self.hasNoneZero:
