@@ -8,6 +8,7 @@
 
 from datetime import datetime
 from base import *
+from filter import *
 
 class LogParser( object ):
 	def __init__( self ):
@@ -18,6 +19,7 @@ class LogParser( object ):
 
 class LogInfo( BaseObject ):
 	def __init__( self ):
+		self.servTime = 0
 		pass
 	
 
@@ -181,29 +183,7 @@ class WELogParser( LogParser ):
 	fmtmap = None
 
 	def __init_parser( self ):
-		WELogParser.fmtmap = {
-			'%a':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
-			'%A':(WELogParser.parseString, WELogInfo.setDummy),
-			'%b':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
-			'%D':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStime),
-			'%h':(WELogParser.parseString, WELogInfo.setDummy),
-			'%H':(WELogParser.parseString, WELogInfo.setDummy),
-			'%I':(WELogParser.parseInt, WELogInfo.setDummy),
-			'%m':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMethod),
-			'%M':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMimeType),
-			'%O':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setAllSent),
-			'%q':(WELogParser.parseString, WELogInfo.setDummy),
-			'%r':(WELogParser.parseString, WELogInfo.setDummy),
-			'%R':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setRequestDes),
-			'%>s':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStatus),
-			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),# WELogInfo.setRtimeT),
-			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
-			'%u':(WELogParser.parseString, WELogInfo.setDummy),#WELogInfo.setUri),
-			'%U':(WELogParser.parseString, WELogInfo.setDummy),
-			'%V':(WELogParser.parseString, WELogInfo.setDummy),
-			'%X':(WELogParser.parseString, WELogInfo.setDummy),
-			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setDummy)# WELogInfo.setRtime)
-			}
+		pass
 
 	def __init__( self, fmt = None, fieldParser = None ):
 		if WELogParser.fmtmap is None:
@@ -219,10 +199,13 @@ class WELogParser( LogParser ):
 		fmt = fmt.strip()
 		segs = fmt.split()
 		for token in segs:
-			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy, token )
+			pfuncs = (WELogParser.parseOthers, WELogInfo.setDummy, token, self )
 			if token in WELogParser.fmtmap:
 				pfuncs = WELogParser.fmtmap[token]
-				pfuncs = (pfuncs[0], pfuncs[1], token )
+				obj = self
+				if len(pfuncs) > 2:
+					obj = pfuncs[2]
+				pfuncs = (pfuncs[0], pfuncs[1], token, obj )
 			self.__parsefuncs.append( pfuncs )
 
 	def parse_line( self, line ):
@@ -237,7 +220,7 @@ class WELogParser( LogParser ):
 		logInfo = WELogInfo()
 		logInfo.originLine = line
 		for funcs in self.__parsefuncs:
-			value = funcs[0]( self, fields[i], logInfo, funcs[2] )
+			value = funcs[0]( funcs[3], fields[i], logInfo, funcs[2] )
 			if value is None:
 				print 'parse line failed', line
 				return None
@@ -369,3 +352,33 @@ class WELogParser( LogParser ):
 	def parseDummy( self, field, logInfo, set_func, fmt ):
 		return True
 
+
+WELogParser.fmtmap = {
+			'%a':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
+			'%A':(WELogParser.parseString, WELogInfo.setDummy),
+			'%b':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
+			'%D':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStime),
+			'%h':(WELogParser.parseString, WELogInfo.setDummy),
+			'%H':(WELogParser.parseString, WELogInfo.setDummy),
+			'%I':(WELogParser.parseInt, WELogInfo.setDummy),
+			'%m':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMethod),
+			'%M':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMimeType),
+			'%O':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setAllSent),
+			'%q':(WELogParser.parseString, WELogInfo.setDummy),
+			'%r':(WELogParser.parseString, WELogInfo.setDummy),
+			'%R':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setRequestDes),
+			'%>s':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStatus),
+			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),# WELogInfo.setRtimeT),
+			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
+			'%u':(WELogParser.parseString, WELogInfo.setDummy),#WELogInfo.setUri),
+			'%U':(WELogParser.parseString, WELogInfo.setDummy),
+			'%V':(WELogParser.parseString, WELogInfo.setDummy),
+			'%X':(WELogParser.parseString, WELogInfo.setDummy),
+			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setDummy)# WELogInfo.setRtime)
+			}
+
+def register_token( token, fmtName, parse_func, obj ):
+	WELogParser.fmtmap[token] = (parse_func, None, obj)
+	__fmtNameMap[token] = fmtName
+	__nameFmtMap[fmtName] = token
+	register_filter( fmtName, 'string' )

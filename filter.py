@@ -42,6 +42,7 @@ __nameTypeMap = {
 	'abrType'		: 'string',
 	'connStatus'	: 'string',
 	'recvdTime'		: 'string',
+	'originLine'	: 'string'
 }
 
 def register_filter( name, ftype ):

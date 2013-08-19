@@ -129,6 +129,11 @@ class InputArgs:
 		if self.fmt is None and self.customer is not None:
 			print 'format not set, use customer', self.customer, ' standard format'
 			self.fmt = get_log_fmt( self.customer )
+		if self.fmt is not None:
+			mdfmt = get_module_fmt( self.fmt )
+			if mdfmt is not None:
+				print 'using module format:', mdfmt
+				self.fmt = mdfmt
 		return True
 						
 	def __print_usage( self ):

@@ -197,15 +197,16 @@ class ThressSecHelper( AnalyserHelper ):
 
 
 class Xact3secHelper( AnalyserHelper ):
-	def __init__( self ):
+	def __init__( self, urlFilePath ):
 		super(Xact3secHelper, self).__init__()
 		self.urlMap = dict()
 		self.markMap = dict()
-		self.__load_url_map()
+		self.__load_url_map( urlFilePath )
 		self.totalHit = 0
 
-	def __load_url_map( self ):
-		path = '/home/neil/customer/telstra/626750547/0813/SR-626879315_haydc-cdn220-ca-8_20130805/errorlogs/web/reordered/output/20130814-160942__1_3secissue_60.txt'
+	def __load_url_map( self, path ):
+		#path = '/home/neil/customer/telstra/626750547/0813/SR-626879315_haydc-cdn220-ca-8_20130805/errorlogs/web/reordered/output/20130814-160942__1_3secissue_60.txt'
+		print 'load urls from file:', path
 		fin = open( path, 'r' )
 		split = self.get_split()
 		for line in fin:
@@ -300,11 +301,17 @@ class UserDefinedCtx:
 	def register_user_defined( self ):
 		register_anlyser( 'burstissue', UserDefinedCtx.__parse_dummy, UserDefinedCtx.__create_analyser, self )
 		register_anlyser( '3secissue', UserDefinedCtx.__parse_dummy, UserDefinedCtx.__create_analyser, self )
-		register_anlyser( 'xact3sec', UserDefinedCtx.__parse_dummy, UserDefinedCtx.__create_analyser, self )
-		register_filter( 'originLine', 'string' )
+		register_anlyser( 'xact3sec', UserDefinedCtx.__parse_xact3sec, UserDefinedCtx.__create_analyser, self )
 
 	def __parse_dummy( self, config, node ):
 		pass
+
+	def __parse_xact3sec( self, config, node ):
+		urlfileList = get_xmlnode( node, 'urlfile' )
+		if urlfileList is not None and len(urlfileList) > 0:
+			config.urlFilePath = get_nodevalue( urlfileList[0] )
+		else:
+			print 'error for paring xact3sec analyser, no urlfile configured'
 
 	def __create_analyser( self, config ):
 		atype = 'single'
@@ -316,7 +323,7 @@ class UserDefinedCtx:
 		elif xtype == '3secissue':
 			helper = ThressSecHelper()
 		elif xtype == 'xact3sec':
-			helper = Xact3secHelper()
+			helper = Xact3secHelper( config.urlFilePath )
 
 		if atype == 'single':
 			anly = SingleAnalyser( config, helper )

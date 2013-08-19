@@ -14,6 +14,7 @@ from factory import *
 import cProfile
 import pstats
 from userdefined import *
+from translog import *
 
 class TestAnalyser( Analyser ):
 	def __init__( self, config ):
@@ -73,6 +74,7 @@ def main():
 		return ;
 	factory = TestFactory()
 	factory.register()
+	register_translog()
 	userDefinedCtx = UserDefinedCtx()
 	userDefinedCtx.register_user_defined()
 	#use customized field parser

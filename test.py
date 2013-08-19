@@ -44,10 +44,14 @@ class Derived( TestObj ):
 	pass
 
 
-tobj = Derived()
-mname = 'clientIp'
-tobj.set_value( mname, 'all' )
-value = tobj.get_value( mname )
-print 'from dict:', value
-value = tobj.clientIp
-print 'from member:', value
+class StatusMap():
+	testMap = None
+	pass
+
+
+StatusMap.testMap = {
+		'test':1213,
+		'fdsfds':5454
+		}
+
+print StatusMap.testMap

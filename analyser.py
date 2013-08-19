@@ -179,6 +179,8 @@ class BandwidthAnalyser( Analyser ):
 		bufio = StringIO()
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist), 'minTime:',\
 				str_seconds(minTime), 'maxTime:', str_seconds(maxTime)
 		for value in blist:
@@ -293,6 +295,8 @@ class StatusAnalyser( Analyser ):
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -363,6 +367,8 @@ class XactRateAnalyser( Analyser ):
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -472,6 +478,8 @@ class DescAnalyser( Analyser ):
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -584,6 +592,8 @@ class SingleAnalyser( Analyser ):
 		split = self.__helper.get_split()
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -685,6 +695,8 @@ class ActiveSessionsAnalyser( Analyser ):
 		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
+		if pace < 0:
+			minTime = maxTime = -1
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace

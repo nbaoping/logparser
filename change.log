@@ -1,4 +1,13 @@
-based on 2.3.5
+version 2.3.7
+
+Features:
+1. add support for service router translog 
+
+Bugs:
+1. no output error when pace is -1
+
+
+version 2.3.6
 
 Features:
 1. add support to parse errorlog
