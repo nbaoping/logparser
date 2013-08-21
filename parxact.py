@@ -60,7 +60,7 @@ class XactParser:
 		anlyList = self.anlyFactory.create_from_args( args, startTime, endTime )
 		self.anlyList = anlyList
 		files = self.__sample_files( files, anlyList )
-		if len(files) == 0:
+		if files is None or len(files) == 0:
 			print 'no file need to be parsed'
 			return
 		startTime = files[0][0]

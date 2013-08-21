@@ -525,6 +525,9 @@ class AnalyserHelper( object ):
 	def exclude_value( self, value ):
 		raise_virtual( func_name() )
 
+	def head_str( self ):
+		return None
+
 	def str_value( self, value ):
 		raise_virtual( func_name() )
 
@@ -540,6 +543,7 @@ class SingleAnalyser( Analyser ):
 		super( SingleAnalyser, self ).__init__( config )
 		self.sampler = None
 		self.__helper = helper
+		self.firstFlush = True
 
 	def anly_zero_pace( self, logInfo ):
 		tstr = str_seconds( logInfo.recvdTime )
@@ -594,6 +598,16 @@ class SingleAnalyser( Analyser ):
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
+		
+		if self.firstFlush:
+			headStr = self.__helper.head_str()
+			if headStr is not None:
+				bufio.write( 'time' )
+				bufio.write( split )
+				bufio.write( headStr )
+				bufio.write( '\n' )
+			self.firstFlush = False
+
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace

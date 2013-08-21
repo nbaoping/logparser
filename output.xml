@@ -1,0 +1,16 @@
+
+<translog>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>servTime</fmtName>
+			</output>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<type>consumed</type>
+		<pace>1</pace>
+	</analyser>
+</translog>

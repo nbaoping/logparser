@@ -13,6 +13,10 @@ from operator import itemgetter
 #===========parse xml config and create the analysers==================
 #======================================================================
 
+class OutputCfg( BaseObject ):
+	def __init__( self ):
+		pass
+
 class DesHelper( AnalyserHelper ):
 	def __init__( self ):
 		super(DesHelper, self).__init__()
@@ -205,6 +209,168 @@ class CounterHelper( AnalyserHelper ):
 	def str_value( self, value ):
 		return str( value )
 
+class OutputHelper( AnalyserHelper ):
+	def __init__( self, ocfg ):
+		super(OutputHelper, self).__init__()
+		self.fmtName = ocfg.fmtName
+		self.exptype = ocfg.exptype
+		if self.exptype == 'map':
+			self.keyMap = dict()
+			self.split = ocfg.split
+	
+	def get_value( self, logInfo ):
+		return logInfo.get_member( self.fmtName )
+
+	def init_value( self, value ):
+		exptype = self.exptype
+		if exptype == 'sum':
+			return 0
+		elif exptype == 'average':
+			return (0, 0)
+		elif exptype == 'map':
+			return dict()
+		return 0
+	
+	def update_value( self, oldValue, sampleValue ):
+		exptype = self.exptype
+		value = oldValue
+		if exptype == 'sum':
+			value = oldValue + sampleValue
+		elif exptype == 'average':
+			total = oldValue[0] + sampleValue
+			count = oldValue[1] + 1
+			value = (total, count)
+		elif exptype == 'map':
+			count = 1
+			if sampleValue in oldValue:
+				count += oldValue[sampleValue]
+			else:
+				self.keyMap[sampleValue] = 1
+			oldValue[sampleValue] = count
+			value = oldValue
+		else:
+			value = sampleValue
+
+		return value
+
+	def exclude_value( self, value ):
+		return False
+
+	def head_str( self ):
+		if self.exptype == 'map' and self.split:
+			split = self.get_split()
+			hstr = ''
+			idx = 0
+			keyList = self.keyMap.keys()
+			for key in keyList:
+				if idx > 0:
+					hstr += split
+				hstr += str(key)
+				idx += 1
+			return hstr
+		return None
+
+	def str_value( self, value ):
+		exptype = self.exptype
+		if exptype == 'sum':
+			return str(value)
+		elif exptype == 'average':
+			count = value[1]
+			total = value[0]
+			if count == 0:
+				return '0'
+			avg = round(total * 1.0 / count, 3)
+			return str(avg)
+		elif exptype == 'map':
+			if not self.split:
+				return str(value)
+			else:
+				idx = 0
+				ss = ''
+				split = self.get_split()
+				keyList = self.keyMap.keys()
+				for key in keyList:
+					if idx > 0:
+						ss += split
+					count = 0
+					if key in value:
+						count = value[key]
+					ss += str(count)
+					idx += 1
+				return ss
+
+		return str( value )
+
+class OutputsHelper( AnalyserHelper ):
+	def __init__( self, outList ):
+		super(OutputsHelper, self).__init__()
+		helperList = list()
+		for ocfg in outList:
+			helper = OutputHelper( ocfg )
+			helperList.append( helper )
+		self.size = len(helperList)
+		self.helperList = helperList
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		vlist = list()
+		for helper in self.helperList:
+			val = helper.get_value( logInfo )
+			vlist.append( val )
+		return vlist
+
+	def init_value( self, value ):
+		vlist = list()
+		for helper in self.helperList:
+			val = helper.init_value( value )
+			vlist.append( val )
+		return vlist
+	
+	def update_value( self, oldValue, sampleValue ):
+		idx = 0
+		for helper in self.helperList:
+			val = helper.update_value( oldValue[idx], sampleValue[idx] )
+			oldValue[idx] = val
+			idx += 1
+		return oldValue
+
+	def exclude_value( self, value ):
+		return False
+
+	def head_str( self ):
+		hstr = ''
+		has = False
+		idx = 0
+		split = self.get_split()
+		for helper in self.helperList:
+			tstr = helper.head_str()
+			if tstr is None:
+				tstr = '*'
+			else:
+				has = True
+			
+			if idx > 0:
+				hstr += split
+			hstr += tstr
+			idx += 1
+
+		if has:
+			return hstr
+		return None
+
+
+	def str_value( self, value ):
+		idx = 0
+		vstr = ''
+		split = self.get_split()
+		for helper in self.helperList:
+			if idx > 0:
+				vstr += split
+			vstr += helper.str_value( value[idx] )
+			idx += 1
+
+		return vstr
+
 class AnalyserFactory:
 	anlyMap = dict()
 
@@ -218,7 +384,8 @@ class AnalyserFactory:
 				'tmpconn' : (AnalyserFactory.__parse_tmpconn, AnalyserFactory.__create_common),
 				'assemble' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
 				'counter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
-				'activeSessions' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_active_sessions)
+				'activeSessions' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_active_sessions),
+				'output' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -307,8 +474,10 @@ class AnalyserFactory:
 			if getime is not None:
 				config.endTime = getime
 
+			outList = self.__parse_outputs( node )
+
 			nodeTypeList = get_xmlnode( node, 'type' )
-			if nodeTypeList is None or len(nodeTypeList) == 0:
+			if (nodeTypeList is None or len(nodeTypeList) == 0) and len(outList) == 0:
 				print 'invalid node', node
 				continue
 			count += 1
@@ -317,7 +486,8 @@ class AnalyserFactory:
 			nodeEtimeList = get_xmlnode( node, 'endTime' )
 			nodePath = get_xmlnode( node, 'outPath' )
 
-			config.type = get_nodevalue( nodeTypeList[0] )
+			if len(nodeTypeList) > 0:
+				config.type = get_nodevalue( nodeTypeList[0] )
 			if nodePaceList:
 				config.pace = int( get_nodevalue( nodePaceList[0] ) )
 			if nodeStimeList:
@@ -341,8 +511,26 @@ class AnalyserFactory:
 				if baseFilter.parse_xml( filtersNode ):
 					config.filter = baseFilter
 			
-			ownFile = len(nodeTypeList) > 1
 			incount = 0
+
+			#add config for output list
+			for ilist in outList:
+				nconfig = AnalyConfig()
+				config.copy_object( nconfig )
+				nconfig.outList = ilist
+				incount += 1
+				ntype = 'output'
+				nconfig.type = ntype
+				funcItem = self.__get_parse_func( ntype )
+				if funcItem is not None:
+					funcItem[1]( funcItem[0], nconfig, node )
+				fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + ntype + '_' + str(nconfig.pace) + '_out_.txt'
+				nconfig.outPath = os.path.join( inputPath, fname )
+				print 'parsed anlyser', nconfig
+				configList.append( nconfig )
+
+			ownFile = len(nodeTypeList) > 1
+			#add config for type list
 			for typeNode in nodeTypeList:
 				nconfig = AnalyConfig()
 				config.copy_object( nconfig )
@@ -357,9 +545,37 @@ class AnalyserFactory:
 					nconfig.outPath = os.path.join( inputPath, fname )
 				print 'parsed anlyser', nconfig
 				configList.append( nconfig )
+
 			total += incount
 		print 'total ', total, 'Analysers parsed'
 		return configList
+
+	def __parse_outputs( self, node ):
+		nlist = get_xmlnode( node, 'outputs' )
+		outList = list()
+		for onode in nlist:
+			inodeList = get_xmlnode( onode, 'output' )
+			ilist = list()
+			for inode in inodeList:
+				ocfg = OutputCfg()
+				fnode = get_xmlnode( inode, 'fmtName' )[0]
+				ocfg.fmtName = get_nodevalue( fnode )
+				tlist = get_xmlnode( inode, 'expType' )
+				if len(tlist) > 0:
+					ocfg.exptype = get_nodevalue( tlist[0] )
+				else:
+					ocfg.exptype  = 'raw'
+				slist = get_xmlnode( inode, 'split' )
+				if len(slist) > 0:
+					ocfg.split = int( get_nodevalue(slist[0]) )
+				else:
+					ocfg.split = True
+				ilist.append( ocfg )
+			
+			if len(ilist) > 0:
+				outList.append( ilist )
+
+		return outList
 
 	def __create_bandwidth( self, config ):
 		anly = BandwidthAnalyser( config )
@@ -423,6 +639,11 @@ class AnalyserFactory:
 			helper = AssembleHelper( )
 		elif config.type == 'counter':
 			helper = CounterHelper()
+		elif config.type == 'output':
+			if len(config.outList) > 1:
+				helper = OutputsHelper( config.outList )
+			else:
+				helper = OutputHelper( config.outList[0] )
 
 		if atype == 'single':
 			anly = SingleAnalyser( config, helper )
