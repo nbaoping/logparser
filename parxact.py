@@ -46,7 +46,7 @@ class XactParser:
 		if args.fmt is not None:
 			fmt = args.fmt
 		print 'translog format:', fmt
-		parser = WELogParser( fmt, args.fieldParser )
+		parser = WELogParser( fmt, args.fieldParser, args.fmtType )
 		self.__parse_logs( args, parser )
 
 	def __parse_logs( self, args, parser ):

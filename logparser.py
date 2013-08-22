@@ -20,7 +20,6 @@ class LogParser( object ):
 class LogInfo( BaseObject ):
 	def __init__( self ):
 		self.servTime = 0
-		pass
 	
 
 #======================================================================
@@ -32,7 +31,7 @@ WE_XACTLOG_EXT_SQUID_STR = "%Z %D %a %R/%>s %O %m %u %M"
 
 class WELogInfo( LogInfo ):
 	def __init__( self ):
-		pass
+		super(WELogInfo, self).__init__()
 	
 	def setCip( self, ip ):
 		self.cip = ip
@@ -185,12 +184,13 @@ class WELogParser( LogParser ):
 	def __init_parser( self ):
 		pass
 
-	def __init__( self, fmt = None, fieldParser = None ):
+	def __init__( self, fmt = None, fieldParser = None, fmtType = 'common' ):
 		if WELogParser.fmtmap is None:
 			self.__init_parser()
 		self.__parsefuncs = None
 		self.timeFmt = '[%d/%b/%Y:%H:%M:%S'
 		self.__fieldParser = fieldParser
+		self.fmtType = fmtType
 		if fmt is not None:
 			self.init_format( fmt )
 
@@ -213,10 +213,23 @@ class WELogParser( LogParser ):
 			print 'fatal error, format not setted'
 			return None
 		i = 0
-		fields = line.split( ' ' )
+		fields = None
+		if self.fmtType.startswith( 'fms' ):
+			if line.startswith( 's-ip' ):
+				return None
+			line = line.replace( '|', '\t', 1 )
+			fields = line.split( '\t' )
+		else:
+			fields = line.split( ' ' )
 		if len(fields) < len(self.__parsefuncs):
-			print 'invalid line:', line
-			return None
+			#print 'invalid line:', line
+			#return None
+			#append '-' for the old version
+			rest = len(self.__parsefuncs) - len(fields)
+			count = 0
+			while count < rest:
+				fields.append( '-' )
+				count += 1
 		logInfo = WELogInfo()
 		logInfo.originLine = line
 		for funcs in self.__parsefuncs:
@@ -377,8 +390,8 @@ WELogParser.fmtmap = {
 			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setDummy)# WELogInfo.setRtime)
 			}
 
-def register_token( token, fmtName, parse_func, obj ):
+def register_token( token, fmtName, parse_func, obj, fmtType='string' ):
 	WELogParser.fmtmap[token] = (parse_func, None, obj)
 	__fmtNameMap[token] = fmtName
 	__nameFmtMap[fmtName] = token
-	register_filter( fmtName, 'string' )
+	register_filter( fmtName, fmtType )

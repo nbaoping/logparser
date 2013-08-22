@@ -1,3 +1,10 @@
+version 3.0
+
+Features:
+1. add output support
+2. add translog support for: service-monitor, content-mgt, wmt, fms, movie-streaming
+
+
 version 2.3.7
 
 Features:

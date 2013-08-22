@@ -345,7 +345,10 @@ class OutputsHelper( AnalyserHelper ):
 		for helper in self.helperList:
 			tstr = helper.head_str()
 			if tstr is None:
-				tstr = '*'
+				if helper.exptype != 'raw':
+					tstr = helper.fmtName + '_' + helper.exptype
+				else:
+					tstr = helper.fmtName
 			else:
 				has = True
 			
