@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:annotation>
+		<xsd:documentation> Revision: 3.0 </xsd:documentation>
+	</xsd:annotation>
+	<xsd:annotation>
+		<xsd:documentation> Schema used to validate the logparser definition XML file </xsd:documentation>
+	</xsd:annotation>
+
+	<xsd:simpleType name="startTimeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9]{1,4}/[0-9]{1,2}/[0-9]{1,2}-[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="endTimeType">
+		<xsd:restriction base="xsd:string">
+			<xsd:pattern value="[0-9]{1,4}/[0-9]{1,2}/[0-9]{1,2}-[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="typeType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="paceType">
+		<xsd:restriction base="xsd:int"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="equalType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="highType">
+		<xsd:restriction base="xsd:float"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="lowType">
+		<xsd:restriction base="xsd:float"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="searchType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="matchType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="suffixType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="prefixType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="lengthType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="keywordType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="expTypeType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+	<xsd:simpleType name="fmtNameType">
+		<xsd:restriction base="xsd:string"/>
+	</xsd:simpleType>
+
+	<xsd:complexType name="outputType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="fmtName" type="fmtNameType" maxOccurs="1" minOccurs="1"/>
+			<xsd:element name="expType" type="expTypeType" maxOccurs="1" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+	<xsd:complexType name="outputsType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="output" type="outputType" maxOccurs="unbounded" minOccurs="1"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="filterType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="fmtName" type="fmtNameType" maxOccurs="1" minOccurs="1"/>
+			<xsd:element name="equal" type="equalType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="keyword" type="keywordType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="length" type="lengthType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="prefix" type="prefixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="suffix" type="suffixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="match" type="matchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="search" type="searchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="low" type="lowType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="high" type="highType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="andExp" type="andExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="orExp" type="orExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="notExp" type="notExpType" maxOccurs="unbounded" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="filtersType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="filter" type="filterType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="andExp" type="andExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="orExp" type="orExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="notExp" type="notExpType" maxOccurs="unbounded" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="andExpType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="equal" type="equalType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="keyword" type="keywordType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="length" type="lengthType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="prefix" type="prefixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="suffix" type="suffixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="match" type="matchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="search" type="searchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="low" type="lowType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="high" type="highType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="andExp" type="andExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="orExp" type="orExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="notExp" type="notExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="filter" type="filterType" maxOccurs="unbounded" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="orExpType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="equal" type="equalType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="keyword" type="keywordType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="length" type="lengthType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="prefix" type="prefixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="suffix" type="suffixType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="match" type="matchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="search" type="searchType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="low" type="lowType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="high" type="highType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="andExp" type="andExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="orExp" type="orExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="notExp" type="notExpType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="filter" type="filterType" maxOccurs="unbounded" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="notExpType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="equal" type="equalType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="keyword" type="keywordType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="length" type="lengthType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="prefix" type="prefixType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="suffix" type="suffixType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="match" type="matchType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="search" type="searchType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="low" type="lowType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="high" type="highType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="andExp" type="andExpType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="orExp" type="orExpType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="notExp" type="notExpType" maxOccurs="1" minOccurs="0"/>
+			<xsd:element name="filter" type="filterType" maxOccurs="1" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:complexType name="analyserType">
+		<xsd:choice maxOccurs="unbounded" minOccurs="0">
+			<xsd:element name="type" type="typeType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="outputs" type="outputsType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="startTime" type="startTimeType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="endTime" type="endTimeType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="pace" type="paceType" maxOccurs="unbounded" minOccurs="0"/>
+			<xsd:element name="filters" type="filtersType" maxOccurs="unbounded" minOccurs="0"/>
+		</xsd:choice>
+	</xsd:complexType>
+
+	<xsd:element name="translog">
+		<xsd:complexType>
+			<xsd:choice maxOccurs="unbounded" minOccurs="0">
+				<xsd:element name="startTime" type="startTimeType" minOccurs="0"/>
+				<xsd:element name="endTime" type="endTimeType" minOccurs="0"/>
+				<xsd:element name="pace" type="paceType" maxOccurs="unbounded" minOccurs="0"/>
+				<xsd:element name="analyser" type="analyserType" maxOccurs="unbounded" minOccurs="1"/>
+			</xsd:choice>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>
+
