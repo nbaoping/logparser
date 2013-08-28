@@ -1,0 +1,42 @@
+
+<translog>
+	<pace>60</pace>
+	<analyser>
+		<type>bandwidth</type>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<type>requestdes</type>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<type>status</type>
+		<type>activeSessions</type>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<type>activeSessions</type>
+		<filters>
+			<filter>
+				<fmtName>urlAll</fmtName>
+				<suffix>.m3u8</suffix>
+			</filter>
+		</filters>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<filters>
+			<notExp>
+				<filter>
+					<fmtName>status</fmtName>
+					<orExp>
+						<equal>200</equal>
+						<equal>206</equal>
+						<equal>304</equal>
+					</orExp>
+				</filter>
+			</notExp>
+		</filters>
+	</analyser>
+</translog>

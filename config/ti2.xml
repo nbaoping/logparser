@@ -1,0 +1,18 @@
+
+<translog>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<type>activeSessions</type>
+		<type>requestdes</type>
+		<pace>1</pace>
+	</analyser>
+	<analyser>
+		<type>requestdes</type>
+		<type>status</type>
+		<pace>-1</pace>
+	</analyser>
+</translog>

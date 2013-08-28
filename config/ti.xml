@@ -1,0 +1,20 @@
+
+<translog>
+	<pace>1</pace>
+	<analyser>
+		<type>bandwidth</type>
+		<type>counter</type>
+		<type>activeSessions</type>
+		<type>requestdes</type>
+		<startTime>2013/07/11-23:35:00</startTime>
+		<endTime>2013/07/11-23:37:43</endTime>
+	</analyser>
+	<analyser>
+		<type>bandwidth</type>
+		<type>counter</type>
+		<type>activeSessions</type>
+		<type>requestdes</type>
+		<startTime>2013/07/12-00:12:00</startTime>
+		<endTime>2013/07/12-00:14:00</endTime>
+	</analyser>
+</translog>

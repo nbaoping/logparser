@@ -28,6 +28,7 @@ class XactParser:
 		if logType == 'translog':
 			self.__parse_translog( args )
 		elif logType == 'errorlog':
+			args.sorted = True
 			self.__parse_errorlog( args )
 	
 	def close( self ):

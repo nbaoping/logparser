@@ -1,0 +1,7 @@
+
+<translog>
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+	</analyser>
+</translog>

@@ -173,7 +173,9 @@ class AssembleHelper( AnalyserHelper ):
 		return len(value) == 0
 
 	def str_value( self, value ):
-		itemList = sorted( value, key=itemgetter(0) )
+		itemList = value
+		if not self.sorted:
+			itemList = sorted( value, key=itemgetter(0) )
 		bufio = StringIO()
 		first = True
 		for item in itemList:
@@ -423,9 +425,11 @@ class AnalyserFactory:
 		analysers = list()
 		configList = self.__parse_xml( args.outdir, args.configPath )
 		for config in configList:
+			config.sorted = args.sorted
 			funcItem = self.__get_create_func( config.type )
 			if funcItem is not None:
 				anly = funcItem[1]( funcItem[0], config )
+				anly.sorted = args.sorted
 				analysers.append( anly )
 			else:
 				print 'no create function for analyser', config 
@@ -647,6 +651,7 @@ class AnalyserFactory:
 				helper = OutputsHelper( config.outList )
 			else:
 				helper = OutputHelper( config.outList[0] )
+		helper.sorted = config.sorted
 
 		if atype == 'single':
 			anly = SingleAnalyser( config, helper )

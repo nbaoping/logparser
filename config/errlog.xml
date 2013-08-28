@@ -1,0 +1,14 @@
+
+<translog>
+	<analyser>
+		<type>counter</type>
+		<type>assemble</type>
+		<pace>60</pace>
+		<filters>
+			<filter>
+				<fmtName>originLine</fmtName>
+				<keyword>Cancelling original feed</keyword>
+			</filter>
+		</filters>
+	</analyser>
+</translog>

@@ -1,0 +1,21 @@
+
+<translog>
+	<startTime>2013/08/04-06:00:00</startTime>
+	<endTime>2013/08/04-08:00:00</endTime>
+	<analyser>
+		<type>assemble</type>
+		<pace>300</pace>
+		<filters>
+			<filter>
+				<fmtName>servTime</fmtName>
+				<low>5500000</low>
+			</filter>
+			<notExp>
+				<filter>
+					<fmtName>urlAll</fmtName>
+					<keyword>.m3u8</keyword>
+				</filter>
+			</notExp>
+		</filters>
+	</analyser>
+</translog>

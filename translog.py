@@ -183,6 +183,23 @@ class SMXactCtx( TranslogCtx ):
 		return istr + ';' + ostr
 
 
+class WEAbrCtx( TranslogCtx ):
+	def __init__( self ):
+		self.timeFmt = '%Y-%m-%d %H:%M:%S' 
+
+	def register( self ):
+		self.register_tokens()
+
+	def register_tokens( self ):
+		register_token( '%abr_md', 'abr_mode', WEAbrCtx.__parse_string, self )
+		register_token( '%abr_ua', 'abr_agent', WEAbrCtx.__parse_string, self )
+		register_token( '%abr_gt', 'abr_gen_time', WEAbrCtx.__parse_string, self )
+		register_token( '%abr_ad', 'abr_aid', WEAbrCtx.__parse_string, self )
+
+	def __parse_string( self, field, logInfo, fmt ):
+		return field
+
+
 class WEIngestLogCtx( TranslogCtx ):
 	def __init__( self ):
 		self.timeFmt = '%Y-%m-%d %H:%M:%S'
@@ -519,6 +536,7 @@ class FMSXactCtx( TranslogCtx ):
 
 __srxactCtx = SRXactCtx()
 __smxactCtx = SMXactCtx()
+__weabrCtx = WEAbrCtx()
 __weingestLogCtx = WEIngestLogCtx()
 __cmxactCtx = CMXactCtx()
 __wmtxactCtx = WMTXactCtx()
@@ -528,6 +546,7 @@ __fmsxactCtx = FMSXactCtx()
 def register_translog():
 	__srxactCtx.register()
 	__smxactCtx.register()
+	__weabrCtx.register()
 	__weingestLogCtx.register()
 	__cmxactCtx.register()
 	__wmtxactCtx.register()

@@ -1,0 +1,7 @@
+
+<translog>
+	<analyser>
+		<type>activeSessions</type>
+		<pace>1</pace>
+	</analyser>
+</translog>

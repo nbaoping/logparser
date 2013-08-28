@@ -1,0 +1,34 @@
+
+<translog>
+	<analyser>
+		<type>bandwidth</type>
+		<pace>10</pace>
+	</analyser>
+	<analyser>
+		<type>status</type>
+		<type>requestdes</type>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<type>xactrate</type>
+		<type>activeSessions</type>
+		<pace>1</pace>
+	</analyser>
+	<analyser>
+		<type>assemble</type>
+		<type>counter</type>
+		<pace>1</pace>
+		<filters>
+			<notExp>
+				<filter>
+					<fmtName>status</fmtName>
+					<orExp>
+						<equal>200</equal>
+						<equal>206</equal>
+						<equal>304</equal>
+					</orExp>
+				</filter>
+			</notExp>
+		</filters>
+	</analyser>
+</translog>

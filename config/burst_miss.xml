@@ -1,0 +1,38 @@
+
+<translog>
+	<startTime>2013/08/04-06:27:00</startTime>
+	<endTime>2013/08/04-07:40:00</endTime>
+	<analyser>
+		<type>counter</type>
+		<type>assemble</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>description</fmtName>
+				<keyword>MISS</keyword>
+			</filter>
+			<filter>
+				<fmtName>servTime</fmtName>
+				<low>10000000</low>
+			</filter>
+		</filters>
+	</analyser>
+	<analyser>
+		<type>counter</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>description</fmtName>
+				<keyword>MISS</keyword>
+			</filter>
+			<filter>
+				<fmtName>urlAll</fmtName>
+				<suffix>.m3u8</suffix>>
+			</filter>
+			<filter>
+				<fmtName>servTime</fmtName>
+				<low>10000000</low>
+			</filter>
+		</filters>
+	</analyser>
+</translog>

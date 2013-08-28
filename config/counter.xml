@@ -1,0 +1,7 @@
+
+<translog>
+	<analyser>
+		<type>counter</type>
+		<pace>1</pace>
+	</analyser>
+</translog>

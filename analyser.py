@@ -58,6 +58,8 @@ class Analyser( object ):
 
 	def get_sample_start_time( self, logInfo ):
 		startTime = self.startTime
+		if self.sorted:
+			return startTime
 		if startTime <= 0:
 			startTime = logInfo.recvdTime - BUF_TIME
 		return startTime
@@ -508,6 +510,12 @@ class DescAnalyser( Analyser ):
 class AnalyserHelper( object ):
 	def __init__( self ):
 		self.sampleThres = NUM_THRES
+		self.sorted = False
+
+	def get_buf_time( self ):
+		if self.sorted:
+			return 600
+		return BUF_TIME
 
 	def get_sample_time( self, logInfo ):
 		return logInfo.recvdTime
@@ -572,8 +580,9 @@ class SingleAnalyser( Analyser ):
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
 		endTime = self.get_sample_end_time( logInfo )
+		bufTime = self.__helper.get_buf_time()
 		sargs = SamplerArgs( startTime, endTime, self.pace,
-				BUF_TIME, self.__helper.sampleThres, SingleAnalyser.__flush_callback, self )
+				bufTime, self.__helper.sampleThres, SingleAnalyser.__flush_callback, self )
 		self.sampler = MutableSampler( sargs, SingleAnalyser.__init_value, SingleAnalyser.__update_value )
 
 	def __init_value( self, value ):

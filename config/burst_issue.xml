@@ -1,0 +1,11 @@
+
+<translog>
+	<!--
+	<startTime>2013/08/04-06:30:00</startTime>
+	<endTime>2013/08/04-08:15:00</endTime>
+	-->
+	<analyser>
+		<type>burstissue</type>
+		<pace>1</pace>
+	</analyser>
+</translog>

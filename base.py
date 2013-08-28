@@ -99,6 +99,7 @@ class InputArgs:
 		self.configPath = None
 		self.fieldParser = None
 		self.customer = None
+		self.sorted = False
 
 	def parse_argv( self, argv ):
 		idx = 1
@@ -135,6 +136,7 @@ class InputArgs:
 			if mdfmt is not None:
 				print 'using module format:', mdfmt
 				self.fmt = mdfmt
+				self.sorted = is_log_sorted(mdfmt)
 		return True
 						
 	def __print_usage( self ):

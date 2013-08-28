@@ -16,6 +16,7 @@ __cus_fmt_map = {
 __md_fmt_map = {
 		'we_ext':'%Z %D %a %R/%>s %O %m %u %M',
 		'we_apache':'%a %U %O %b %I %m %>s %t %D',
+		'we_abr':'%a %y %i %u %abr_ad %O %I %S %Z %D %B %E %abr_md %>s %abr_ua %abr_gt %M',
 		'we_ingest':'%wi_tim %wi_url %wi_fal %wi_sip %wi_red %wi_trd %wi_siz %wi_dpr %wi_dtm %wi_cbk %wi_sta %wi_mim %wi_rvl %wi_dmn %wi_cif %wi_ist %wi_rur %wi_ofl',
 		'sr':'%sr_ip %sr_ua %sr_dt %sr_tm %sr_ur %sr_pt %sr_se %sr_rp %sr_st %sr_rm',
 		'sm':'%sm_dat %sm_tim %sm_cpu %sm_mem %sm_kme %sm_dsk %sm_fdk %sm_pdk %sm_bnd %sm_fdc %sm_tsv %sm_tcl %sm_prs %sm_dsc %sm_mth %sm_mat %sm_msp %sm_mrs %sm_mrp %sm_fth %sm_fat %sm_fsp %sm_fcn %sm_wth %sm_wat %sm_wsp %sm_wcp %sm_wme %sm_wrq %sm_wse %sm_wup %sm_tth %sm_tat %sm_tsp %sm_tmc %sm_tmm %sm_tcc %sm_tcm %sm_tun %sm_trm %sm_tlv %sm_tvd %sm_tht %sm_trt %sm_gtp %sm_ucp %sm_ume',
@@ -26,6 +27,11 @@ __md_fmt_map = {
 		'fms_old':'%f_sip %f_xev %f_xctg %f_dat %f_tim %f_tz %f_xcx %f_sip %f_xpd %f_xcl %f_xml %f_xad %f_xvh %f_xap %f_xai %f_xdr %f_xst %f_cip %f_cpr %f_sur %f_csus %f_csuq %f_crf %f_cua %f_cci %f_csbt %f_scbt %f_cnt %f_xsn %f_xsq %f_xsrq %f_xss %f_xsu %f_xfn %f_xfe %f_xfs %f_xfl %f_xsp %f_csp %f_cssb %f_scsb %f_xsrn %f_xsqb %f_xcm %f_xed %f_xsd %f_xts %f_xtsq %f_xtfe %f_xtm %f_xso %f_xpl %f_xpu %f_xsrd %f_xff'
 		}
 
+
+#some logs are sorted originally
+__logs_sorted_map = {
+		'sm':1
+		}
 
 def get_log_fmt( customer ):
 	customer = customer.lower()
@@ -38,3 +44,11 @@ def get_module_fmt( mdname ):
 	if mdname in __md_fmt_map:
 		return __md_fmt_map[mdname]
 	return None
+
+def is_log_sorted( mdname ):
+	mdname = mdname.lower()
+	if mdname in __logs_sorted_map:
+		return True
+	return False
+
+

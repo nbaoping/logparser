@@ -1,0 +1,16 @@
+<translog>
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>originLine</fmtName>
+				<orExp>
+					<keyword>cachefill.wccorigina.bt.net</keyword>
+					<keyword>content.cdd2.bt.net</keyword>
+					<keyword>origin4.bt.net</keyword>
+				</orExp>
+			</filter>
+		</filters>
+	</analyser>
+</translog>
