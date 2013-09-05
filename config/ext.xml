@@ -1,0 +1,33 @@
+<translog>
+	<pace>60</pace>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+			</output>
+			<output>
+				<fmtName>description</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+	</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+			</output>
+			<output>
+				<fmtName>description</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>urlAll</fmtName>
+				<keyword>.ts</keyword>
+			</filter>
+		</filters>
+	</analyser>
+</translog>

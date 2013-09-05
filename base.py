@@ -137,6 +137,10 @@ class InputArgs:
 				print 'using module format:', mdfmt
 				self.fmt = mdfmt
 				self.sorted = is_log_sorted(mdfmt)
+			else:
+				if self.fmt[0] != '%':
+					print 'the log format', self.fmt, 'not exist'
+					return False
 		return True
 						
 	def __print_usage( self ):

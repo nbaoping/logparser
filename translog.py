@@ -183,6 +183,33 @@ class SMXactCtx( TranslogCtx ):
 		return istr + ';' + ostr
 
 
+class WEXactCtx( TranslogCtx ):
+	def __init__( self ):
+		self.timeFmt = '%Y-%m-%d %H:%M:%S' 
+
+	def register( self ):
+		self.register_tokens()
+
+	def register_tokens( self ):
+		register_token( '%C', 'lookupTime', WEXactCtx.__parse_lookup_time, self )
+		register_token( '%C_alt', 'auth_time', WEXactCtx.__parse_string, self )
+		register_token( '%C_clt', 'cal_time', WEXactCtx.__parse_string, self )
+		register_token( '%C_crt', 'cr_time', WEXactCtx.__parse_string, self )
+		register_token( '%C_odt', 'os_time', WEXactCtx.__parse_string, self )
+
+	def __parse_lookup_time( self, field, logInfo, fmt ):
+		segs = field.split( '|' )
+		#convert to milliseconds
+		logInfo.auth_time = float(segs[0]) / 1000
+		logInfo.cal_time = float(segs[1]) / 1000
+		logInfo.cr_time = float(segs[2]) / 1000
+		logInfo.os_time = float(segs[3]) / 1000
+		return field
+
+	def __parse_string( self, field, logInfo, fmt ):
+		return field
+
+
 class WEAbrCtx( TranslogCtx ):
 	def __init__( self ):
 		self.timeFmt = '%Y-%m-%d %H:%M:%S' 
@@ -536,6 +563,7 @@ class FMSXactCtx( TranslogCtx ):
 
 __srxactCtx = SRXactCtx()
 __smxactCtx = SMXactCtx()
+__wexactCtx = WEXactCtx()
 __weabrCtx = WEAbrCtx()
 __weingestLogCtx = WEIngestLogCtx()
 __cmxactCtx = CMXactCtx()
@@ -546,6 +574,7 @@ __fmsxactCtx = FMSXactCtx()
 def register_translog():
 	__srxactCtx.register()
 	__smxactCtx.register()
+	__wexactCtx.register()
 	__weabrCtx.register()
 	__weingestLogCtx.register()
 	__cmxactCtx.register()

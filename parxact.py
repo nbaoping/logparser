@@ -250,7 +250,6 @@ class XactParser:
 				fpath = os.path.join( root, fname )
 				#try:
 				stime = self.__get_file_stime( fpath, parser )
-				print stime
 				if stime > 0:
 					fileList.append( (stime, fpath) )
 				#except:

@@ -26,6 +26,7 @@ class AnalyConfig( BaseObject ):
 		self.startTime = 0
 		self.endTime = -1
 		self.pace = 0
+		self.insertValue = None
 		self.outPath = ''
 
 	def __str__( self ):
@@ -59,6 +60,9 @@ class Analyser( object ):
 	def get_sample_start_time( self, logInfo ):
 		startTime = self.startTime
 		if self.sorted:
+			#for sorted logs, make sure we use the proper start time
+			if startTime <= 0 or startTime < logInfo.recvdTime:
+				return logInfo.recvdTime
 			return startTime
 		if startTime <= 0:
 			startTime = logInfo.recvdTime - BUF_TIME
@@ -510,7 +514,9 @@ class DescAnalyser( Analyser ):
 class AnalyserHelper( object ):
 	def __init__( self ):
 		self.sampleThres = NUM_THRES
+		self.useInterStr = False
 		self.sorted = False
+		self.insertValue = None
 
 	def get_buf_time( self ):
 		if self.sorted:
@@ -627,7 +633,7 @@ class SingleAnalyser( Analyser ):
 			if not self.__helper.exclude_value( item ):
 				vstr = self.__helper.str_value( item )
 				if vstr is not None:
-					if split is not None:
+					if split is not None and not self.__helper.useInterStr:
 						sampleTime = curTime + toAdd
 						tstr = str_seconds( sampleTime )
 						bufio.write( tstr )

@@ -1,0 +1,11 @@
+<translog>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>cm_operation</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<pace>3600</pace>
+	</analyser>
+</translog>

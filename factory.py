@@ -211,33 +211,121 @@ class CounterHelper( AnalyserHelper ):
 	def str_value( self, value ):
 		return str( value )
 
+class RawOutputHelper( AnalyserHelper ):
+	def __init__( self, ocfgList ):
+		super(RawOutputHelper, self).__init__()
+		self.useInterStr = True
+		self.fmtNameList = list()
+		for ocfg in ocfgList:
+			self.fmtNameList.append( ocfg.fmtName )
+
+	def get_value( self, logInfo ):
+		vlist = list()
+		for fmtName in self.fmtNameList:
+			value = logInfo.get_member( fmtName )
+			vlist.append( value )
+		return (logInfo.recvdTime, vlist)
+
+	def init_value( self, value ):
+		return list()
+	
+	def update_value( self, oldValue, sampleValue ):
+		oldValue.append( sampleValue )
+		return oldValue
+
+	def head_str( self ):
+		split = self.get_split()
+		num = 0
+		hstr = ''
+		for fmtName in self.fmtNameList:
+			num += 1
+			if num > 1:
+				hstr += split
+			hstr += fmtName
+		return hstr
+
+	def exclude_value( self, value ):
+		return len(value) == 0
+
+	def str_value( self, value ):
+		split = self.get_split()
+		vlist = value
+		bufio = StringIO()
+		if not self.sorted:
+			vlist = sorted( value, key=itemgetter(0) )
+
+		num = 0
+		for item in vlist:
+			num += 1
+			sampleTime = item[0]
+			tstr = str_seconds( sampleTime )
+			mstr = str( int((sampleTime*1000))%1000 )
+			if num > 1:
+				bufio.write( '\n' )
+			bufio.write( tstr )
+			bufio.write( '.' )
+			bufio.write( mstr )
+			bufio.write( split )
+			self.__write_fmt_list( bufio, item[1], split )
+		ss = bufio.getvalue()
+		bufio.close()
+		return ss
+
+	def __write_fmt_list( self, bufio, vlist, split ):
+		num = 0
+		for val in vlist:
+			num += 1
+			if num > 1:
+				bufio.write( split )
+			bufio.write( str(val) )
+
+
+
 class OutputHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutputHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
 		self.exptype = ocfg.exptype
+		self.insertValue = ocfg.insertValue
 		if self.exptype == 'map':
 			self.keyMap = dict()
 			self.split = ocfg.split
+		elif self.exptype == 'raw':
+			raise Exception( 'not support raw type in OutputsHelper' )
 	
 	def get_value( self, logInfo ):
-		return logInfo.get_member( self.fmtName )
+		value = logInfo.get_member( self.fmtName )
+		return value
 
 	def init_value( self, value ):
 		exptype = self.exptype
 		if exptype == 'sum':
 			return 0
+		elif exptype == 'max':
+			return 'max'
+		elif exptype == 'min':
+			return 'min'
 		elif exptype == 'average':
 			return (0, 0)
 		elif exptype == 'map':
 			return dict()
-		return 0
+		return list()
 	
 	def update_value( self, oldValue, sampleValue ):
 		exptype = self.exptype
 		value = oldValue
 		if exptype == 'sum':
 			value = oldValue + sampleValue
+		elif exptype == 'max':
+			if oldValue == 'max':
+				value = sampleValue
+			elif sampleValue > oldValue:
+				value = sampleValue
+		elif exptype == 'min':
+			if oldValue == 'min':
+				value = sampleValue
+			elif sampleValue < oldValue:
+				value = sampleValue
 		elif exptype == 'average':
 			total = oldValue[0] + sampleValue
 			count = oldValue[1] + 1
@@ -251,11 +339,21 @@ class OutputHelper( AnalyserHelper ):
 			oldValue[sampleValue] = count
 			value = oldValue
 		else:
-			value = sampleValue
+			oldValue.append( sampleValue )
 
 		return value
 
 	def exclude_value( self, value ):
+		if self.insertValue is None:
+			#need to exclude the one that is not sampled
+			exptype = self.exptype
+			if exptype == 'max':
+				if value == 'max':
+					return True
+			elif exptype == 'min':
+				if value == 'min':
+					return True
+
 		return False
 
 	def head_str( self ):
@@ -270,11 +368,23 @@ class OutputHelper( AnalyserHelper ):
 				hstr += str(key)
 				idx += 1
 			return hstr
-		return None
+		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
 		exptype = self.exptype
 		if exptype == 'sum':
+			return str(value)
+		elif exptype == 'max':
+			if value == 'max':
+				if self.insertValue is not None:
+					return self.insertValue
+				return '-1'
+			return str(value)
+		elif exptype == 'min':
+			if value == 'min':
+				if self.insertValue is not None:
+					return self.insertValue
+				return '-1'
 			return str(value)
 		elif exptype == 'average':
 			count = value[1]
@@ -300,6 +410,8 @@ class OutputHelper( AnalyserHelper ):
 					ss += str(count)
 					idx += 1
 				return ss
+		else:
+			return None
 
 		return str( value )
 
@@ -337,7 +449,12 @@ class OutputsHelper( AnalyserHelper ):
 		return oldValue
 
 	def exclude_value( self, value ):
-		return False
+		idx = 0
+		for helper in self.helperList:
+			if not helper.exclude_value(value[idx]):
+				return False
+			idx += 1
+		return True
 
 	def head_str( self ):
 		hstr = ''
@@ -430,13 +547,15 @@ class AnalyserFactory:
 			if funcItem is not None:
 				anly = funcItem[1]( funcItem[0], config )
 				anly.sorted = args.sorted
+				if config.insertValue is not None:
+					anly.insertValue = config.insertValue
 				analysers.append( anly )
 			else:
 				print 'no create function for analyser', config 
 		return analysers
 
 	def __parse_gloabl_config( self, rootNode ):
-		paceNode = stimeNode = etimeNode = None
+		paceNode = stimeNode = etimeNode = insertNode = None
 		for cnode in rootNode.childNodes:
 			name = cnode.nodeName
 			if name == 'pace':
@@ -445,10 +564,13 @@ class AnalyserFactory:
 				stimeNode = cnode 
 			elif name == 'endTime':
 				etimeNode = cnode
+			elif name == 'insertValue':
+				insertNode = cnode
 
 		pace = None
 		stime = None
 		etime = None
+		insertValue = None
 		if paceNode:
 			pace = int( get_nodevalue(paceNode) )
 		if stimeNode:
@@ -457,15 +579,18 @@ class AnalyserFactory:
 		if etimeNode:
 			etime = seconds_str( get_nodevalue(etimeNode) )
 			print etime, str_seconds( etime )
-		return (pace, stime, etime)
+		if insertNode:
+			insertValue = get_nodevalue(insertNode)
+			print 'global insertValue:', insertValue
+		return (pace, stime, etime, insertValue)
 
 	def __parse_xml( self, inputPath, xmlfile ):
 		configList = list()
 		doc = minidom.parse( xmlfile )
 		root = doc.documentElement
 		anlyNodes = get_xmlnode( root, 'analyser' )
-		(gpace, gstime, getime) = self.__parse_gloabl_config( root )
-		print 'global config', gpace, gstime, getime
+		(gpace, gstime, getime, insertValue) = self.__parse_gloabl_config( root )
+		print 'global config', gpace, gstime, getime, insertValue
 		count = 0
 		total = 0
 		curTimeStr = cur_timestr() + '_'
@@ -480,6 +605,8 @@ class AnalyserFactory:
 				config.startTime = gstime
 			if getime is not None:
 				config.endTime = getime
+			if insertValue is not None:
+				config.insertValue = insertValue
 
 			outList = self.__parse_outputs( node )
 
@@ -491,6 +618,7 @@ class AnalyserFactory:
 			nodePaceList = get_xmlnode( node, 'pace' )
 			nodeStimeList = get_xmlnode( node, 'startTime' )
 			nodeEtimeList = get_xmlnode( node, 'endTime' )
+			nodeInsertList = get_xmlnode( node, 'insertValue' )
 			nodePath = get_xmlnode( node, 'outPath' )
 
 			if len(nodeTypeList) > 0:
@@ -503,6 +631,8 @@ class AnalyserFactory:
 			if nodeEtimeList:
 				config.endTime = seconds_str( get_nodevalue(nodeEtimeList[0]) )
 				print config.endTime
+			if nodeInsertList:
+				config.insertValue = get_nodevalue(nodeInsertList[0])
 			if nodePath:
 				config.outPath = get_nodevalue( nodePath[0] )
 			else:
@@ -563,6 +693,7 @@ class AnalyserFactory:
 		for onode in nlist:
 			inodeList = get_xmlnode( onode, 'output' )
 			ilist = list()
+			hasRaw = False
 			for inode in inodeList:
 				ocfg = OutputCfg()
 				fnode = get_xmlnode( inode, 'fmtName' )[0]
@@ -572,11 +703,23 @@ class AnalyserFactory:
 					ocfg.exptype = get_nodevalue( tlist[0] )
 				else:
 					ocfg.exptype  = 'raw'
+
 				slist = get_xmlnode( inode, 'split' )
 				if len(slist) > 0:
 					ocfg.split = int( get_nodevalue(slist[0]) )
 				else:
 					ocfg.split = True
+				insertList = get_xmlnode( inode, 'insertValue' )
+				if len(insertList) > 0:
+					ocfg.insertValue = get_nodevalue(insertList[0])
+				else:
+					ocfg.insertValue = None
+				print ocfg
+				if ocfg.exptype == 'raw':
+					hasRaw = True
+				elif hasRaw:
+					print '***********only raw ouput is allowed, will engore the output type', ocfg.exptype
+					continue
 				ilist.append( ocfg )
 			
 			if len(ilist) > 0:
@@ -647,10 +790,15 @@ class AnalyserFactory:
 		elif config.type == 'counter':
 			helper = CounterHelper()
 		elif config.type == 'output':
-			if len(config.outList) > 1:
-				helper = OutputsHelper( config.outList )
+			ocfg = config.outList[0]
+			if ocfg.exptype == 'raw':
+				#for raw type, all the others are raw types
+				helper = RawOutputHelper( config.outList )
 			else:
-				helper = OutputHelper( config.outList[0] )
+				if len(config.outList) > 1:
+					helper = OutputsHelper( config.outList )
+				else:
+					helper = OutputHelper( config.outList[0] )
 		helper.sorted = config.sorted
 
 		if atype == 'single':
