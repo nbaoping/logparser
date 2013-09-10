@@ -11,10 +11,10 @@ import signal
 
 from parxact import *
 from factory import *
-import cProfile
 import pstats
 from userdefined import *
 from translog import *
+import base
 
 class TestAnalyser( Analyser ):
 	def __init__( self, config ):
@@ -69,6 +69,9 @@ def parse_args():
 	return args
 
 def main():
+	if not sys.version.startswith( '2.7' ):
+		base.NEW_VERSION = False
+
 	args = parse_args()
 	if not args:
 		return ;
@@ -121,6 +124,4 @@ def profile_main():
 
 if __name__ == '__main__':
 	main()
-	#profile_main()
-	#cProfile.run( 'profile_main()', 'profile.dat' )
 

@@ -12,7 +12,7 @@ from logparser import *
 __RECVD_TIME_FMT = '[%d/%b/%Y:%H:%M:%S'
 def parse_recvd_time( field, logInfo, fmt ):
 	segs = field.split( '.' )
-	dtime = datetime.strptime( segs[0], __RECVD_TIME_FMT )
+	dtime = strptime( segs[0], __RECVD_TIME_FMT )
 	dtime = total_seconds( dtime )
 	mstr = segs[1]
 	nsegs = mstr.split( '+' )
@@ -23,7 +23,7 @@ def parse_recvd_time( field, logInfo, fmt ):
 		dtime += (msec/1000.0)
 	return dtime
 
-class TranslogCtx():
+class TranslogCtx( object ):
 	def register( self ):
 		raise_virtual( func_name() )
 
@@ -56,7 +56,7 @@ class SRXactCtx( TranslogCtx ):
 
 	def __parse_time( self, field, logInfo, fmt ):
 		logInfo.recvdTime += ' ' + field
-		dtime = datetime.strptime( logInfo.recvdTime, self.timeFmt )
+		dtime = strptime( logInfo.recvdTime, self.timeFmt )
 		secs = total_seconds( dtime )
 		logInfo.recvdTime = secs
 		return 0
@@ -137,7 +137,7 @@ class SMXactCtx( TranslogCtx ):
 
 	def __parse_time( self, field, logInfo, fmt ):
 		logInfo.recvdTime += ' ' + field
-		dtime = datetime.strptime( logInfo.recvdTime, self.timeFmt )
+		dtime = strptime( logInfo.recvdTime, self.timeFmt )
 		secs = total_seconds( dtime )
 		logInfo.recvdTime = secs
 		return 0
@@ -294,7 +294,7 @@ class WEIngestLogCtx( TranslogCtx ):
 	#Sat_Aug_10_16:19:52_2013
 	#%a_%b_%d_%H_%M_%S_%Y
 	def __parse_conn_time( self, tstr ):
-		dtime = datetime.strptime( tstr, self.connTimeFmt )
+		dtime = strptime( tstr, self.connTimeFmt )
 		dtime = total_seconds( dtime )
 		return dtime
 		
@@ -329,7 +329,7 @@ class CMXactCtx( TranslogCtx ):
 	def __parse_time( self, field, logInfo, fmt ):
 		logInfo.recvdTime += ' ' + field
 		segs = logInfo.recvdTime.split( '.' )
-		dtime = datetime.strptime( segs[0], self.timeFmt )
+		dtime = strptime( segs[0], self.timeFmt )
 		secs = total_seconds( dtime )
 		if len(segs) > 1:
 			ms = int(segs[1]) / 1000.0
@@ -353,7 +353,7 @@ class CMXactCtx( TranslogCtx ):
 
 	def __parse_create_time( self, field, logInfo, fmt ):
 		logInfo.cm_ctime += ' ' + field
-		dtime = datetime.strptime( logInfo.cm_ctime, self.timeFmt )
+		dtime = strptime( logInfo.cm_ctime, self.timeFmt )
 		secs = total_seconds( dtime )
 		return secs
 
@@ -440,7 +440,7 @@ class WMTXactCtx( TranslogCtx ):
 
 	def __parse_time( self, field, logInfo, fmt ):
 		logInfo.t_time += ' ' + field
-		dtime = datetime.strptime( logInfo.t_time, self.timeFmt )
+		dtime = strptime( logInfo.t_time, self.timeFmt )
 		secs = total_seconds( dtime )
 		logInfo.recvdTime = secs
 		return secs
@@ -554,7 +554,7 @@ class FMSXactCtx( TranslogCtx ):
 
 	def __parse_time( self, field, logInfo, fmt ):
 		logInfo.recvdTime += ' ' + field
-		dtime = datetime.strptime( logInfo.recvdTime, self.timeFmt )
+		dtime = strptime( logInfo.recvdTime, self.timeFmt )
 		secs = total_seconds( dtime )
 		logInfo.recvdTime = secs
 		return 0

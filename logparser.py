@@ -264,7 +264,7 @@ class WELogParser( LogParser ):
 		idx = field.rfind( '+' )
 		tstr = field[ 0:idx ]
 		timeFmt = '[%d/%b/%Y:%H:%M:%S'
-		dtime = datetime.strptime( tstr, timeFmt )
+		dtime = strptime( tstr, timeFmt )
 		dtime = total_seconds( dtime )
 		return dtime
 
@@ -272,7 +272,7 @@ class WELogParser( LogParser ):
 	#%d/%b/%Y:%H:%M:%S.%f
 	def parseRecvdTime( self, field, logInfo, fmt ):
 		segs = field.split( '.' )
-		dtime = datetime.strptime( segs[0], self.timeFmt )
+		dtime = strptime( segs[0], self.timeFmt )
 		dtime = total_seconds( dtime )
 		mstr = segs[1]
 		nsegs = mstr.split( '+' )

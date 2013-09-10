@@ -4,7 +4,7 @@
 		<pace>1</pace>
 		<filters>
 			<filter>
-				<fmtName>urlAll</fmtName>
+				<fmtName>wi_url</fmtName>
 				<keyword>.ts</keyword>
 			</filter>
 		</filters>

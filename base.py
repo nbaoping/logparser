@@ -11,16 +11,30 @@ import os
 import inspect
 from  xml.dom import  minidom
 
+import recipe
 from customer import *
+
+NEW_VERSION = True
 
 RES_DIR = 'output'
 
 __TIME_FMT = '%Y/%m/%d-%H:%M:%S'
 __START_TIME = datetime( 1970, 1, 1 )
 
+def strptime( tstr, fmt ):
+	if NEW_VERSION:
+		return datetime.strptime( tstr, fmt )
+	else:
+		time = recipe.strptime( tstr, fmt )
+		dtime = datetime( time[0], time[1], time[2], time[3], time[4], time[5] )
+		return dtime
+
 def total_seconds( dtime ):
 	delta = dtime - __START_TIME
-	return delta.total_seconds()
+	if NEW_VERSION:
+		return delta.total_seconds()
+	else:
+		return delta.seconds + delta.days*24*3600
 
 def to_datetime( seconds ):
 	return __START_TIME + timedelta( 0, seconds )
@@ -33,10 +47,10 @@ def str_time( dtime ):
 	return datetime.strftime( dtime, __TIME_FMT )
 
 def time_str( tstr ):
-	return datetime.strptime( tstr, __TIME_FMT )
+	return strptime( tstr, __TIME_FMT )
 
 def seconds_str( tstr ):
-	dtime = datetime.strptime( tstr, __TIME_FMT )
+	dtime = strptime( tstr, __TIME_FMT )
 	return total_seconds( dtime )
 
 def str_seconds( seconds ):
@@ -93,6 +107,7 @@ class BaseObject( object ):
 
 class InputArgs:
 	def __init__( self ):
+		self.inputType = 'files'
 		self.path = None
 		self.type = 'translog'
 		self.fmt = None
@@ -127,6 +142,11 @@ class InputArgs:
 			print '\tlogs path and config file must be setted\n'
 			self.__print_usage()
 			return False
+		if self.path == '%stdin%':
+			print 'will read lines from the stdin'
+			self.path = './'
+			self.inputType = 'stdin'
+
 		if self.fmt is None and self.customer is not None:
 			print 'format not set, use customer', self.customer, ' standard format'
 			self.fmt = get_log_fmt( self.customer )

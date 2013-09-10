@@ -10,6 +10,7 @@ import os
 import sys
 from operator import itemgetter
 import time
+import traceback
 
 from analyser import *
 from logparser import *
@@ -39,7 +40,10 @@ class XactParser:
 	def __parse_errorlog( self, args ):
 		print 'parse errorlog in', args.path
 		parser = ErrorlogParser()
-		self.__parse_logs( args, parser )
+		if args.inputType == 'stdin':
+			self.__parse_stdin( args, parser )
+		else:
+			self.__parse_logs( args, parser )
 
 	def __parse_translog( self, args ):
 		print 'parse translog in', args.path
@@ -48,7 +52,17 @@ class XactParser:
 			fmt = args.fmt
 		print 'translog format:', fmt
 		parser = WELogParser( fmt, args.fieldParser, args.fmtType )
-		self.__parse_logs( args, parser )
+		if args.inputType == 'stdin':
+			self.__parse_stdin( args, parser )
+		else:
+			self.__parse_logs( args, parser )
+
+	def __parse_stdin( self, args, parser ):
+		anlyList = self.anlyFactory.create_from_args( args, -1, -1)
+		self.anlyList = anlyList
+		self.__analyse_stdin( parser, anlyList )
+		for anly in anlyList:
+			anly.close()
 
 	def __parse_logs( self, args, parser ):
 		files = self.__stat_files( args.path, parser )
@@ -248,12 +262,10 @@ class XactParser:
 					continue
 				#print 'stat file', root, fname
 				fpath = os.path.join( root, fname )
-				#try:
 				stime = self.__get_file_stime( fpath, parser )
 				if stime > 0:
 					fileList.append( (stime, fpath) )
-				#except:
-				#	print 'stat file not support', fpath
+
 		#sort the list
 		return sorted( fileList, key=itemgetter(0) )
 
@@ -276,25 +288,48 @@ class XactParser:
 		lineCount = 0
 		for line in fin:
 			lineCount += 1
-			line = line.strip()
-			if len(line) == 0:
-				continue
-			if line[0] == '#':
-				continue
-			if first:
-				first = False
-				continue
-			logInfo = parser.parse_line( line )
-			if logInfo is None:
-				continue
-			if logInfo.exist_member( 'servTime' ) and logInfo.exist_member( 'bytesSentAll' ):
-				logInfo.transrate = logInfo.bytesSentAll * 1000000 * 8 / logInfo.servTime
-			else:
-				logInfo.transrate = 100000000
-			for anly in anlyList:
-				anly.analyse_log( logInfo )
+			self.__analyse_line( parser, anlyList, line )
+
 		fin.close()
 		return lineCount
+
+	def __analyse_stdin( self, parser, anlyList ):
+		lineCount = 0
+		startTime = time.time()
+		for line in sys.stdin:
+			lineCount += 1
+			self.__analyse_line( parser, anlyList, line )
+			if (lineCount%10000) == 0:
+				elapsed = time.time() - startTime
+				print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
+				startTime = time.time()
+
+		elapsed = time.time() - startTime
+		print '===============================:', elapsed * 1000, 'ms, total', lineCount, 'lines'
+
+	def __analyse_line( self, parser, anlyList, line ):
+		line = line.strip()
+		if len(line) == 0:
+			return False
+		if line[0] == '#':
+			return False
+		
+		try:
+			logInfo = parser.parse_line( line )
+		except:
+			logInfo = None
+			traceback.print_exc()
+
+		if logInfo is None:
+			return False
+		
+		if logInfo.exist_member( 'servTime' ) and logInfo.exist_member( 'bytesSentAll' ):
+			logInfo.transrate = logInfo.bytesSentAll * 1000000 * 8 / logInfo.servTime
+		else:
+			logInfo.transrate = 100000000
+		for anly in anlyList:
+			anly.analyse_log( logInfo )
+		return True
 
 	#get the first received time
 	def __get_file_stime( self, path, parser ):

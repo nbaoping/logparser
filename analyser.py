@@ -231,8 +231,6 @@ class BandwidthAnalyser( Analyser ):
 		bufio.write( tstr )
 		bufio.write( '\t' )
 		bufio.write( str(band) )
-		bufio.write( '\t' )
-		bufio.write( str(curTime) )
 		bufio.write( '\n' )
 
 	def close( self ):
@@ -767,8 +765,6 @@ class ActiveSessionsAnalyser( Analyser ):
 		bufio.write( tstr )
 		bufio.write( '\t' )
 		bufio.write( str(value) )
-		bufio.write( '\t' )
-		bufio.write( str(curTime) )
 		bufio.write( '\n' )
 
 	def close( self ):

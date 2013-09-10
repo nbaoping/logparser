@@ -10,7 +10,7 @@ def parse_errlog_time( line ):
 		tstr = segs[0]
 		segs = segs[1].split( '(' )
 		msec = int( segs[0] )
-		dtime = datetime.strptime( tstr, LOG_TFMT )
+		dtime = strptime( tstr, LOG_TFMT )
 		time = total_seconds( dtime ) + msec/1000.0
 		return time
 	except:
