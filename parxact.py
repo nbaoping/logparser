@@ -16,6 +16,7 @@ from analyser import *
 from logparser import *
 from factory import *
 from errorlog import *
+from anlyhandler import *
 
 
 class XactParser:
@@ -29,7 +30,6 @@ class XactParser:
 		if logType == 'translog':
 			self.__parse_translog( args )
 		elif logType == 'errorlog':
-			args.sorted = True
 			self.__parse_errorlog( args )
 	
 	def close( self ):
@@ -60,7 +60,9 @@ class XactParser:
 	def __parse_stdin( self, args, parser ):
 		anlyList = self.anlyFactory.create_from_args( args, -1, -1)
 		self.anlyList = anlyList
-		self.__analyse_stdin( parser, anlyList )
+		anlyHandler = AnlyHandler( parser, anlyList, args )
+		self.__analyse_stdin( parser, anlyHandler )
+		anlyHandler.close()
 		for anly in anlyList:
 			anly.close()
 
@@ -81,7 +83,12 @@ class XactParser:
 		startTime = files[0][0]
 		endTime = files[-1][0]
 		print 'sampled files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
-		self.__analyse_files( files, parser, anlyList )
+		anlyHandler = AnlyHandler( parser, anlyList, args )
+		if args.enableParallel:
+			anlyHandler.analyse_files( files )
+		else:
+			self.__analyse_files( files, parser, anlyHandler )
+		anlyHandler.close()
 		for anly in anlyList:
 			anly.close()
 
@@ -269,7 +276,7 @@ class XactParser:
 		#sort the list
 		return sorted( fileList, key=itemgetter(0) )
 
-	def __analyse_files( self, files, parser, anlyList ):
+	def __analyse_files( self, files, parser, anlyHandler ):
 		count = 0
 		print 'total ', len(files), ' files to be analyzed'
 		for item in files:
@@ -278,27 +285,28 @@ class XactParser:
 			tstr = str_seconds( item[0] )
 			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
 			start = time.time()
-			lineCount = self.__analyse_file( path, parser, anlyList )
+			lineCount = self.__analyse_file( path, parser, anlyHandler )
 			elapsed = time.time() - start
 			print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
 
-	def __analyse_file( self, path, parser, anlyList ):
+	def __analyse_file( self, path, parser, anlyHandler ):
 		fin = open( path, 'r' )
 		first = True
 		lineCount = 0
 		for line in fin:
 			lineCount += 1
-			self.__analyse_line( parser, anlyList, line )
+			self.__analyse_line( parser, anlyHandler, line )
 
 		fin.close()
+		anlyHandler.flush()
 		return lineCount
 
-	def __analyse_stdin( self, parser, anlyList ):
+	def __analyse_stdin( self, parser, anlyHandler ):
 		lineCount = 0
 		startTime = time.time()
 		for line in sys.stdin:
 			lineCount += 1
-			self.__analyse_line( parser, anlyList, line )
+			self.__analyse_line( parser, anlyHandler, line )
 			if (lineCount%10000) == 0:
 				elapsed = time.time() - startTime
 				print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
@@ -307,28 +315,14 @@ class XactParser:
 		elapsed = time.time() - startTime
 		print '===============================:', elapsed * 1000, 'ms, total', lineCount, 'lines'
 
-	def __analyse_line( self, parser, anlyList, line ):
+	def __analyse_line( self, parser, anlyHandler, line ):
 		line = line.strip()
 		if len(line) == 0:
 			return False
 		if line[0] == '#':
 			return False
 		
-		try:
-			logInfo = parser.parse_line( line )
-		except:
-			logInfo = None
-			traceback.print_exc()
-
-		if logInfo is None:
-			return False
-		
-		if logInfo.exist_member( 'servTime' ) and logInfo.exist_member( 'bytesSentAll' ):
-			logInfo.transrate = logInfo.bytesSentAll * 1000000 * 8 / logInfo.servTime
-		else:
-			logInfo.transrate = 100000000
-		for anly in anlyList:
-			anly.analyse_log( logInfo )
+		anlyHandler.parse_log( line )
 		return True
 
 	#get the first received time
@@ -342,9 +336,11 @@ class XactParser:
 				continue
 			if line[0] == '#':
 				continue
-			if num == 1:
+			try:
 				logInfo = parser.parse_line( line )
 				break
+			except:
+				traceback.print_exc()
 			num += 1
 		fin.close()
 		if logInfo is not None:

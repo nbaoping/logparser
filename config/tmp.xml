@@ -2,11 +2,13 @@
 	<analyser>
 		<type>assemble</type>
 		<pace>1</pace>
+		<!--
 		<filters>
 			<filter>
-				<fmtName>urlAll</fmtName>
-				<keyword>.ts</keyword>
+				<fmtName>originLine</fmtName>
+				<keyword>0x80cf710</keyword>
 			</filter>
 		</filters>
+		-->
 	</analyser>
 </translog>

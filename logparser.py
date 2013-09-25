@@ -17,10 +17,30 @@ class LogParser( object ):
 	def parse_line( self, line ):
 		raise Exception( 'derived class must implement function parse_line' )
 
-class LogInfo( BaseObject ):
+class LogInfo( object ):
 	def __init__( self ):
 		self.servTime = 0
 	
+	def set_member( self, mname, value ):
+		self.__dict__[mname] = value
+
+	def get_member( self, mname ):
+		return self.__dict__[mname]
+
+	def exist( self, member ):
+		return member in self.__dict__
+
+	def exist_member( self, mname ):
+		return mname in self.__dict__
+
+	def copy_object( self, obj ):
+		for mname in self.__dict__.keys():
+			value = self.__dict__[mname]
+			obj.set_member( mname, value )
+
+	def __str__( self ):
+		return str( self.__dict__ )
+
 
 #======================================================================
 #================implement parser for web-engine translog==============
@@ -212,7 +232,6 @@ class WELogParser( LogParser ):
 		if self.__parsefuncs is None:
 			print 'fatal error, format not setted'
 			return None
-		i = 0
 		fields = None
 		if self.fmtType.startswith( 'fms' ):
 			if line.startswith( 's-ip' ):
@@ -230,8 +249,10 @@ class WELogParser( LogParser ):
 			while count < rest:
 				fields.append( '-' )
 				count += 1
-		logInfo = WELogInfo()
+		#logInfo = WELogInfo()
+		logInfo = LogInfo()
 		logInfo.originLine = line
+		i = 0
 		for funcs in self.__parsefuncs:
 			value = funcs[0]( funcs[3], fields[i], logInfo, funcs[2] )
 			if value is None:
@@ -239,6 +260,7 @@ class WELogParser( LogParser ):
 				return None
 			set_log_info( logInfo, funcs[2], value )
 			i += 1
+
 		return logInfo
 
 	def parseString( self, field, logInfo, fmt ):
@@ -370,10 +392,17 @@ WELogParser.fmtmap = {
 			'%a':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
 			'%A':(WELogParser.parseString, WELogInfo.setDummy),
 			'%b':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
+			'%B':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
+			'%C':(WELogParser.parseString, WELogInfo.setDummy),
 			'%D':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStime),
+			'%E':(WELogParser.parseString, WELogInfo.setDummy),
+			'%g':(WELogParser.parseString, WELogInfo.setDummy),
+			'%G':(WELogParser.parseString, WELogInfo.setDummy),
 			'%h':(WELogParser.parseString, WELogInfo.setDummy),
 			'%H':(WELogParser.parseString, WELogInfo.setDummy),
+			'%i':(WELogParser.parseString, WELogInfo.setDummy),
 			'%I':(WELogParser.parseInt, WELogInfo.setDummy),
+			'%k':(WELogParser.parseString, WELogInfo.setDummy),
 			'%m':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMethod),
 			'%M':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setMimeType),
 			'%O':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setAllSent),
@@ -381,11 +410,13 @@ WELogParser.fmtmap = {
 			'%r':(WELogParser.parseString, WELogInfo.setDummy),
 			'%R':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setRequestDes),
 			'%>s':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setStatus),
+			'%S':(WELogParser.parseString, WELogInfo.setDummy),
 			'%t':(WELogParser.parseStandardTime, WELogInfo.setDummy),# WELogInfo.setRtimeT),
 			'%T':(WELogParser.parseFloat, WELogInfo.setDummy),
 			'%u':(WELogParser.parseString, WELogInfo.setDummy),#WELogInfo.setUri),
 			'%U':(WELogParser.parseString, WELogInfo.setDummy),
 			'%V':(WELogParser.parseString, WELogInfo.setDummy),
+			'%y':(WELogParser.parseString, WELogInfo.setDummy),
 			'%X':(WELogParser.parseString, WELogInfo.setDummy),
 			'%Z':(WELogParser.parseRecvdTime, WELogInfo.setDummy)# WELogInfo.setRtime)
 			}

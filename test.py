@@ -4,7 +4,8 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 #*********************************************************************************************#
-
+import pickle
+from StringIO import StringIO
 
 from logparser import *
 import inspect
@@ -46,7 +47,9 @@ class Derived( TestObj ):
 
 class StatusMap():
 	testMap = None
-	pass
+	
+	def __init__( self ):
+		self.value = 'afdsfdsafsd'
 
 
 StatusMap.testMap = {
@@ -54,4 +57,13 @@ StatusMap.testMap = {
 		'fdsfds':5454
 		}
 
-print StatusMap.testMap
+print '=======================test pickle================'
+status = StatusMap()
+status.val2 = 13213131
+
+parser = 
+buf = StringIO()
+
+pickle.dump( status, buf, 0 )
+
+print buf.getvalue()

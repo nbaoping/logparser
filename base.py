@@ -105,7 +105,7 @@ class BaseObject( object ):
 	def __str__( self ):
 		return str( self.__dict__ )
 
-class InputArgs:
+class InputArgs( BaseObject ):
 	def __init__( self ):
 		self.inputType = 'files'
 		self.path = None
@@ -115,28 +115,37 @@ class InputArgs:
 		self.fieldParser = None
 		self.customer = None
 		self.sorted = False
+		self.enableParallel = False
 
 	def parse_argv( self, argv ):
 		idx = 1
 		size = len(argv)
 		while idx < size:
-			if idx+1 >= size:
+			if idx >= size:
 				print 'invalid input arguments'
 				self.__print_usage()
 				return False
 			arg = argv[ idx ]
-			value = argv[ idx+1 ]
 			if arg == '-i':
-				self.path = value
+				self.path = argv[ idx+1 ]
+				idx += 2
 			elif arg == '-x':
-				self.configPath = value
+				self.configPath = argv[ idx+1 ]
+				idx += 2
 			elif arg == '-f':
-				self.fmt = value
+				self.fmt = argv[ idx+1 ]
+				idx += 2
 			elif arg == '-t':
-				self.type = value
+				self.type = argv[ idx+1 ]
+				idx += 2
 			elif arg == '-c':
-				self.customer = value
-			idx += 2
+				self.customer = argv[ idx+1 ]
+				idx += 2
+			elif arg == '-o':
+				self.enableParallel = True
+				idx += 1
+			else:
+				idx += 2
 		if not self.path or not self.configPath:
 			print 'invalid input arguments'
 			print '\tlogs path and config file must be setted\n'

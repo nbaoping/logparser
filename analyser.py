@@ -14,9 +14,8 @@ from  xml.dom import  minidom
 
 from base import *
 from sampler import *
+from anlyhelper import *
 
-BUF_TIME = 36000		#in seconds
-NUM_THRES = 36000
 
 time_offset = False
 
@@ -44,10 +43,28 @@ class Analyser( object ):
 		self.sampler = None
 		if toFile:
 			self.outPath = config.outPath
+			self.errPath = config.outPath + '.errlog' 
 			self.fout = open( config.outPath, 'w' )
-			self.ferr = open( config.outPath + '.errlog', 'w' )
+			#self.ferr = open( self.errPath, 'w' )
+			self.ferr = None
 			print self.fout
 		self.filter = config.filter
+
+	def close_output_files( self ):
+		if self.fout is not None:
+			self.fout.close()
+			self.fout = None
+		if self.ferr is not None:
+			self.ferr.close()
+			self.ferr = None
+
+	def open_output_files( self ):
+		self.close_output_files()
+		self.fout = open( self.outPath, 'w' )
+		self.errPath = self.outPath + '.errlog' 
+		#self.ferr = open( self.errPath, 'w' )
+		self.ferr = None
+		print self.fout
 
 	def __str__( self ):
 		buf = 'startTime:' + str(self.startTime) + ','
@@ -92,6 +109,8 @@ class Analyser( object ):
 		else:
 			ret = self.anly_pace( logInfo )
 		if not ret and self.sampler is not None and self.sampler.startTime > self.startTime:
+			if self.ferr is None:
+				self.ferr = open( self.errPath, 'w' )
 			self.ferr.write( logInfo.originLine + '\n' )
 
 	def anly_zero_pace( self, logInfo ):
@@ -104,7 +123,16 @@ class Analyser( object ):
 		raise_virtual( func_name() )
 
 	def close( self ):
-		self.ferr.close()
+		self.on_close()
+
+		if self.ferr is not None:
+			self.ferr.close()
+			self.ferr = None
+		if self.fout is not None:
+			self.fout.close()
+			self.fout = None
+
+	def on_close( self ):
 		raise_virtual( func_name() )
 
 	def exist( self, member ):
@@ -148,12 +176,15 @@ class BandwidthAnalyser( Analyser ):
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
-		servTime = logInfo.servTime / 1000000
+		servTime = logInfo.servTime / 1000000.0
 		if servTime == 0:
 			servTime = 1
-		num = servTime / self.sampler.pace + 1
-		value = logInfo.bytesSentAll / float(num)
-		#print 'servTime', servTime, 'num', num, logInfo.servTime, value
+		num = servTime / self.sampler.pace
+		if num <= 1:
+			value = logInfo.bytesSentAll
+		else:
+			value = logInfo.bytesSentAll / float(num)
+		num = int( num+0.9999 )
 		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
 		if ret < 0:
 			if self.hasWritten:
@@ -233,14 +264,13 @@ class BandwidthAnalyser( Analyser ):
 		bufio.write( str(band) )
 		bufio.write( '\n' )
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			#print self.sampler.slist1
 			#print self.sampler.slist2
 			self.sampler.flush()
 			self.sampler = None
-		self.fout.close()
 
 
 
@@ -319,12 +349,11 @@ class StatusAnalyser( Analyser ):
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
-		self.fout.close()
 
 
 class XactRateAnalyser( Analyser ):
@@ -417,12 +446,11 @@ class XactRateAnalyser( Analyser ):
 		bufio.write( str(value) )
 		bufio.write( '\n' )
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
-		self.fout.close()
 
 
 class DescAnalyser( Analyser ):
@@ -502,52 +530,11 @@ class DescAnalyser( Analyser ):
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
-		self.fout.close()
-
-class AnalyserHelper( object ):
-	def __init__( self ):
-		self.sampleThres = NUM_THRES
-		self.useInterStr = False
-		self.sorted = False
-		self.insertValue = None
-
-	def get_buf_time( self ):
-		if self.sorted:
-			return 600
-		return BUF_TIME
-
-	def get_sample_time( self, logInfo ):
-		return logInfo.recvdTime
-
-	#return the statistics value
-	def get_value( self, logInfo ):
-		raise_virtual( func_name() )
-
-	def init_value( self, value ):
-		raise_virtual( func_name() )
-	
-	def update_value( self, oldValue, sampleValue ):
-		raise_virtual( func_name() )
-
-	def exclude_value( self, value ):
-		raise_virtual( func_name() )
-
-	def head_str( self ):
-		return None
-
-	def str_value( self, value ):
-		raise_virtual( func_name() )
-
-	def get_split( self ):
-		return ';'
-
-	def on_close( self ):
-		pass
 
 
 class SingleAnalyser( Analyser ):
@@ -571,13 +558,22 @@ class SingleAnalyser( Analyser ):
 			self.__create_sampler( logInfo )
 		if not logInfo.exist( 'requestDes' ):
 			logInfo.requestDes = 'null'
-		value = self.__helper.get_value( logInfo )
-		#servTime = logInfo.servTime / 1000000 + 1
+
 		sampleTime = self.__helper.get_sample_time( logInfo )
-		ret = self.sampler.add_sample( sampleTime, value )
+		value = self.__helper.get_value( logInfo )
+
+		if self.__helper.isSingleType:
+			ret = self.sampler.add_sample( sampleTime, value )
+		else:
+			sampleValList = value
+			for (avalue, num) in sampleValList:
+				if num < 2:
+					ret = self.sampler.add_sample( sampleTime, avalue )
+				else:
+					ret = self.sampler.add_samples( sampleTime, avalue, num )
+
 		if ret != 0:
-			print 'add sample failed', logInfo.recvdTime, sampleTime, value, ret
-			print self.sampler
+			print 'add sample failed', logInfo.recvdTime, sampleTime, value, ret, self.sampler
 			return False
 		return True
 
@@ -648,13 +644,12 @@ class SingleAnalyser( Analyser ):
 		self.fout.write( logs )
 		bufio.close()
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.__helper.on_close()
 			self.sampler = None
-		self.fout.close()
 
 
 class ActiveSessionsAnalyser( Analyser ):
@@ -767,12 +762,11 @@ class ActiveSessionsAnalyser( Analyser ):
 		bufio.write( str(value) )
 		bufio.write( '\n' )
 
-	def close( self ):
+	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
 			#print self.sampler.slist1
 			#print self.sampler.slist2
 			self.sampler.flush()
 			self.sampler = None
-		self.fout.close()
 

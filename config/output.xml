@@ -1,35 +1,87 @@
 
 <translog>
+	<pace>1</pace>
 	<!--
 	<analyser>
+		<type>bandwidth</type>
+		<type>activeSessions</type>
 		<outputs>
 			<output>
-				<fmtName>servTime</fmtName>
+				<fmtName>bytesSentAll</fmtName>
+				<expType>timeAverage</expType>
+				<unitrate>0.0000076294</unitrate>
 			</output>
 			<output>
 				<fmtName>servTime</fmtName>
-				<expType>max</expType>
+				<expType>timeActive</expType>
+				<unitrate>0.000001</unitrate>
 			</output>
 			<output>
-				<fmtName>status</fmtName>
+				<fmtName>servTime</fmtName>
+				<expType>sum</expType>
 			</output>
-		</outputs>
-		<type>consumed</type>
-		<pace>1</pace>
-	</analyser>
-	-->
-	<analyser>
-		<outputs>
 			<output>
 				<fmtName>servTime</fmtName>
 				<expType>min</expType>
 			</output>
 			<output>
+				<expType>count</expType>
+			</output>
+			<output>
 				<fmtName>status</fmtName>
 				<expType>max</expType>
 			</output>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>amount</expType>
+			</output>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+			</output>
 		</outputs>
-		<type>consumed</type>
 		<pace>1</pace>
+	</analyser>
+	-->
+
+	<analyser>
+		<outputs>
+			<output>
+				<expType>count</expType>
+			</output>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+				<output>
+					<fmtName>bytesSentAll</fmtName>
+					<expType>timeAverage</expType>
+					<unitrate>0.0000076294</unitrate>
+				</output>
+				<output>
+					<fmtName>servTime</fmtName>
+					<expType>timeActive</expType>
+					<unitrate>0.000001</unitrate>
+				</output>
+				<output>
+					<expType>count</expType>
+				</output>
+			</output>
+		</outputs>
+	</analyser>
+
+	<analyser>
+		<type>counter</type>
+	</analyser>
+
+	<analyser>
+		<type>bandwidth</type>
+		<type>activeSessions</type>
+		<type>counter</type>
+		<filters>
+			<filter>
+				<fmtName>status</fmtName>
+				<equal>200</equal>
+			</filter>
+		</filters>
 	</analyser>
 </translog>

@@ -7,6 +7,7 @@
 
 from analyser import *
 from filter import *
+from anlyhelper import *
 
 from operator import itemgetter
 #======================================================================
@@ -15,7 +16,13 @@ from operator import itemgetter
 
 class OutputCfg( BaseObject ):
 	def __init__( self ):
-		pass
+		self.fmtName = None
+		self.exptype = 'raw'
+		self.split = True
+		self.unitrate = 1
+		self.insertValue = None
+		self.outList = None
+
 
 class DesHelper( AnalyserHelper ):
 	def __init__( self ):
@@ -211,287 +218,6 @@ class CounterHelper( AnalyserHelper ):
 	def str_value( self, value ):
 		return str( value )
 
-class RawOutputHelper( AnalyserHelper ):
-	def __init__( self, ocfgList ):
-		super(RawOutputHelper, self).__init__()
-		self.useInterStr = True
-		self.fmtNameList = list()
-		for ocfg in ocfgList:
-			self.fmtNameList.append( ocfg.fmtName )
-
-	def get_value( self, logInfo ):
-		vlist = list()
-		for fmtName in self.fmtNameList:
-			value = logInfo.get_member( fmtName )
-			vlist.append( value )
-		return (logInfo.recvdTime, vlist)
-
-	def init_value( self, value ):
-		return list()
-	
-	def update_value( self, oldValue, sampleValue ):
-		oldValue.append( sampleValue )
-		return oldValue
-
-	def head_str( self ):
-		split = self.get_split()
-		num = 0
-		hstr = ''
-		for fmtName in self.fmtNameList:
-			num += 1
-			if num > 1:
-				hstr += split
-			hstr += fmtName
-		return hstr
-
-	def exclude_value( self, value ):
-		return len(value) == 0
-
-	def str_value( self, value ):
-		split = self.get_split()
-		vlist = value
-		bufio = StringIO()
-		if not self.sorted:
-			vlist = sorted( value, key=itemgetter(0) )
-
-		num = 0
-		for item in vlist:
-			num += 1
-			sampleTime = item[0]
-			tstr = str_seconds( sampleTime )
-			mstr = str( int((sampleTime*1000))%1000 )
-			if num > 1:
-				bufio.write( '\n' )
-			bufio.write( tstr )
-			bufio.write( '.' )
-			bufio.write( mstr )
-			bufio.write( split )
-			self.__write_fmt_list( bufio, item[1], split )
-		ss = bufio.getvalue()
-		bufio.close()
-		return ss
-
-	def __write_fmt_list( self, bufio, vlist, split ):
-		num = 0
-		for val in vlist:
-			num += 1
-			if num > 1:
-				bufio.write( split )
-			bufio.write( str(val) )
-
-
-
-class OutputHelper( AnalyserHelper ):
-	def __init__( self, ocfg ):
-		super(OutputHelper, self).__init__()
-		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
-		self.insertValue = ocfg.insertValue
-		if self.exptype == 'map':
-			self.keyMap = dict()
-			self.split = ocfg.split
-		elif self.exptype == 'raw':
-			raise Exception( 'not support raw type in OutputsHelper' )
-	
-	def get_value( self, logInfo ):
-		value = logInfo.get_member( self.fmtName )
-		return value
-
-	def init_value( self, value ):
-		exptype = self.exptype
-		if exptype == 'sum':
-			return 0
-		elif exptype == 'max':
-			return 'max'
-		elif exptype == 'min':
-			return 'min'
-		elif exptype == 'average':
-			return (0, 0)
-		elif exptype == 'map':
-			return dict()
-		return list()
-	
-	def update_value( self, oldValue, sampleValue ):
-		exptype = self.exptype
-		value = oldValue
-		if exptype == 'sum':
-			value = oldValue + sampleValue
-		elif exptype == 'max':
-			if oldValue == 'max':
-				value = sampleValue
-			elif sampleValue > oldValue:
-				value = sampleValue
-		elif exptype == 'min':
-			if oldValue == 'min':
-				value = sampleValue
-			elif sampleValue < oldValue:
-				value = sampleValue
-		elif exptype == 'average':
-			total = oldValue[0] + sampleValue
-			count = oldValue[1] + 1
-			value = (total, count)
-		elif exptype == 'map':
-			count = 1
-			if sampleValue in oldValue:
-				count += oldValue[sampleValue]
-			else:
-				self.keyMap[sampleValue] = 1
-			oldValue[sampleValue] = count
-			value = oldValue
-		else:
-			oldValue.append( sampleValue )
-
-		return value
-
-	def exclude_value( self, value ):
-		if self.insertValue is None:
-			#need to exclude the one that is not sampled
-			exptype = self.exptype
-			if exptype == 'max':
-				if value == 'max':
-					return True
-			elif exptype == 'min':
-				if value == 'min':
-					return True
-
-		return False
-
-	def head_str( self ):
-		if self.exptype == 'map' and self.split:
-			split = self.get_split()
-			hstr = ''
-			idx = 0
-			keyList = self.keyMap.keys()
-			for key in keyList:
-				if idx > 0:
-					hstr += split
-				hstr += str(key)
-				idx += 1
-			return hstr
-		return self.fmtName + '_' + self.exptype
-
-	def str_value( self, value ):
-		exptype = self.exptype
-		if exptype == 'sum':
-			return str(value)
-		elif exptype == 'max':
-			if value == 'max':
-				if self.insertValue is not None:
-					return self.insertValue
-				return '-1'
-			return str(value)
-		elif exptype == 'min':
-			if value == 'min':
-				if self.insertValue is not None:
-					return self.insertValue
-				return '-1'
-			return str(value)
-		elif exptype == 'average':
-			count = value[1]
-			total = value[0]
-			if count == 0:
-				return '0'
-			avg = round(total * 1.0 / count, 3)
-			return str(avg)
-		elif exptype == 'map':
-			if not self.split:
-				return str(value)
-			else:
-				idx = 0
-				ss = ''
-				split = self.get_split()
-				keyList = self.keyMap.keys()
-				for key in keyList:
-					if idx > 0:
-						ss += split
-					count = 0
-					if key in value:
-						count = value[key]
-					ss += str(count)
-					idx += 1
-				return ss
-		else:
-			return None
-
-		return str( value )
-
-class OutputsHelper( AnalyserHelper ):
-	def __init__( self, outList ):
-		super(OutputsHelper, self).__init__()
-		helperList = list()
-		for ocfg in outList:
-			helper = OutputHelper( ocfg )
-			helperList.append( helper )
-		self.size = len(helperList)
-		self.helperList = helperList
-	
-	#return the statistics value
-	def get_value( self, logInfo ):
-		vlist = list()
-		for helper in self.helperList:
-			val = helper.get_value( logInfo )
-			vlist.append( val )
-		return vlist
-
-	def init_value( self, value ):
-		vlist = list()
-		for helper in self.helperList:
-			val = helper.init_value( value )
-			vlist.append( val )
-		return vlist
-	
-	def update_value( self, oldValue, sampleValue ):
-		idx = 0
-		for helper in self.helperList:
-			val = helper.update_value( oldValue[idx], sampleValue[idx] )
-			oldValue[idx] = val
-			idx += 1
-		return oldValue
-
-	def exclude_value( self, value ):
-		idx = 0
-		for helper in self.helperList:
-			if not helper.exclude_value(value[idx]):
-				return False
-			idx += 1
-		return True
-
-	def head_str( self ):
-		hstr = ''
-		has = False
-		idx = 0
-		split = self.get_split()
-		for helper in self.helperList:
-			tstr = helper.head_str()
-			if tstr is None:
-				if helper.exptype != 'raw':
-					tstr = helper.fmtName + '_' + helper.exptype
-				else:
-					tstr = helper.fmtName
-			else:
-				has = True
-			
-			if idx > 0:
-				hstr += split
-			hstr += tstr
-			idx += 1
-
-		if has:
-			return hstr
-		return None
-
-
-	def str_value( self, value ):
-		idx = 0
-		vstr = ''
-		split = self.get_split()
-		for helper in self.helperList:
-			if idx > 0:
-				vstr += split
-			vstr += helper.str_value( value[idx] )
-			idx += 1
-
-		return vstr
 
 class AnalyserFactory:
 	anlyMap = dict()
@@ -526,7 +252,6 @@ class AnalyserFactory:
 
 	def create_from_args( self, args, startTime, endTime ):
 		outdir = os.path.join( args.path, RES_DIR )
-		mkdir( outdir )
 		if args.configPath is not None:
 			args.outdir = outdir
 			return self.__create_from_config( args )
@@ -555,7 +280,7 @@ class AnalyserFactory:
 		return analysers
 
 	def __parse_gloabl_config( self, rootNode ):
-		paceNode = stimeNode = etimeNode = insertNode = None
+		paceNode = stimeNode = etimeNode = insertNode = outNode = None
 		for cnode in rootNode.childNodes:
 			name = cnode.nodeName
 			if name == 'pace':
@@ -566,11 +291,14 @@ class AnalyserFactory:
 				etimeNode = cnode
 			elif name == 'insertValue':
 				insertNode = cnode
+			elif name == 'outPath':
+				outNode = cnode
 
 		pace = None
 		stime = None
 		etime = None
 		insertValue = None
+		outPath = None
 		if paceNode:
 			pace = int( get_nodevalue(paceNode) )
 		if stimeNode:
@@ -582,15 +310,17 @@ class AnalyserFactory:
 		if insertNode:
 			insertValue = get_nodevalue(insertNode)
 			print 'global insertValue:', insertValue
-		return (pace, stime, etime, insertValue)
+		if outNode:
+			outPath = get_nodevalue( outNode )
+		return (pace, stime, etime, insertValue, outNode)
 
 	def __parse_xml( self, inputPath, xmlfile ):
 		configList = list()
 		doc = minidom.parse( xmlfile )
 		root = doc.documentElement
 		anlyNodes = get_xmlnode( root, 'analyser' )
-		(gpace, gstime, getime, insertValue) = self.__parse_gloabl_config( root )
-		print 'global config', gpace, gstime, getime, insertValue
+		(gpace, gstime, getime, insertValue, outPath) = self.__parse_gloabl_config( root )
+		print 'global config', gpace, gstime, getime, insertValue, outPath
 		count = 0
 		total = 0
 		curTimeStr = cur_timestr() + '_'
@@ -607,11 +337,14 @@ class AnalyserFactory:
 				config.endTime = getime
 			if insertValue is not None:
 				config.insertValue = insertValue
+			if outPath is not None:
+				inputPath = outPath
 
-			outList = self.__parse_outputs( node )
+			mkdir( inputPath )
+			outsList = self.__parse_outputs_list( node )
 
 			nodeTypeList = get_xmlnode( node, 'type' )
-			if (nodeTypeList is None or len(nodeTypeList) == 0) and len(outList) == 0:
+			if (nodeTypeList is None or len(nodeTypeList) == 0) and len(outsList) == 0:
 				print 'invalid node', node
 				continue
 			count += 1
@@ -651,7 +384,7 @@ class AnalyserFactory:
 			incount = 0
 
 			#add config for output list
-			for ilist in outList:
+			for ilist in outsList:
 				nconfig = AnalyConfig()
 				config.copy_object( nconfig )
 				nconfig.outList = ilist
@@ -687,7 +420,84 @@ class AnalyserFactory:
 		print 'total ', total, 'Analysers parsed'
 		return configList
 
+	def __parse_outputs_list( self, node ):
+		outsList = list()
+		for cnode in node.childNodes:
+			name = cnode.nodeName
+			if name == 'outputs':
+				outList = self.__parse_outputs( cnode )
+				print outList[0]
+				print outList[1]
+				outsList.append( outList )
+		
+		print outsList
+		return outsList
+
 	def __parse_outputs( self, node ):
+		outList = list()
+		for cnode in node.childNodes:
+			name = cnode.nodeName
+			if name == 'output':
+				ocfg = self.__parse_output( cnode )
+				outList.append( ocfg )
+
+		outList = self.__check_raw_in_list( outList )
+
+		return outList
+
+
+	def __parse_output( self, node ):
+		ocfg = OutputCfg()
+		outList = list()
+
+		for cnode in node.childNodes:
+			name = cnode.nodeName
+			if name.startswith( '#' ):
+				continue
+
+			print name, cnode, cnode.childNodes
+			value = get_nodevalue( cnode )
+			print '\t', value
+			if name == 'fmtName':
+				ocfg.fmtName = value
+			elif name == 'expType':
+				ocfg.exptype = value
+			elif name == 'split':
+				ocfg.split = int( value )
+			elif name == 'insertValue':
+				ocfg.insertValue = value
+			elif name == 'unitrate':
+				ocfg.unitrate = float( value )
+			elif name == 'output':
+				cocfg = self.__parse_output( cnode )
+				outList.append( cocfg )
+
+		if len(outList) > 0:
+			print '**************&&&&&&&&&&&&&', outList
+			outList = self.__check_raw_in_list( outList )
+			ocfg.outList = outList
+			print '**************&&&&&&&&&&&&&', outList
+
+		return ocfg
+
+	#in raw mode, only raw exptype is allowed
+	def __check_raw_in_list( self, outList ):
+		rawList = list()
+		ridList = list()
+		for ocfg in outList:
+			if ocfg.exptype == 'raw':
+				rawList.append( ocfg )
+			else:
+				ridList.append( ocfg )
+
+		if len(rawList) > 0:
+			for ocfg in ridList:
+				print '***********only raw ouput is allowed, will engore the output type', ocfg.exptype
+			return rawList
+
+		return outList
+
+	def __parse_outputs_old( self, node ):
 		nlist = get_xmlnode( node, 'outputs' )
 		outList = list()
 		for onode in nlist:
@@ -696,8 +506,10 @@ class AnalyserFactory:
 			hasRaw = False
 			for inode in inodeList:
 				ocfg = OutputCfg()
-				fnode = get_xmlnode( inode, 'fmtName' )[0]
-				ocfg.fmtName = get_nodevalue( fnode )
+				fnodeList = get_xmlnode( inode, 'fmtName' )
+				if len(fnodeList) > 0:
+					fnode = fnodeList[0]
+					ocfg.fmtName = get_nodevalue( fnode )
 				tlist = get_xmlnode( inode, 'expType' )
 				if len(tlist) > 0:
 					ocfg.exptype = get_nodevalue( tlist[0] )
@@ -714,6 +526,13 @@ class AnalyserFactory:
 					ocfg.insertValue = get_nodevalue(insertList[0])
 				else:
 					ocfg.insertValue = None
+
+				rateList = get_xmlnode( inode, 'unitrate' )
+				if len(rateList) > 0:
+					ocfg.unitrate = float( get_nodevalue(rateList[0]) )
+				else:
+					ocfg.unitrate = 1
+
 				print ocfg
 				if ocfg.exptype == 'raw':
 					hasRaw = True
@@ -796,7 +615,7 @@ class AnalyserFactory:
 				helper = RawOutputHelper( config.outList )
 			else:
 				if len(config.outList) > 1:
-					helper = OutputsHelper( config.outList )
+					helper = OutputsHelper( config.outList, config.pace )
 				else:
 					helper = OutputHelper( config.outList[0] )
 		helper.sorted = config.sorted
