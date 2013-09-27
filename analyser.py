@@ -35,12 +35,18 @@ class AnalyConfig( BaseObject ):
 		return member in self.__dict__
 
 
-class Analyser( object ):
+class Analyser( BaseObject ):
 	def __init__( self, config, toFile = True ):
 		self.startTime = config.startTime
 		self.endTime = config.endTime
+		self.startBufTime = 0
 		self.pace = config.pace
+		self.bufTime = BUF_TIME
 		self.sampler = None
+		self.tid = -1
+
+		self.fileStartTime = -1
+		self.fileEndTime = -1
 		if toFile:
 			self.outPath = config.outPath
 			self.errPath = config.outPath + '.errlog' 
@@ -66,27 +72,53 @@ class Analyser( object ):
 		self.ferr = None
 		print self.fout
 
-	def __str__( self ):
-		buf = 'startTime:' + str(self.startTime) + ','
-		buf += 'endTime:' + str(self.endTime) + ','
-		buf += 'pace:' + str(self.pace)
-		if 'outPath' in self.__dict__:
-			buf += ',outPath:' + self.outPath
-		return buf
+	def restart( self, startTime, endTime, bufTime ):
+		self.startTime = startTime
+		self.endTime = endTime
+		self.bufTime = bufTime
+		if self.sampler is not None:
+			args = self.sampler.args
+			args.startTime = startTime
+			args.endTime = endTime
+			self.sampler.reset( args )
+
+	def align_time_to_pace( self, otime ):
+		if otime > 0 and self.pace > 0:
+			otime = int(otime) / self.pace * self.pace
+
+		return otime
 
 	def get_sample_start_time( self, logInfo ):
-		startTime = self.startTime
-		if self.sorted:
-			#for sorted logs, make sure we use the proper start time
-			if startTime <= 0 or startTime < logInfo.recvdTime:
-				return logInfo.recvdTime
-			return startTime
-		if startTime <= 0:
-			startTime = logInfo.recvdTime - BUF_TIME
-		return startTime
+		print func_name(), '>>', self.startTime, logInfo, 'tid:', self.tid
+		returnTime = self.startTime
+
+		if logInfo is not None:
+			startTime = self.startTime
+			if self.sorted:
+				#for sorted logs, make sure we use the proper start time
+				if startTime <= 0 or startTime < logInfo.recvdTime:
+					returnTime = logInfo.recvdTime
+				else:
+					returnTime = startTime
+			else:
+				if startTime <= 0:
+					startTime = logInfo.recvdTime - BUF_TIME
+				startTime = self.align_time_to_pace( startTime )
+				returnTime = startTime
+		elif self.startTime > 0:
+			startBufTime = int(self.startBufTime)
+			if self.pace > 0:
+				startBufTime = startBufTime / self.pace * self.pace
+			self.startBufTime = startBufTime
+			self.startTime -= startBufTime
+			returnTime = self.startTime
+
+		print func_name(), '>>sampler startTime:', str_seconds(returnTime), 'tid:', self.tid
+		return returnTime
 
 	def get_sample_end_time( self, logInfo ):
-		return self.endTime
+		endTime = self.align_time_to_pace( self.endTime )
+		return endTime
 
 	def analyse_log( self, logInfo ):
 		#control the startTime
@@ -121,6 +153,26 @@ class Analyser( object ):
 
 	def anly_pace( self, logInfo ):
 		raise_virtual( func_name() )
+
+	def decode_output_head( self, hstr ):
+		return True
+
+	def encode_output_head( self ):
+		return ''
+
+	def decode_output_value( self, vstr ):
+		raise_virtual( func_name() )
+
+	def anly_outut_value( self, valList ):
+		raise_virtual( func_name() )
+
+	def output_data( self, data, size ):
+		if self.fout is not None:
+			self.fout.write( data )
+
+	def flush( self ):
+		if self.sampler is not None:
+			self.sampler.flush()
 
 	def close( self ):
 		self.on_close()
@@ -198,6 +250,19 @@ class BandwidthAnalyser( Analyser ):
 				ret = self.sampler.add_samples( ctime, value, num )
 		return True
 
+
+	def anly_outut_value( self, vtime, value ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, NUM_THRES, BandwidthAnalyser.__flush_callback, self )
+			self.sampler = Sampler( sargs )
+		
+		ret = self.sampler.add_sample( vtime, value )
+		
+		return ret
+
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
 		endTime = self.get_sample_end_time( logInfo )
@@ -229,28 +294,6 @@ class BandwidthAnalyser( Analyser ):
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-#		for value in blist:
-#			if value != 0:
-#				if self.hasNoneZero:
-#					if self.zeroValueCount > 0:
-#						zcount = 0
-#						total = self.zeroValueCount
-#						ztime = self.zeroStartTime
-#						while zcount < total:
-#							self.__write_line( bufio, 0, ztime, toAdd, pace )
-#							ztime += pace
-#							zcount += 1
-#						self.zeroValueCount = 0
-#				else:
-#					self.hasNoneZero = True
-#				self.__write_line( bufio, value, curTime, toAdd, pace )
-#			elif self.hasNoneZero:
-#				if self.zeroValueCount == 0:
-#					self.zeroStartTime = curTime
-#				self.zeroValueCount += 1
-#			curTime += pace
-#			if curTime > sampler.endTime and sampler.endTime > 0:
-#				break
 		ostr = bufio.getvalue()
 		self.fout.write( ostr )
 		self.hasWritten = True
@@ -263,6 +306,16 @@ class BandwidthAnalyser( Analyser ):
 		bufio.write( '\t' )
 		bufio.write( str(band) )
 		bufio.write( '\n' )
+
+	def decode_output_value( self, vstr ):
+		segs = vstr.split( '\t' )
+		seconds = seconds_str( segs[0] )
+		pace = self.pace
+		if pace < 0:
+			pace = 1
+		band = float(segs[1]) * 1024 * 1024 / 8 * pace
+
+		return (seconds, band)
 
 	def on_close( self ):
 		print 'close', self.__class__, self
@@ -298,6 +351,18 @@ class StatusAnalyser( Analyser ):
 		if ret != 0:
 			return False
 		return True
+
+	def anly_outut_value( self, vtime, value ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, NUM_THRES, StatusAnalyser.__flush_callback, self )
+			self.sampler = MutableSampler( sargs, StatusAnalyser.__init_value, StatusAnalyser.__update_value )
+		
+		ret = self.sampler.add_sample( vtime, value )
+		
+		return ret
 
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
@@ -349,6 +414,16 @@ class StatusAnalyser( Analyser ):
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
+	def decode_output_value( self, vstr ):
+		segs = vstr.split( ';' )
+		seconds = seconds_str( segs[0] )
+		pace = self.pace
+		if pace < 0:
+			pace = 1
+		value = segs[1]
+
+		return (seconds, value)
+
 	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
@@ -370,9 +445,6 @@ class XactRateAnalyser( Analyser ):
 		self.fout.write( log )
 		return True
 
-	def anly_negative_pace( self, logInfo ):
-		return self.anly_pace( logInfo )
-
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
@@ -380,6 +452,18 @@ class XactRateAnalyser( Analyser ):
 		if ret != 0:
 			return False
 		return True
+
+	def anly_outut_value( self, vtime, value ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, NUM_THRES, XactRateAnalyser.__flush_callback, self )
+			self.sampler = Sampler( sargs )
+		
+		ret = self.sampler.add_sample( vtime, value )
+		
+		return ret
 
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo)
@@ -411,28 +495,6 @@ class XactRateAnalyser( Analyser ):
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-#		for item in blist:
-#			if item > 0:
-#				if self.hasNoneZero:
-#					if self.zeroValueCount > 0:
-#						zcount = 0
-#						total = self.zeroValueCount
-#						ztime = self.zeroStartTime
-#						while zcount < total:
-#							self.__write_line( bufio, 0, ztime, toAdd, self.pace )
-#							ztime += sampler.pace
-#							zcount += 1
-#						self.zeroValueCount = 0
-#				else:
-#					self.hasNoneZero = True
-#				self.__write_line( bufio, item, curTime, toAdd, self.pace )
-#			elif self.hasNoneZero:
-#				if self.zeroValueCount == 0:
-#					self.zeroStartTime = curTime
-#				self.zeroValueCount += 1
-#			curTime += sampler.pace
-#			if curTime > sampler.endTime and sampler.endTime > 0:
-#				break
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
@@ -440,11 +502,21 @@ class XactRateAnalyser( Analyser ):
 		sampleTime = time + toAdd
 		tstr = str_seconds( sampleTime )
 		bufio.write( tstr )
-		bufio.write( ',' )
+		bufio.write( ';' )
 		value /= float(pace)
 		value = int( value + 0.5 )
 		bufio.write( str(value) )
 		bufio.write( '\n' )
+
+	def decode_output_value( self, vstr ):
+		segs = vstr.split( ';' )
+		seconds = seconds_str( segs[0] )
+		pace = self.pace
+		if pace < 0:
+			pace = 1
+		value = float( segs[1] )
+
+		return (seconds, value)
 
 	def on_close( self ):
 		print 'close', self.__class__, self
@@ -479,6 +551,18 @@ class DescAnalyser( Analyser ):
 		if ret != 0:
 			return False
 		return True
+
+	def anly_outut_value( self, vtime, value ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, NUM_THRES, DescAnalyser.__flush_callback, self )
+			self.sampler = MutableSampler( sargs, DescAnalyser.__init_value, DescAnalyser.__update_value )
+		
+		ret = self.sampler.add_sample( vtime, value )
+		
+		return ret
 
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
@@ -530,6 +614,16 @@ class DescAnalyser( Analyser ):
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 
+	def decode_output_value( self, vstr ):
+		segs = vstr.split( ';' )
+		seconds = seconds_str( segs[0] )
+		pace = self.pace
+		if pace < 0:
+			pace = 1
+		value = segs[1]
+
+		return (seconds, value)
+
 	def on_close( self ):
 		print 'close', self.__class__, self
 		if self.sampler is not None:
@@ -577,6 +671,20 @@ class SingleAnalyser( Analyser ):
 			return False
 		return True
 
+	def anly_outut_value( self, vtime, valList ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, self.__helper.sampleThres, SingleAnalyser.__flush_callback, self )
+			self.sampler = MutableSampler( sargs, SingleAnalyser.__init_value, SingleAnalyser.__update_value )
+
+		ret = 0
+		for value in valList:
+			ret = self.sampler.add_sample( vtime, value )
+
+		return ret
+
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
 		endTime = self.get_sample_end_time( logInfo )
@@ -609,7 +717,8 @@ class SingleAnalyser( Analyser ):
 			minTime = maxTime = -1
 		
 		if self.firstFlush:
-			headStr = self.__helper.head_str()
+			self.__helper.prepare_dump()
+			headStr = self.__helper.str_head()
 			if headStr is not None:
 				bufio.write( 'time' )
 				bufio.write( split )
@@ -617,6 +726,7 @@ class SingleAnalyser( Analyser ):
 				bufio.write( '\n' )
 			self.firstFlush = False
 
+		lastTime = -1
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -628,6 +738,8 @@ class SingleAnalyser( Analyser ):
 				vstr = self.__helper.str_value( item )
 				if vstr is not None:
 					if split is not None and not self.__helper.useInterStr:
+						if self.fileStartTime < 0:
+							self.fileStartTime = curTime
 						sampleTime = curTime + toAdd
 						tstr = str_seconds( sampleTime )
 						bufio.write( tstr )
@@ -639,10 +751,62 @@ class SingleAnalyser( Analyser ):
 						self.fout.write( logs )
 						bufio.close()
 						bufio = StringIO()
+					lastTime = curTime
 			curTime += pace
+
+		if split is not None and not self.__helper.useInterStr:
+			if lastTime > 0:
+				self.fileEndTime = lastTime
+
 		logs = bufio.getvalue()
 		self.fout.write( logs )
 		bufio.close()
+
+	def output_data( self, data, size ):
+		if self.firstFlush:
+			split = self.__helper.get_split()
+			self.__helper.prepare_dump()
+			bufio = StringIO()
+			headStr = self.__helper.str_head()
+			if headStr is not None:
+				bufio.write( 'time' )
+				bufio.write( split )
+				bufio.write( headStr )
+				bufio.write( '\n' )
+			self.firstFlush = False
+			logs = bufio.getvalue()
+			self.fout.write( logs )
+			bufio.close()
+
+		super(SingleAnalyser, self).output_data( data, size )
+
+
+	def decode_output_head( self, hstr ):
+		split = self.__helper.get_split()
+		offset = 0
+		if not self.__helper.useInterStr:
+			offset = hstr.find( split ) + 1
+
+		self.__helper.head_str( hstr, offset, split )
+
+		return True
+
+	def encode_output_head( self ):
+		return self.__helper.str_head()
+
+	def decode_output_value( self, vstr ):
+		split = self.__helper.get_split()
+		offset = 0
+		if not self.__helper.useInterStr:
+			offset = vstr.find( split )
+			tstr = vstr[ 0:offset ]
+			vtime = seconds_str( tstr )
+			offset += 1
+			(valList, offset) = self.__helper.value_str( vstr, offset, split )
+			return (vtime, valList)
+
+		(vtime, valList, offset) = self.__helper.value_str( vstr, offset, split )
+		return (vtime, valList)
 
 	def on_close( self ):
 		print 'close', self.__class__, self
@@ -698,6 +862,18 @@ class ActiveSessionsAnalyser( Analyser ):
 				ret = self.sampler.add_samples( ctime, value, num )
 		return True
 
+	def anly_outut_value( self, vtime, value ):
+		if self.sampler is None:
+			startTime = self.get_sample_start_time( None )
+			endTime = self.get_sample_end_time( None )
+			sargs = SamplerArgs( startTime, endTime, self.pace,
+				self.bufTime, NUM_THRES, ActiveSessionsAnalyser.__flush_callback, self )
+			self.sampler = Sampler( sargs )
+		
+		ret = self.sampler.add_sample( vtime, value )
+		
+		return ret
+
 	def __create_sampler( self, logInfo ):
 		startTime = self.get_sample_start_time( logInfo )
 		endTime = self.get_sample_end_time( logInfo )
@@ -728,28 +904,6 @@ class ActiveSessionsAnalyser( Analyser ):
 
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
-#		for value in blist:
-#			if value != 0:
-#				if self.hasNoneZero:
-#					if self.zeroValueCount > 0:
-#						zcount = 0
-#						total = self.zeroValueCount
-#						ztime = self.zeroStartTime
-#						while zcount < total:
-#							self.__write_line( bufio, 0, ztime, toAdd, pace )
-#							ztime += pace
-#							zcount += 1
-#						self.zeroValueCount = 0
-#				else:
-#					self.hasNoneZero = True
-#				self.__write_line( bufio, value, curTime, toAdd, pace )
-#			elif self.hasNoneZero:
-#				if self.zeroValueCount == 0:
-#					self.zeroStartTime = curTime
-#				self.zeroValueCount += 1
-#			curTime += pace
-#			if curTime > sampler.endTime and sampler.endTime > 0:
-#				break
 		ostr = bufio.getvalue()
 		self.fout.write( ostr )
 		self.hasWritten = True
@@ -758,9 +912,19 @@ class ActiveSessionsAnalyser( Analyser ):
 		dtime = to_datetime( curTime + toAdd )
 		tstr = str_time( dtime )
 		bufio.write( tstr )
-		bufio.write( '\t' )
+		bufio.write( ';' )
 		bufio.write( str(value) )
 		bufio.write( '\n' )
+
+	def decode_output_value( self, vstr ):
+		segs = vstr.split( ';' )
+		seconds = seconds_str( segs[0] )
+		pace = self.pace
+		if pace < 0:
+			pace = 1
+		value = int( segs[1] )
+
+		return (seconds, value)
 
 	def on_close( self ):
 		print 'close', self.__class__, self

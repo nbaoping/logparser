@@ -63,8 +63,6 @@ class XactParser:
 		anlyHandler = AnlyHandler( parser, anlyList, args )
 		self.__analyse_stdin( parser, anlyHandler )
 		anlyHandler.close()
-		for anly in anlyList:
-			anly.close()
 
 	def __parse_logs( self, args, parser ):
 		files = self.__stat_files( args.path, parser )
@@ -89,8 +87,6 @@ class XactParser:
 		else:
 			self.__analyse_files( files, parser, anlyHandler )
 		anlyHandler.close()
-		for anly in anlyList:
-			anly.close()
 
 	def __parse_anly_time_ranges( self, anlyList ):
 		timeList = list()

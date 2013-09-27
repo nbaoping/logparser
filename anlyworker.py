@@ -1,4 +1,5 @@
 import multiprocessing
+import time
 
 from base import *
 from factory import *
@@ -30,12 +31,16 @@ class InputTask( BaseObject ):
 		self.inputList = inputList
 		self.startTime = startTime
 		self.endTime = endTime
+		self.startBufTime = 0
 
 class OutputFile( BaseObject ):
 	def __init__( self, outPath, errPath ):
 		self.outPath = outPath
 		self.errPath = errPath
-
+		self.headOffset = -1
+		self.tailOffset = 0
+		self.fileStartTime = -1
+		self.fileEndTime = -1
 
 
 
@@ -55,16 +60,55 @@ class AnlyWorker( multiprocessing.Process ):
 
 		print 'process', self.tid, 'exit'
 
-	def update_anlylist_time( self, tid, task, anlyList ):
-		stime = task.startTime
-		etime = task.endTime
+	def do_task( self, tid, task, args ):
+		print '%%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args, task
+		
+		anlyFactory = AnalyserFactory()
+		parser = create_parser_from_type( args )
+		self.parser = parser
+		anlyList = anlyFactory.create_from_args( args, task.startTime, task.endTime )
+		self.anlyList = anlyList
+	
+		self.update_anlylist_info( tid, task, anlyList )
+
+		while True:
+			#time.sleep(0.2)
+			break
+		print func_name(), '>>', anlyList
+
+		#parse all the files
+		for ifile in task.inputList:
+			startTime = time.time()
+			lineCount = self.anly_file( tid, ifile )
+			elapsed = time.time() - startTime
+			print '===============================:', 'process', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
+	
+		outputList = list()
 		for anly in anlyList:
-			if stime > 0 and anly.startTime < stime:
-				anly.startTime = stime
-			if etime > 0 and anly.endTime > etime:
-				anly.endTime = etime
+			ofile = OutputFile( anly.outPath, anly.errPath )
+			outputList.append( ofile )
+			anly.close()
+			#must assign after anly closed, since the file flush happens in the closing
+			ofile.fileStartTime = anly.fileStartTime
+			ofile.fileEndTime = anly.fileEndTime
+	
+		return outputList
+
+	def update_anlylist_info( self, tid, task, anlyList ):
+		stime = int(task.startTime)
+		etime = int(task.endTime)
+		for anly in anlyList:
+			anly.tid = tid
+			anly.startBufTime = task.startBufTime
+			pace = anly.pace
+
+			#for the tasks, must abey to the startTime setting in the config files
+			#so, no need to adjust the startTime end endTime
+
+			#open the output files
 			anly.outPath += '.' + str(tid)
 			anly.open_output_files()
+			print func_name(), '>>tid:', tid, anly
 	
 	def __parse_line( self, line ):
 		try:
@@ -105,32 +149,6 @@ class AnlyWorker( multiprocessing.Process ):
 	
 		return lineCount
 	
-	def do_task( self, tid, task, args ):
-		print '%%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args, task
-		
-		anlyFactory = AnalyserFactory()
-		parser = create_parser_from_type( args )
-		self.parser = parser
-		anlyList = anlyFactory.create_from_args( args, task.startTime, task.endTime )
-		self.anlyList = anlyList
-	
-		self.update_anlylist_time( tid, task, anlyList )
-	
-		#parse all the files
-		for ifile in task.inputList:
-			startTime = time.time()
-			lineCount = self.anly_file( tid, ifile )
-			elapsed = time.time() - startTime
-			print '===============================:', 'process', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
-	
-		outputList = list()
-		for anly in anlyList:
-			ofile = OutputFile( anly.outPath, anly.errPath )
-			outputList.append( ofile )
-			anly.close()
-	
-		return outputList
-
 	def __str__( self ):
 		return str( self.__dict__ )
 	

@@ -116,6 +116,7 @@ class InputArgs( BaseObject ):
 		self.customer = None
 		self.sorted = False
 		self.enableParallel = False
+		self.numCores = -1
 
 	def parse_argv( self, argv ):
 		idx = 1
@@ -144,6 +145,9 @@ class InputArgs( BaseObject ):
 			elif arg == '-o':
 				self.enableParallel = True
 				idx += 1
+			elif arg == '-p':
+				self.numCores = int( argv[idx+1] )
+				idx += 2
 			else:
 				idx += 2
 		if not self.path or not self.configPath:
@@ -170,6 +174,10 @@ class InputArgs( BaseObject ):
 				if self.fmt[0] != '%':
 					print 'the log format', self.fmt, 'not exist'
 					return False
+
+		if self.numCores > 1:
+			self.enableParallel = True
+
 		return True
 						
 	def __print_usage( self ):

@@ -25,6 +25,25 @@ class Sampler( object ):
 		if args.pace == 0:
 			raise Exception( 'sampler not support zero pace' )
 		print 'create sampler', args
+		self.slist1 = None
+		self.slist2 = None
+		self.reset( args )
+
+		self.flush_cb = args.flush_cb
+		self.cbobj = args.cbobj
+		num = args.bufTime / args.pace
+		if num > args.numThres:
+			num = args.numThres
+		elif num < 1:
+			num = 1
+		self.__total = num * 2
+		self.__buf1 = [0] * num
+		self.__buf2 = [0] * num
+		self.slist1 = self.__buf1
+		self.slist2 = self.__buf2
+
+	def reset( self, args ):
+		self.args = args
 		if args.startTime < 0:
 			args.startTime = 0
 		self.startTime = int(args.startTime)
@@ -40,18 +59,12 @@ class Sampler( object ):
 		if self.endTime > 0 and self.pace > 0:
 			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
 
-		self.flush_cb = args.flush_cb
-		self.cbobj = args.cbobj
-		num = args.bufTime / args.pace
-		if num > args.numThres:
-			num = args.numThres
-		elif num < 1:
-			num = 1
-		self.__total = num * 2
-		self.__buf1 = [0] * num
-		self.__buf2 = [0] * num
-		self.slist1 = self.__buf1
-		self.slist2 = self.__buf2
+		#check if needs to init the list
+		if self.slist1 is not None:
+			self.__init_list( self.slist1, True )
+		if self.slist2 is not None:
+			self.__init_list( self.slist2, True )
+
 
 	def __stat_cur_time( self, stime, etime ):
 		if etime > self.maxTime:
@@ -156,19 +169,9 @@ class MutableSampler( BaseObject ):
 		if args.pace == 0:
 			raise Exception( 'sampler not support zero pace' )
 		print 'create sampler', args
-		if args.startTime < 0:
-			args.startTime = 0
-		self.startTime = int(args.startTime)
-		self.orgStartTime = int(args.startTime)
-		self.pace = args.pace
-		self.endTime = int(args.endTime)
-		if self.endTime > 0 and self.endTime < self.startTime:
-			raise Exception( 'endTime < startTime error' )
-		self.tailIdx = -1
-		if self.endTime > 0 and self.pace > 0:
-			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
-		self.maxTime = -1
-		self.minTime = -1
+		self.slist1 = None
+		self.slist2 = None
+		self.reset( args )
 
 		self.flush_cb = args.flush_cb
 		self.cbobj = args.cbobj
@@ -186,6 +189,28 @@ class MutableSampler( BaseObject ):
 		self.slist2 = self.__buf2
 		self.__init_list( self.slist1, True )
 		self.__init_list( self.slist2, True )
+
+	def reset( self, args ):
+		self.args = args
+		if args.startTime < 0:
+			args.startTime = 0
+		self.startTime = int(args.startTime)
+		self.orgStartTime = int(args.startTime)
+		self.pace = args.pace
+		self.endTime = int(args.endTime)
+		if self.endTime > 0 and self.endTime < self.startTime:
+			raise Exception( 'endTime < startTime error' )
+		self.tailIdx = -1
+		if self.endTime > 0 and self.pace > 0:
+			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
+		self.maxTime = -1
+		self.minTime = -1
+
+		#check if needs to init the list
+		if self.slist1 is not None:
+			self.__init_list( self.slist1, True )
+		if self.slist2 is not None:
+			self.__init_list( self.slist2, True )
 
 	def __stat_cur_time( self, stime, etime ):
 		if etime > self.maxTime:

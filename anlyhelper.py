@@ -32,10 +32,28 @@ class AnalyserHelper( BaseObject ):
 	def exclude_value( self, value ):
 		raise_virtual( func_name() )
 
-	def head_str( self ):
+	def prepare_dump( self ):
+		pass
+
+	#get head string
+	def str_head( self ):
 		return None
 
+	#parse head info from string
+	def head_str( self, hstr, offset, psplit ):
+		nidx = hstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(hstr)
+		return nidx
+	
+	#get value string
 	def str_value( self, value ):
+		raise_virtual( func_name() )
+
+	#parse value from String
+	#the parsing must start from the offset
+	#psplit stands for the split of the parent helper
+	def value_str( self, vstr, offset, psplit ):
 		raise_virtual( func_name() )
 
 	def get_split( self ):
@@ -89,6 +107,186 @@ class AnalyserHelper( BaseObject ):
 
 		return ( svalList, mvalList )
 
+	def read_outlist_value( self, helperList, vstr, offset, split ):
+		outValList = list()
+		cidx = offset
+		maxLen = 0
+		for helper in helperList:
+			#print func_name(), '>>', vstr, 'cur:', vstr[cidx], 'idx:', cidx
+			(valList, cidx) = helper.value_str( vstr, cidx, split )
+			#print func_name(), '>>', valList, cidx
+			vlen = len(valList)
+			if vlen > maxLen:
+				maxLen = vlen
+			outValList.append( valList )
+			cidx += 1	#skip the split char
+		offset = cidx - 1 #back to the right tail idx
+
+		#convert to the new list
+		newValList = list()
+		idx = 0
+		#print func_name(), '>>maxLen:', maxLen, outValList
+		while idx < maxLen:
+			valList = list()
+			for vlist in outValList:
+				val = None
+				if idx < len(vlist):
+					val = vlist[idx]
+				valList.append( val )
+
+			newValList.append( valList )
+			idx += 1
+
+		#print func_name(), '>>maxLen:', maxLen, newValList
+		return (newValList, offset)
+
+
+class DesHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(DesHelper, self).__init__()
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		if not logInfo.exist( 'description' ):
+			logInfo.description = 'null'
+		value = dict()
+		value[logInfo.description] = 1
+		return value
+
+	def init_value( self, value ):
+		return dict()
+	
+	def update_value( self, oldValue, sampleValue ):
+		for des in sampleValue.keys():
+			count = sampleValue[ des ]
+			if des in oldValue:
+				count += oldValue[ des ]
+			oldValue[des] = count
+		return oldValue
+
+	def exclude_value( self, value ):
+		return len(value) == 0
+
+	def str_value( self, value ):
+		return str( value )
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = vstr[offset:nidx]
+
+		return ( [value], nidx )
+
+
+class ConsumedHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(ConsumedHelper, self).__init__()
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		if not logInfo.exist( 'servTime' ):
+			logInfo.servTime = 0
+		return (logInfo.servTime / 1000000.0, 1)
+
+	def init_value( self, value ):
+		return (0, 0)
+	
+	def update_value( self, oldValue, sampleValue ):
+		consumed = oldValue[0] + sampleValue[0]
+		total = oldValue[1] + sampleValue[1]
+		return (consumed, total)
+
+	def exclude_value( self, value ):
+		return value[0] < 0
+
+	def str_value( self, value ):
+		consumed = value[0]
+		total = value[1]
+		if total <= 0:
+			return '0'
+		average = consumed / total
+		average = round( average, 3 )
+		return str( average )
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		consumed = float( vstr[offset:nidx] )
+		value = (consumed, 1)
+
+		return ( [value], nidx )
+
+
+class AssembleHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(AssembleHelper, self).__init__()
+		self.sampleThres = 1000
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		return (logInfo.recvdTime, logInfo.originLine)
+
+	def init_value( self, value ):
+		return list()
+	
+	def update_value( self, oldValue, sampleValue ):
+		oldValue.append( sampleValue )
+		return oldValue
+
+	def exclude_value( self, value ):
+		return len(value) == 0
+
+	def str_value( self, value ):
+		itemList = value
+		if not self.sorted:
+			itemList = sorted( value, key=itemgetter(0) )
+		bufio = StringIO()
+		first = True
+		for item in itemList:
+			line = item[1]
+			if first:
+				bufio.write( line )
+				first = False
+			else:
+				bufio.write( '\n' )
+				bufio.write( line )
+		return bufio.getvalue()
+
+	def value_str( self, vstr, offset, psplit ):
+		return ( [vstr], len(vstr) )
+
+	def get_split( self ):
+		return None
+
+class CounterHelper( AnalyserHelper ):
+	def __init__( self ):
+		super(CounterHelper, self).__init__()
+	
+	#return the statistics value
+	def get_value( self, logInfo ):
+		return 1
+
+	def init_value( self, value ):
+		return 0
+	
+	def update_value( self, oldValue, sampleValue ):
+		return oldValue + sampleValue
+
+	def exclude_value( self, value ):
+		return value < 0
+
+	def str_value( self, value ):
+		return str( value )
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = int( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class RawOutputHelper( AnalyserHelper ):
@@ -113,7 +311,7 @@ class RawOutputHelper( AnalyserHelper ):
 		oldValue.append( sampleValue )
 		return oldValue
 
-	def head_str( self ):
+	def str_head( self ):
 		split = self.get_split()
 		num = 0
 		hstr = ''
@@ -154,6 +352,24 @@ class RawOutputHelper( AnalyserHelper ):
 		bufio.close()
 		return ss
 
+	def value_str( self, vstr, offset, psplit ):
+		split = self.get_split()
+
+		#decode the time string
+		nidx = vstr.find( '.', offset )
+		tstr = vstr[ offset:nidx ]
+		seconds = seconds_str( tstr )
+		offset = nidx + 1
+		nidx = vstr.find( split )
+		mstr = vstr[ offset:nidx ]
+		msec = int(mstr) / 1000.0
+		sampleTime = seconds + msec
+		offset = nidx + 1
+
+		(valList, offset) = self.__read_fmt_list( vstr, offset, split )
+		item = (sampleTime, valList)
+		return ( [item], offset)
+
 	def __write_fmt_list( self, bufio, vlist, split ):
 		num = 0
 		for val in vlist:
@@ -162,6 +378,18 @@ class RawOutputHelper( AnalyserHelper ):
 				bufio.write( split )
 			bufio.write( str(val) )
 
+	def __read_fmt_list( self, vstr, offset, split ):
+		vlist = list()
+		cidx = offset
+		for fmtName in self.fmtNameList:
+			nidx = vstr.find( split, cidx )
+			if nidx < 0:
+				nidx = len(vstr)
+			val = vstr[ cidx:nidx ]
+			vlist.append( val )
+			cidx = nidx + 1		#skip the split char
+
+		return (vlist, cidx)
 
 
 class OutTimeAverageHelper( AnalyserHelper ):
@@ -198,7 +426,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -207,6 +435,17 @@ class OutTimeAverageHelper( AnalyserHelper ):
 
 		value = round( value * self.unitrate, 3 )
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		tstr = vstr[offset:nidx]
+		#print vstr, offset, tstr
+		value = float( tstr )
+		value /= self.unitrate
+
+		return ( [value], nidx )
 
 
 class OutTimeActiveHelper( AnalyserHelper ):
@@ -239,7 +478,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -247,6 +486,14 @@ class OutTimeActiveHelper( AnalyserHelper ):
 			return '0'
 
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = int( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class OutCountHelper( AnalyserHelper ):
@@ -262,14 +509,14 @@ class OutCountHelper( AnalyserHelper ):
 		return 0
 	
 	def update_value( self, oldValue, sampleValue ):
-		value = oldValue + 1
+		value = oldValue + sampleValue
 
 		return value
 
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.exptype
 
 	def str_value( self, value ):
@@ -277,6 +524,14 @@ class OutCountHelper( AnalyserHelper ):
 			return '0'
 
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = int( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class OutSumHelper( AnalyserHelper ):
@@ -301,7 +556,7 @@ class OutSumHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -309,6 +564,14 @@ class OutSumHelper( AnalyserHelper ):
 			return '0'
 
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = float( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class OutMaxHelper( AnalyserHelper ):
@@ -342,7 +605,7 @@ class OutMaxHelper( AnalyserHelper ):
 
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -354,6 +617,14 @@ class OutMaxHelper( AnalyserHelper ):
 				return self.insertValue
 			return '0'
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = float( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class OutMinHelper( AnalyserHelper ):
@@ -387,7 +658,7 @@ class OutMinHelper( AnalyserHelper ):
 
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -399,6 +670,14 @@ class OutMinHelper( AnalyserHelper ):
 				return self.insertValue
 			return '0'
 		return str(value)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = float( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 class OutAverageHelper( AnalyserHelper ):
@@ -425,7 +704,7 @@ class OutAverageHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -438,6 +717,14 @@ class OutAverageHelper( AnalyserHelper ):
 			return '0'
 		avg = round(total * 1.0 / count, 3)
 		return str(avg)
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = (float( vstr[offset:nidx] ), 1)
+
+		return ( [value], nidx )
 
 
 class OutAmountHelper( AnalyserHelper ):
@@ -466,7 +753,7 @@ class OutAmountHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		return self.fmtName + '_' + self.exptype
 
 	def str_value( self, value ):
@@ -474,6 +761,14 @@ class OutAmountHelper( AnalyserHelper ):
 			return '0'
 
 		return str(len(value))
+
+	def value_str( self, vstr, offset, psplit ):
+		nidx = vstr.find( psplit, offset )
+		if nidx < 0:
+			nidx = len(vstr)
+		value = int( vstr[offset:nidx] )
+
+		return ( [value], nidx )
 
 
 def create_base_helper( ocfg ):
@@ -506,7 +801,10 @@ class OutMapHelper( AnalyserHelper ):
 		self.exptype = ocfg.exptype
 		self.insertValue = ocfg.insertValue
 		self.keyMap = dict()
-		self.split = ocfg.split
+		self.keyList = None		#used to string the value
+		self.curKeyList = None	#used to decode the value
+		self.split = True
+		self.endChar = ' '
 		self.helperList = None
 		print '==================================\n'
 		if ocfg.outList is not None:
@@ -531,35 +829,43 @@ class OutMapHelper( AnalyserHelper ):
 		value = dict()
 		return value
 	
+	#for map, the return value must contain the key value and childs' values
 	def get_value( self, logInfo ):
-		value = logInfo.get_member( self.fmtName )
-		self.curKey = value
+		#return the key
+		key = logInfo.get_member( self.fmtName )
 		
 		if self.helperList is not None:
 			if not self.isSingleType:
 				valList = self.get_multiple_value( self.helperList, logInfo )
+				newList = list()
+				#add key value to child value list
+				for (cvalList, num) in valList:
+					item = (key, cvalList)
+					newList.append( (item, num) )
+				value = newList
 			else:
 				valList = list()
 				for helper in self.helperList:
 					val = helper.get_value( logInfo )
 					valList.append( val )
-
-			value = valList
+				
+				value = (key, valList)
+		else:
+			value = (key, 1)
 
 		return value
 
 	def update_value( self, oldValue, sampleValue ):
-		key = self.curKey
 		value = oldValue
 		if self.helperList is None:
-			count = 1
+			(key, count) = sampleValue
 			if key in oldValue:
 				count += oldValue[key]
 			else:
 				self.keyMap[key] = 1
 			oldValue[key] = count
 		else:
-			newValList = sampleValue
+			(key, newValList) = sampleValue
 			if key not in oldValue:
 				valList = list()
 				idx = 0
@@ -584,34 +890,77 @@ class OutMapHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return False
 
-	def head_str( self ):
-		if self.split:
-			split = self.get_split()
-			hstr = ''
-			for key in self.keyMap.keys():
-				if hstr != '':
-					hstr += split
-				if self.helperList is None:
-					subHead = str(key)
-				else:
-					subHead = self.__get_outlist_head( key, split )
+	def prepare_dump( self ):
+		if self.helperList is not None:
+			for helper in self.helperList:
+				helper.prepare_dump()
+		
+		if self.keyList is None:
+			self.keyList = self.keyMap.keys()
+		self.keyList.sort()
 
-				hstr += subHead
+	def str_head( self ):
+		split = self.get_split()
+		hstr = ''
+		for key in self.keyList:
+			if hstr != '':
+				hstr += split
+			if self.helperList is None:
+				subHead = str(key)
+			else:
+				subHead = self.__get_outlist_head( key, split )
 
-			return hstr
+			hstr += subHead
 
-		return self.fmtName + '_' + self.exptype
+		return hstr + split
+
+
+	def head_str( self, hstr, offset, psplit ):
+		split = self.get_split()
+		curoff = offset
+		size = len(hstr)
+		if self.keyList is None:
+			self.keyList = list()
+		self.curkeyList = list()
+		addNewKey = False
+		while curoff < size:
+			if hstr[curoff] == psplit:
+				break
+			(key, curoff) = self.__read_outlist_head( hstr, curoff, split )
+			self.curkeyList.append( key )
+			if key not in self.keyList:
+				addNewKey = True
+				self.keyList.append( key )
+			curoff += 1
+		
+		if addNewKey:
+			self.keyList.sort()
+
+		return curoff
 
 	def __get_outlist_head( self, key, split ):
 		subHead = ''
 		kstr = str(key)
 		for helper in self.helperList:
-			th = kstr + '_' + helper.head_str()
+			th = kstr + '_' + helper.str_head()
 			if subHead != '':
 				subHead += split
 			subHead += th 
 
 		return subHead
+
+	def __read_outlist_head( self, hstr, offset, split ):
+		cidx = offset
+		for helper in self.helperList:
+			nidx = hstr.find( split, cidx )
+			#the nidx must not be -1
+			substr = hstr[ cidx:nidx ]
+			eidx = substr.find( '_' )
+			key = substr[ 0:eidx ]
+			cidx = nidx + 1
+
+		return (key, nidx)
+
 
 	def __get_outlist_value( self, valList, split ):
 		vstr = ''
@@ -628,29 +977,44 @@ class OutMapHelper( AnalyserHelper ):
 
 		return vstr
 
+
 	def str_value( self, value ):
-		if not self.split:
-			return str(value)
-		else:
-			idx = 0
-			ss = ''
-			split = self.get_split()
-			keyList = self.keyMap.keys()
-			for key in keyList:
-				if idx > 0:
-					ss += split
-				if self.helperList is None:
-					count = 0
-					if key in value:
-						count = value[key]
-					ss += str(count)
-				else:
-					valList = None
-					if key in value:
-						valList = value[key]
-					ss += self.__get_outlist_value( valList, split )
-				idx += 1
-			return ss
+		idx = 0
+		ss = ''
+		split = self.get_split()
+		for key in self.keyList:
+			if idx > 0:
+				ss += split
+			if self.helperList is None:
+				count = 0
+				if key in value:
+					count = value[key]
+				ss += str(count)
+			else:
+				valList = None
+				if key in value:
+					valList = value[key]
+				ss += self.__get_outlist_value( valList, split )
+			idx += 1
+		return ss + split
+
+	def value_str( self, vstr, offset, psplit ):
+		split = self.get_split()
+		cidx = offset
+		outValList = list()
+		for key in self.curkeyList:
+			if self.helperList is None:
+				nidx = vstr.find( split, cidx )
+				count = int( vstr[cidx:nidx] )
+				cidx = nidx + 1
+				outValList.append( (key, count) )
+			else:
+				(olist, cidx) = self.read_outlist_value( self.helperList, vstr, cidx, split )
+				for vlist in olist:
+					outValList.append( (key, vlist) )
+				cidx += 1
+
+		return (outValList, cidx)
 
 
 class OutputHelper( AnalyserHelper ):
@@ -728,7 +1092,7 @@ class OutputHelper( AnalyserHelper ):
 
 		return False
 
-	def head_str( self ):
+	def str_head( self ):
 		if self.exptype == 'map' and self.split:
 			split = self.get_split()
 			hstr = ''
@@ -849,13 +1213,17 @@ class OutputsHelper( AnalyserHelper ):
 			idx += 1
 		return True
 
-	def head_str( self ):
+	def prepare_dump( self ):
+		for helper in self.helperList:
+			helper.prepare_dump()
+
+	def str_head( self ):
 		hstr = ''
 		has = False
 		idx = 0
 		split = self.get_split()
 		for helper in self.helperList:
-			tstr = helper.head_str()
+			tstr = helper.str_head()
 			if tstr is None:
 				if helper.exptype != 'raw':
 					tstr = helper.fmtName + '_' + helper.exptype
@@ -873,6 +1241,14 @@ class OutputsHelper( AnalyserHelper ):
 			return hstr
 		return None
 
+	def head_str( self, hstr, offset, psplit ):
+		split = self.get_split()
+		cidx = offset
+		for helper in self.helperList:
+			cidx = helper.head_str( hstr, cidx, split )
+			cidx += 1
+
+		return cidx - 1
 
 	def str_value( self, value ):
 		idx = 0
@@ -885,3 +1261,12 @@ class OutputsHelper( AnalyserHelper ):
 			idx += 1
 
 		return vstr
+
+	def value_str( self, vstr, offset, psplit ):
+		split = self.get_split()
+		cidx = offset
+		(outValList, cidx) = self.read_outlist_value( self.helperList, vstr, cidx, split )
+
+		return (outValList, cidx)
+
+
