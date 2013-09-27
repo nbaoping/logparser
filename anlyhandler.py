@@ -40,11 +40,15 @@ class OfileMerger( BaseObject ):
 
 	def __update_ofile_list_info( self, anly, ofileList ):
 		newOfileList = list()
+		print func_name(), '>> ofile list len:', len(ofileList)
 		for ofile in ofileList:
 			self.__update_ofile_info( anly, ofile )
 			if ofile.isValid:
 				newOfileList.append( ofile )
+			else:
+				print func_name(), '>> ofile not valid', ofile
 
+		print func_name(), '>> ofile new list len:', len(newOfileList)
 		#print func_name(), '>> begin to update offset' 
 		headChanged = self.__update_ofile_list_offset( anly, newOfileList )
 
@@ -70,13 +74,18 @@ class OfileMerger( BaseObject ):
 
 		#get the first content line time
 		if ofile.fileStartTime < 0:
-			vstr = fin.readline().strip()
+			firstLine = fin.readline()
+			vstr = firstLine.strip()
 			if vstr == '':
 				#no content in the file, set the ofile invalid
 				ofile.isValid = False
 	
 			(vtime, value) = anly.decode_output_value( vstr )
 			ofile.fileStartTime = vtime
+			ofile.firstLineLen = len(firstLine)
+		else:
+			firstLine = fin.readline()
+			ofile.firstLineLen = len(firstLine)
 
 		#get the last content line time
 		if ofile.isValid and ofile.fileEndTime < 0:
@@ -142,7 +151,7 @@ class OfileMerger( BaseObject ):
 
 		#seek the minStartTime in file
 		if minStartTime > 0:
-			(offset, seekTime) = self.__seek_time_in_file( anly, ofile, 
+			(offset, seekTime, seekLineLen) = self.__seek_time_in_file( anly, ofile, 
 					ofile.contentOffset, ofile.fileSize, minStartTime )
 			if offset > 0:
 				ofile.tailOffset = offset
@@ -150,22 +159,22 @@ class OfileMerger( BaseObject ):
 			#for the last file, should not have the tailOffset
 			ofile.tailOffset = ofile.fileSize
 
-		#update the tailOffset
+		#update the headOffset
 		#first find the maxEndTime of the front ofileList
 		idx = 0
 		maxEndTime = -1
 		while idx < index:
 			tfile = ofileList[idx]
-			if tfile.fileStartTime > maxEndTime:
-				maxEndTime = tfile.fileStartTime
+			if tfile.fileEndTime > maxEndTime:
+				maxEndTime = tfile.fileEndTime
 			idx += 1
 
 		#seek the maxEndTime in file
 		if maxEndTime > 0:
-			(offset, seekTime) = self.__seek_time_in_file( anly, ofile, 
+			(offset, seekTime, seekLineLen) = self.__seek_time_in_file( anly, ofile, 
 					ofile.contentOffset, ofile.fileSize, maxEndTime )
 			if offset > 0:
-				ofile.headOffset = offset
+				ofile.headOffset = offset + seekLineLen
 		elif index == 0:
 			#for the first file, should not have headOffset
 			ofile.headOffset = ofile.contentOffset
@@ -189,30 +198,36 @@ class OfileMerger( BaseObject ):
 
 	def __seek_time_in_file( self, anly, ofile, startOffset, endOffset, seekTime ):
 		if seekTime <= ofile.fileStartTime:
-			return (ofile.contentOffset, ofile.fileStartTime)
+			return (ofile.contentOffset, ofile.fileStartTime, ofile.firstLineLen)
 		if seekTime > ofile.fileEndTime:
-			return (ofile.fileSize, ofile.fileEndTime)
+			return (ofile.fileSize, ofile.fileEndTime, 0)
 
 		fin = ofile.fin
 		head = startOffset
 		tail = endOffset
-		
+	
+		#init the return values
 		timeOffset = -1
 		offset = -1
+		seekLineLen = -1
+
 		curTime = -1
 		lastOffset = -1
 		lastTime = -1
+		lastLineLen = -1
 		while head < tail:
 			mid = (head+tail) / 2
 			fin.seek( mid, 0 )
-			(curTime, roff) = self.__parse_curline_time( anly, fin )
+			(curTime, roff, lineLen) = self.__parse_curline_time( anly, fin )
 			offset = mid + roff
 			if curTime > 0:
 				lastOffset = offset
 				lastTime = curTime
+				lastLineLen = lineLen
 
 			if curTime == seekTime:
 				timeOffset = offset
+				seekLineLen = lineLen
 				print func_name(), '>>------------', str_seconds(curTime), offset
 				break
 			elif curTime > seekTime:
@@ -228,19 +243,21 @@ class OfileMerger( BaseObject ):
 			if lastOffset > 0 and lastOffset > 0:
 				timeOffset = lastOffset
 				seekTime = lastTime
+				seekLineLen = lastLineLen
 
-		return (timeOffset, seekTime)
+		return (timeOffset, seekTime, seekLineLen)
 
 	def __parse_curline_time( self, anly, fin ):
 		offset = 0
 		for line in fin:
+			lineLen = len(line)
 			vstr = line.strip()
 			try:
 				(vtime, value) = anly.decode_output_value( vstr )
-				return (vtime, offset)
+				return (vtime, offset, lineLen)
 			except:
 				pass
-			offset += len(line)
+			offset += lineLen
 
 		return (-1, offset)
 
@@ -259,50 +276,50 @@ class OfileMerger( BaseObject ):
 
 		#merge the head part. Using the previous anly config
 		#if it's the first file, cannot merge the head
-		#if headOffset is 0, no need to merge the head part
+		#if headOffset is ofile.contentOffset, no need to merge the head part
 		print pos
-		if not firstFile and headOffset > 0 and pos < headOffset:
+		if headOffset > ofile.contentOffset:
 			for line in fin:
 				vstr = line.strip()
 				print vstr
 				(vtime, value) = anly.decode_output_value( vstr )
-				print vtime, value
+				print func_name(), '>>in head merge', vtime, value
 				anly.anly_outut_value( vtime, value )
 
 				pos += len(line)
-				print pos, headOffset
 				if pos >= headOffset:
 					break
 
-		mergeTail = False
+
 		#check if need to dump the middle part
 		if headOffset < tailOffset:
+			#we need first flush before outputing the middle part
+			anly.flush()
+
 			size = tailOffset - headOffset
 			print headOffset, tailOffset
-			print func_name(), '>> begin to output file data, len:', size, pos, fin.tell(), ofile.fileSize
-			fin.seek( pos, 0 )
+			print func_name(), '>> begin to output file data, len:', size, pos, headOffset, fin.tell(), ofile.fileSize
+			fin.seek( headOffset, 0 )
 			self.__output_file_data( anly, fin, size )
 			print func_name(), '>> output file data, len:', size
-			if tailOffset < fileSize:
-				mergeTail = True
 
 		#check if needs to merge the tail part;(when the startTime changes)
 		#if need to merge tail part, then the anly needs to be reset
-		if not mergeTail:
-			if firstFile:
-				mergeTail = True
-
-		if mergeTail:
+		if tailOffset < fileSize:
+			fin.seek( tailOffset, 0 )
 			vstr = fin.readline().strip()
 			print vstr
 			(vtime, value) = anly.decode_output_value( vstr )
+			print func_name(), '>>in tail merge', vtime, value
 			self.__reset_anly( anly, vtime, self.bufTime )
 
 			#begin to merge the tail part
 			anly.anly_outut_value( vtime, value )
 			for line in fin:
 				vstr = line.strip()
+				print vstr
 				(vtime, value) = anly.decode_output_value( vstr )
+				print func_name(), '>>in tail merge', vtime, value
 				anly.anly_outut_value( vtime, value )
 
 	def __reset_anly( self, anly, startTime, bufTime ):
@@ -313,15 +330,16 @@ class OfileMerger( BaseObject ):
 		headOffset = ofile.headOffset
 		tailOffset = ofile.tailOffset
 
-		#make sure all offset no less than zero
-		if headOffset < 0:
+		#make sure all offset no less than the contentOffset
+		if headOffset < ofile.contentOffset:
 			headOffset = fileSize
 		if tailOffset < ofile.contentOffset:
 			tailOffset = fileSize
 		
 		if tailOffset <= headOffset:
+			#make sure tailOffset is always >= headOffset
 			headOffset = fileSize
-			tailOffset = ofile.contentOffset
+			tailOffset = fileSize
 
 		ofile.headOffset = headOffset
 		ofile.tailOffset = tailOffset
@@ -332,12 +350,10 @@ class OfileMerger( BaseObject ):
 		while size > 0:
 			if paceSize > size:
 				paceSize = size
-			print 'read data:', paceSize
 			data = fin.read( paceSize )
 			rsize = len(data)
 			if rsize == 0:
 				break
-			print func_name(), '>> read data, len:', rsize
 			anly.output_data( data, rsize )
 			size -= rsize
 
