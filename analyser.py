@@ -37,6 +37,9 @@ class AnalyConfig( BaseObject ):
 
 class Analyser( BaseObject ):
 	def __init__( self, config, toFile = True ):
+		self.parser = None	#this may be assigned outside
+
+		self.atype = ''
 		self.startTime = config.startTime
 		self.endTime = config.endTime
 		self.startBufTime = 0
@@ -47,6 +50,7 @@ class Analyser( BaseObject ):
 
 		self.fileStartTime = -1
 		self.fileEndTime = -1
+		self.firstFlush = True
 		if toFile:
 			self.outPath = config.outPath
 			self.errPath = config.outPath + '.errlog' 
@@ -89,7 +93,6 @@ class Analyser( BaseObject ):
 		return otime
 
 	def get_sample_start_time( self, logInfo ):
-		print func_name(), '>>', self.startTime, logInfo, 'tid:', self.tid
 		returnTime = self.startTime
 
 		if logInfo is not None:
@@ -158,16 +161,32 @@ class Analyser( BaseObject ):
 		return True
 
 	def encode_output_head( self ):
-		return ''
+		return 'time;' + self.atype
 
 	def decode_output_value( self, vstr ):
 		raise_virtual( func_name() )
 
 	def anly_outut_value( self, valList ):
 		raise_virtual( func_name() )
+	
+	def prepare_output( self ):
+		pass
+
+	def output_head( self ):
+		if self.fout is not None and self.firstFlush:
+			#someone may need do some init work before output
+			self.prepare_output()
+
+			head = self.encode_output_head()
+			if head is not None:
+				self.fout.write( head+'\n' )
+				self.firstFlush = False
 
 	def output_data( self, data, size ):
+		self.output_head()
+
 		if self.fout is not None:
+			self.output_head()
 			self.fout.write( data )
 
 	def flush( self ):
@@ -189,6 +208,10 @@ class Analyser( BaseObject ):
 
 	def exist( self, member ):
 		return member in self.__dict__
+
+	def __str__( self ):
+		ss = 'anly type:' + self.atype + ', output file:' +str(self.fout)
+		return ss
 
 
 class BandwidthAnalyser( Analyser ):
@@ -283,8 +306,10 @@ class BandwidthAnalyser( Analyser ):
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist), 'minTime:',\
-				str_seconds(minTime), 'maxTime:', str_seconds(maxTime)
+
+		print func_name(), '>> flush data,', self
+
+		self.output_head()
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -303,12 +328,12 @@ class BandwidthAnalyser( Analyser ):
 		tstr = str_time( dtime )
 		band = round( value * 8 / float(pace) / 1024 / 1024, 3 )
 		bufio.write( tstr )
-		bufio.write( '\t' )
+		bufio.write( ';' )
 		bufio.write( str(band) )
 		bufio.write( '\n' )
 
 	def decode_output_value( self, vstr ):
-		segs = vstr.split( '\t' )
+		segs = vstr.split( ';' )
 		seconds = seconds_str( segs[0] )
 		pace = self.pace
 		if pace < 0:
@@ -391,11 +416,14 @@ class StatusAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		print func_name(), '>> flush data,', self
+
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
+
+		self.output_head()
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -422,7 +450,17 @@ class StatusAnalyser( Analyser ):
 			pace = 1
 		value = segs[1]
 
-		return (seconds, value)
+		#decode the map value
+		vmap = dict()
+		value = value[1:len(value)-1]
+		segs = value.split( ',' )
+		for seg in segs:
+			isegs = seg.split( ':' )
+			status = int( isegs[0].strip() )
+			count = int( isegs[1].strip() )
+			vmap[status] = count
+
+		return (seconds, vmap)
 
 	def on_close( self ):
 		print 'close', self.__class__, self
@@ -481,11 +519,14 @@ class XactRateAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		print func_name(), '>> flush data,', self
+
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
+
+		self.output_head()
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -591,11 +632,14 @@ class DescAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		print func_name(), '>> flush data,', self
+
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
+
+		self.output_head()
 		for item in blist:
 			if curTime < minTime:
 				curTime += pace
@@ -708,24 +752,15 @@ class SingleAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
-		print '\tanalyser:', self
+		print func_name(), '>> flush data,', self
+
 		split = self.__helper.get_split()
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
 		
-		if self.firstFlush:
-			self.__helper.prepare_dump()
-			headStr = self.__helper.str_head()
-			if headStr is not None:
-				bufio.write( 'time' )
-				bufio.write( split )
-				bufio.write( headStr )
-				bufio.write( '\n' )
-			self.firstFlush = False
-
+		self.output_head()
 		lastTime = -1
 		for item in blist:
 			if curTime < minTime:
@@ -762,37 +797,35 @@ class SingleAnalyser( Analyser ):
 		self.fout.write( logs )
 		bufio.close()
 
-	def output_data( self, data, size ):
-		if self.firstFlush:
-			split = self.__helper.get_split()
-			self.__helper.prepare_dump()
-			bufio = StringIO()
-			headStr = self.__helper.str_head()
-			if headStr is not None:
-				bufio.write( 'time' )
-				bufio.write( split )
-				bufio.write( headStr )
-				bufio.write( '\n' )
-			self.firstFlush = False
-			logs = bufio.getvalue()
-			self.fout.write( logs )
-			bufio.close()
-
-		super(SingleAnalyser, self).output_data( data, size )
-
+	def prepare_output( self ):
+		self.__helper.prepare_dump()
 
 	def decode_output_head( self, hstr ):
 		split = self.__helper.get_split()
 		offset = 0
 		if not self.__helper.useInterStr:
+			#must check if there is head
+			prefix = 'time' + split
+			if not hstr.startswith(prefix):
+				return True
+			#skip the 'time' part
 			offset = hstr.find( split ) + 1
+		else:
+			#the internal helper may use the parser to decoding
+			self.__helper.parser = self.parser
 
 		self.__helper.head_str( hstr, offset, split )
 
 		return True
 
 	def encode_output_head( self ):
-		return self.__helper.str_head()
+ 		vh = self.__helper.str_head()
+		if vh is None:
+			return None
+
+		split = self.__helper.get_split()
+		head = 'time' + split + vh
+		return head
 
 	def decode_output_value( self, vstr ):
 		split = self.__helper.get_split()
@@ -805,6 +838,7 @@ class SingleAnalyser( Analyser ):
 			(valList, offset) = self.__helper.value_str( vstr, offset, split )
 			return (vtime, valList)
 
+		self.__helper.parser = self.parser
 		(vtime, valList, offset) = self.__helper.value_str( vstr, offset, split )
 		return (vtime, valList)
 
@@ -890,11 +924,14 @@ class ActiveSessionsAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print 'flush buffer, curTime:', str_seconds(curTime), 'size:', len(blist)
+		print func_name(), '>> flush data,', self
+
 		minTime = sampler.minTime
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
+
+		self.output_head()
 		for value in blist:
 			if curTime < minTime:
 				curTime += pace

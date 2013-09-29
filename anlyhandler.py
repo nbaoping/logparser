@@ -1,10 +1,11 @@
 import threading
-import multiprocessing
+#import multiprocessing
 import time
 import os
 import traceback
 from StringIO import StringIO
 
+import pprocess
 from base import *
 from anlyworker import *
 
@@ -15,7 +16,7 @@ class OfileMerger( BaseObject ):
 		self.bufTime = 1800
 
 	def merge( self ):
-		print func_name(), '>>++++++++++++++++begin to merge files', self.ofileList
+		print func_name(), '>> begin to merge files, total size:', len(self.ofileList), 'anly:', self.anly
 		ofileList = self.ofileList
 		if len(ofileList) == 0:
 			return
@@ -55,6 +56,7 @@ class OfileMerger( BaseObject ):
 		return (newOfileList, headChanged)
 
 	def __update_ofile_info( self, anly, ofile ):
+		print func_name(), '>>', ofile
 		ofile.isValid = True
 
 		fileSize = os.path.getsize( ofile.outPath )
@@ -67,6 +69,12 @@ class OfileMerger( BaseObject ):
 		pos += len(hline)
 		hstr = hline.strip()
 		anly.decode_output_head( hstr )
+		#check if the ofile has the head
+		tmpHead = anly.encode_output_head()
+		if tmpHead is None:
+			hstr = ''
+			fin.seek( 0, 0 )
+			pos = 0
 
 		ofile.fin = fin
 		ofile.head = hstr
@@ -88,12 +96,15 @@ class OfileMerger( BaseObject ):
 			ofile.firstLineLen = len(firstLine)
 
 		#get the last content line time
-		if ofile.isValid and ofile.fileEndTime < 0:
-			hlen = len(ofile.head)
+		if ofile.isValid and ofile.fileEndTime <= 0:
+			hlen = self.__get_average_line_len( ofile )
 			rate = 2
 			vtime = -1
+			offset = fileSize
 			while offset > hlen and vtime < 0:
 				offset = fileSize - rate * hlen
+				if offset < 0:
+					offset = 0
 				vtime = self.__get_file_end_time( anly, fin, offset )
 				rate += 1
 			
@@ -101,6 +112,12 @@ class OfileMerger( BaseObject ):
 				ofile.isValid = False
 			else:
 				ofile.fileEndTime = vtime
+
+	def __get_average_line_len( self, ofile ):
+		hlen = len(ofile.head)
+		if hlen > ofile.firstLineLen:
+			return hlen
+		return ofile.firstLineLen
 
 	def __update_ofile_list_offset( self, anly, ofileList ):
 		headChanged = self.__is_ofile_list_changed( ofileList )
@@ -130,9 +147,14 @@ class OfileMerger( BaseObject ):
 		return False
 
 	def __update_ofile_offset( self, anly, ofile, ofileList, index ):
+		print func_name(), '>>', ofile.fin
 		#by default, we will use the whole file
 		ofile.headOffset = ofile.fileSize
 		ofile.tailOffset = ofile.contentOffset
+
+		if anly.pace < 0:
+			#for negative pace, should merge the whole file
+			return
 
 		size = len(ofileList)
 
@@ -153,7 +175,9 @@ class OfileMerger( BaseObject ):
 		if minStartTime > 0:
 			(offset, seekTime, seekLineLen) = self.__seek_time_in_file( anly, ofile, 
 					ofile.contentOffset, ofile.fileSize, minStartTime )
-			if offset > 0:
+			print func_name(), '>>', 'minStartTime:', str_seconds(minStartTime), minStartTime, \
+					'offset:', offset, str_seconds(seekTime), seekTime, 'seekLineLen:', seekLineLen
+			if offset >= ofile.contentOffset:
 				ofile.tailOffset = offset
 		elif index+1 == size:
 			#for the last file, should not have the tailOffset
@@ -173,13 +197,19 @@ class OfileMerger( BaseObject ):
 		if maxEndTime > 0:
 			(offset, seekTime, seekLineLen) = self.__seek_time_in_file( anly, ofile, 
 					ofile.contentOffset, ofile.fileSize, maxEndTime )
-			if offset > 0:
+			print func_name(), '>>', 'maxEndTime:', str_seconds(maxEndTime), maxEndTime, \
+					'offset:', offset, str_seconds(seekTime), seekTime, 'seekLineLen:', seekLineLen
+			if offset >= ofile.contentOffset:
 				ofile.headOffset = offset + seekLineLen
+			else:
+				#no head part
+				ofile.headOffset = ofile.contentOffset
 		elif index == 0:
 			#for the first file, should not have headOffset
 			ofile.headOffset = ofile.contentOffset
 
 	def __get_file_end_time( self, anly, fin, offset ):
+		print offset
 		fin.seek( offset, 0 )
 		vtime = -1
 
@@ -188,7 +218,7 @@ class OfileMerger( BaseObject ):
 			lastLine = line
 
 		if lastLine is not None:
-			vstr = lastline.strip()
+			vstr = lastLine.strip()
 			try:
 				(vtime, value) = anly.decode_output_value( vstr )
 			except:
@@ -197,10 +227,13 @@ class OfileMerger( BaseObject ):
 		return vtime
 
 	def __seek_time_in_file( self, anly, ofile, startOffset, endOffset, seekTime ):
-		if seekTime <= ofile.fileStartTime:
+		if seekTime < ofile.fileStartTime:
+			return (-1, 0, 0)
+		elif seekTime == ofile.fileStartTime:
 			return (ofile.contentOffset, ofile.fileStartTime, ofile.firstLineLen)
+
 		if seekTime > ofile.fileEndTime:
-			return (ofile.fileSize, ofile.fileEndTime, 0)
+			return (ofile.fileSize, 0, 0)
 
 		fin = ofile.fin
 		head = startOffset
@@ -228,7 +261,6 @@ class OfileMerger( BaseObject ):
 			if curTime == seekTime:
 				timeOffset = offset
 				seekLineLen = lineLen
-				print func_name(), '>>------------', str_seconds(curTime), offset
 				break
 			elif curTime > seekTime:
 				tail = mid
@@ -279,11 +311,12 @@ class OfileMerger( BaseObject ):
 		#if headOffset is ofile.contentOffset, no need to merge the head part
 		print pos
 		if headOffset > ofile.contentOffset:
+			print func_name(), '>> merge head part, headOffset:', headOffset
 			for line in fin:
 				vstr = line.strip()
-				print vstr
+				#print vstr
 				(vtime, value) = anly.decode_output_value( vstr )
-				print func_name(), '>>in head merge', vtime, value
+				#print func_name(), '>>in head merge', vtime, value
 				anly.anly_outut_value( vtime, value )
 
 				pos += len(line)
@@ -297,29 +330,26 @@ class OfileMerger( BaseObject ):
 			anly.flush()
 
 			size = tailOffset - headOffset
-			print headOffset, tailOffset
-			print func_name(), '>> begin to output file data, len:', size, pos, headOffset, fin.tell(), ofile.fileSize
+			print func_name(), '>> begin to output file data, len:', size, '[', headOffset, '-', tailOffset, ']'
 			fin.seek( headOffset, 0 )
 			self.__output_file_data( anly, fin, size )
-			print func_name(), '>> output file data, len:', size
 
 		#check if needs to merge the tail part;(when the startTime changes)
 		#if need to merge tail part, then the anly needs to be reset
 		if tailOffset < fileSize:
+			print func_name(), '>> merge tail part, tailOffset:', tailOffset
 			fin.seek( tailOffset, 0 )
 			vstr = fin.readline().strip()
-			print vstr
 			(vtime, value) = anly.decode_output_value( vstr )
-			print func_name(), '>>in tail merge', vtime, value
+			#print func_name(), '>>in tail merge', vtime, value
 			self.__reset_anly( anly, vtime, self.bufTime )
 
 			#begin to merge the tail part
 			anly.anly_outut_value( vtime, value )
 			for line in fin:
 				vstr = line.strip()
-				print vstr
 				(vtime, value) = anly.decode_output_value( vstr )
-				print func_name(), '>>in tail merge', vtime, value
+				#print func_name(), '>>in tail merge', vtime, value
 				anly.anly_outut_value( vtime, value )
 
 	def __reset_anly( self, anly, startTime, bufTime ):
@@ -397,16 +427,74 @@ class AnlyHandler( BaseObject ):
 
 	def analyse_files( self, files ):
 		(infoList, totalSize ) = self.__get_file_info( files )
-		print 'infoList', infoList
+		print 'infoList, len:', str(len(infoList))
 		segList = self.__split_file_list( infoList, totalSize, self.numCores )
 		print 'segList', self.__dump_list(segList)
 		taskList = self.__get_input_tasks( segList )
 		print 'taskList', self.__dump_list(taskList)
 		self.__close_output_files()
-		outAllList = self.__map_reduce( taskList )
+		if NEW_VERSION:
+			self.__map_reduce2( taskList )
+		else:
+			self.__map_reduce1( taskList )
 
-	def __map_reduce( self, taskList ):
-		tqueue = multiprocessing.JoinableQueue()
+	def do_task( self, tid, task, args ):
+		print func_name(), '>>========tid:', tid, args
+
+		worker = AnlyWorker( tid, task, args )
+		ofileList = worker.run()
+
+		return (tid, ofileList)
+
+	def __map_reduce1( self, taskList ):
+		startTime = time.time()
+
+		results = pprocess.Map( limit=self.numCores )
+		handler = results.manage( pprocess.MakeParallel(AnlyHandler.do_task) )
+
+		#perform the tasks
+		tid = 0
+		for task in taskList:
+			tid += 1
+			handler( self, tid, task, self.args )
+
+		ofileMap = dict()
+		print '\n\n**************output results********************'
+		idx = 0
+		for (tid, ofileList) in results:
+			idx += 1
+			print func_name(), '>> got the', str(idx)+'th result, tid:', tid, 'ofileList len:', len(ofileList)
+			ofileMap[tid] = ofileList
+
+		mstime = time.time()
+
+		mergerList = list()
+		idx = 0
+		for anly in self.anlyList:
+			ofileList = list()
+			tid = 1
+			while tid <= self.numCores:
+				olist = ofileMap[tid]
+				ofileList.append( olist[idx] )
+				tid += 1
+			idx += 1
+
+			anly.parser = self.parser
+			merger = OfileMerger( anly, ofileList )
+			mergerList.append( merger )
+
+		for merger in mergerList:
+			merger.merge()
+
+		mspent = time.time() - mstime
+		print func_name(), '>> =====================merge spent time:', mspent, 'seconds'
+		spent = time.time() - startTime
+
+		print '=====================spent time:', spent, 'seconds'
+
+	def __map_reduce2( self, taskList ):
+		stime = time.time()
+
 		rqueue = multiprocessing.Queue()
 
 		workerList = list()
@@ -414,21 +502,23 @@ class AnlyHandler( BaseObject ):
 		idx = 0
 		for task in taskList:
 			idx += 1
-			print func_name(), task
-			worker = AnlyWorker( idx, task, self.args, tqueue, rqueue )
+			print func_name(), '>> add task process, tid:', idx
+			worker = AnlyProcess( idx, task, self.args, rqueue )
 			workerList.append( worker )
 			workerMap[idx] = worker
 
 		for worker in workerList:
 			worker.start()
-	
-		stime = time.time()
+
+		idx = 0
 		for worker in workerList:
+			idx += 1
 			(tid, ofileList) = rqueue.get()
-			print func_name(), tid, ofileList
+			print func_name(), '>> got the', str(idx)+'th result, tid:', tid, 'ofileList len:', len(ofileList)
 			worker = workerMap[tid]
 			worker.ofileList = ofileList
 
+		mstime = time.time()
 		#get the ofileList of the same type
 		mergerList = list()
 		idx = 0
@@ -439,29 +529,28 @@ class AnlyHandler( BaseObject ):
 				ofileList.append( ofile )
 			idx += 1
 
+			anly.parser = self.parser
 			merger = OfileMerger( anly, ofileList )
 			mergerList.append( merger )
 
 		for merger in mergerList:
 			merger.merge()
 
+		mspent = time.time() - mstime
+		print func_name(), '>> =====================merge spent time:', mspent, 'seconds'
+
 		for worker in workerList:
 			worker.join()
 		spent = time.time() - stime
-		print '=====================spent time:', spent, 'seconds'
-
-		for woker in workerList:
-			print func_name(), worker.ofileList
+		print func_name(), '>> =====================spent time:', spent, 'seconds'
 
 	def __close_output_files( self ):
 		for anly in self.anlyList:
 			anly.close_output_files()
 
 	def __dump_list( self, ilist ):
-		ss = ''
-		for item in ilist:
-			ss += str(item) + ' '
-		print ss
+		ss = 'len:' + str(len(ilist))
+		return ss
 
 	def __get_file_info( self, files ):
 		infoList = list()
@@ -482,7 +571,7 @@ class AnlyHandler( BaseObject ):
 
 	def __split_file_list( self, infoList, totalSize, numSegs ):
 		asize = totalSize / numSegs
-		print 'average size for each segment:', asize
+		print 'average size for each segment:', asize, 'numSegs:', numSegs, 'totalSize:', totalSize
 		segList = list()
 		curList = list()
 		if len(infoList) == 0:
@@ -492,19 +581,23 @@ class AnlyHandler( BaseObject ):
 		infoIdx = 0
 		offset = 0
 		restSize = 0
-		(startTime, path, size) = infoList[infoIdx]
+		(startTime, path, size) = infoList[0]
 		lastTime = startTime
+		segIdx = 1
 		while True:
 			restSize = asize - curSize
-			fileRest = size - offset + 1
+			fileRest = size - offset
 			if restSize <= fileRest:
 				#the current file satisfies the current list
 				(endOffset, ntime) = self.__align_file_offset( path, offset+restSize )
 				ifile = InputFile( lastTime, path, offset, endOffset )
 				curList.append( ifile )
+				curSize += (endOffset-offset)
 				offset = endOffset
 				lastTime = ntime
+				print 'segment id:', segIdx, 'size:', curSize
 				segList.append( curList )
+				segIdx += 1
 				self.__dump_list( curList )
 				#reset curList
 				curList = list()
@@ -514,6 +607,7 @@ class AnlyHandler( BaseObject ):
 				if fileRest > 0:
 					ifile = InputFile( lastTime, path, offset, -1 )
 					curList.append( ifile )
+					curSize += fileRest
 
 				#get the next file
 				infoIdx += 1
@@ -529,6 +623,7 @@ class AnlyHandler( BaseObject ):
 		if len(curList) > 0:
 			self.__dump_list( curList )
 			segList.append( curList )
+			print 'segment id:', segIdx, 'size:', curSize
 
 		return segList
 

@@ -1,3 +1,7 @@
+from operator import itemgetter
+from StringIO import StringIO
+import traceback
+
 from base import *
 
 BUF_TIME = 36000		#in seconds
@@ -167,6 +171,9 @@ class DesHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return len(value) == 0
 
+	def str_head( self ):
+		return 'description'
+
 	def str_value( self, value ):
 		return str( value )
 
@@ -176,7 +183,19 @@ class DesHelper( AnalyserHelper ):
 			nidx = len(vstr)
 		value = vstr[offset:nidx]
 
-		return ( [value], nidx )
+		#decode the map value
+		vmap = dict()
+		value = value[1:len(value)-1]
+		segs = value.split( ',' )
+		for seg in segs:
+			isegs = seg.split( ':' )
+			des = isegs[0].strip()
+			if des[0].startswith( "'" ):
+				des = des[1:len(des)-1]
+			count = int(isegs[1].strip())
+			vmap[des] = count
+
+		return ( [vmap], nidx )
 
 
 class ConsumedHelper( AnalyserHelper ):
@@ -200,6 +219,9 @@ class ConsumedHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return value[0] < 0
 
+	def str_head( self ):
+		return 'consumed'
+
 	def str_value( self, value ):
 		consumed = value[0]
 		total = value[1]
@@ -222,6 +244,7 @@ class ConsumedHelper( AnalyserHelper ):
 class AssembleHelper( AnalyserHelper ):
 	def __init__( self ):
 		super(AssembleHelper, self).__init__()
+		self.useInterStr = True
 		self.sampleThres = 1000
 	
 	#return the statistics value
@@ -245,20 +268,29 @@ class AssembleHelper( AnalyserHelper ):
 		bufio = StringIO()
 		first = True
 		for item in itemList:
-			line = item[1]
+			line = item[1].rstrip()
 			if first:
 				bufio.write( line )
 				first = False
 			else:
 				bufio.write( '\n' )
 				bufio.write( line )
-		return bufio.getvalue()
+		logs = bufio.getvalue()
+		bufio.close()
+		return logs
 
 	def value_str( self, vstr, offset, psplit ):
-		return ( [vstr], len(vstr) )
+		logInfo = None
+		try:
+			logInfo = self.parser.parse_line( vstr )
+		except:
+			print traceback.print_exc()
 
-	def get_split( self ):
-		return None
+		if logInfo is not None:
+			sampleValue = self.get_value( logInfo )
+			return ( logInfo.recvdTime, [sampleValue], len(vstr) )
+		return ( 0, [], len(vstr) )
+
 
 class CounterHelper( AnalyserHelper ):
 	def __init__( self ):
@@ -368,7 +400,7 @@ class RawOutputHelper( AnalyserHelper ):
 
 		(valList, offset) = self.__read_fmt_list( vstr, offset, split )
 		item = (sampleTime, valList)
-		return ( [item], offset)
+		return ( sampleValue, [item], offset)
 
 	def __write_fmt_list( self, bufio, vlist, split ):
 		num = 0
@@ -926,7 +958,13 @@ class OutMapHelper( AnalyserHelper ):
 		while curoff < size:
 			if hstr[curoff] == psplit:
 				break
-			(key, curoff) = self.__read_outlist_head( hstr, curoff, split )
+
+			if self.helperList is None:
+				nidx = hstr.find( split, curoff )
+				key = hstr[curoff:nidx]
+				curoff = nidx
+			else:
+				(key, curoff) = self.__read_outlist_head( hstr, curoff, split )
 			self.curkeyList.append( key )
 			if key not in self.keyList:
 				addNewKey = True

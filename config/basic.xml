@@ -14,20 +14,11 @@
 		<type>activeSessions</type>
 		<pace>1</pace>
 	</analyser>
+
+	<!--
 	<analyser>
 		<type>assemble</type>
 		<pace>1</pace>
-		<filters>
-			<notExp>
-				<filter>
-					<fmtName>status</fmtName>
-					<orExp>
-						<equal>200</equal>
-						<equal>206</equal>
-						<equal>304</equal>
-					</orExp>
-				</filter>
-			</notExp>
-		</filters>
 	</analyser>
+	-->
 </translog>

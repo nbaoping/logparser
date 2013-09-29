@@ -55,15 +55,17 @@ class Sampler( object ):
 			raise Exception( 'endTime < startTime error' )
 		self.maxTime = -1
 		self.minTime = -1
+		self.totalCount1 = 0	#for the first list
+		self.totalCount2 = 0	#for the second list
 		self.tailIdx = -1
 		if self.endTime > 0 and self.pace > 0:
 			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
 
 		#check if needs to init the list
 		if self.slist1 is not None:
-			self.__init_list( self.slist1, True )
+			self.__init_list( self.slist1 )
 		if self.slist2 is not None:
-			self.__init_list( self.slist2, True )
+			self.__init_list( self.slist2 )
 
 
 	def __stat_cur_time( self, stime, etime ):
@@ -127,6 +129,9 @@ class Sampler( object ):
 		return 0
 
 	def flush( self ):
+		if self.is_empty():
+			return
+
 		self.__flush_buffer()
 		self.__flush_buffer()
 
@@ -134,16 +139,26 @@ class Sampler( object ):
 		#print 'add sample', idx, value
 		if idx >= self.__total:
 			return 1
+
 		size = self.__total / 2
 		if idx >= size:
 			idx -= size
 			self.slist2[idx] = self.slist2[idx] + value
+			self.totalCount2 += 1
 		else:
 			self.slist1[idx] = self.slist1[idx] + value
+			self.totalCount1 += 1
 		return 0
 
+	def size( self ):
+		return self.totalCount1 + self.totalCount2
+
+	def is_empty( self ):
+		return self.size() == 0
+
 	def __flush_buffer( self ):
-		print '****************', str_seconds(self.minTime), str_seconds(self.maxTime)
+		print func_name(), '>>', 'minTime:', str_seconds(self.minTime), 'maxTime:', str_seconds(self.maxTime),\
+				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
 		curList = self.slist1
 		#must call before change the status of the sampler
 		self.flush_cb( self.cbobj, self, curList )
@@ -151,6 +166,8 @@ class Sampler( object ):
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2
 		self.slist2 = curList
+		self.totalCount1 = 0
+		self.totalCount1 = self.totalCount2
 		self.__clear_buffer( curList )
 
 	def __clear_buffer( self, blist ):
@@ -205,12 +222,14 @@ class MutableSampler( BaseObject ):
 			self.tailIdx = int( (self.endTime- self.startTime) / self.pace ) + 1
 		self.maxTime = -1
 		self.minTime = -1
+		self.totalCount1 = 0	#for the first list
+		self.totalCount2 = 0	#for the second list
 
 		#check if needs to init the list
 		if self.slist1 is not None:
-			self.__init_list( self.slist1, True )
+			self.__init_list( self.slist1 )
 		if self.slist2 is not None:
-			self.__init_list( self.slist2, True )
+			self.__init_list( self.slist2 )
 
 	def __stat_cur_time( self, stime, etime ):
 		if etime > self.maxTime:
@@ -281,6 +300,9 @@ class MutableSampler( BaseObject ):
 		return 0
 
 	def flush( self ):
+		if self.is_empty():
+			return 
+
 		self.__flush_buffer()
 		self.__flush_buffer()
 
@@ -294,14 +316,23 @@ class MutableSampler( BaseObject ):
 			oldValue = self.slist2[idx]
 			newValue = self.update_value( self.cbobj, oldValue, value )
 			self.slist2[idx] = newValue
+			self.totalCount2 += 1
 		else:
 			oldValue = self.slist1[idx]
 			newValue = self.update_value( self.cbobj, oldValue, value )
 			self.slist1[idx] = newValue
+			self.totalCount1 += 1
 		return 0
 
+	def size( self ):
+		return self.totalCount1 + self.totalCount2
+
+	def is_empty( self ):
+		return self.size() == 0
+
 	def __flush_buffer( self ):
-		print '****************', str_seconds(self.minTime), str_seconds(self.maxTime)
+		print func_name(), '>>', 'minTime:', str_seconds(self.minTime), 'maxTime:', str_seconds(self.maxTime), \
+				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
 		curList = self.slist1
 		#must call before change the status of the sampler
 		self.flush_cb( self.cbobj, self, curList )
@@ -309,6 +340,8 @@ class MutableSampler( BaseObject ):
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2
 		self.slist2 = curList
+		self.totalCount1 = 0
+		self.totalCount2 = self.totalCount1
 		self.__clear_buffer( curList )
 
 	def __clear_buffer( self, blist ):

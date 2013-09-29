@@ -1,5 +1,10 @@
-import multiprocessing
+try:
+	import multiprocessing
+except:
+	pass
+
 import time
+import os
 
 from base import *
 from factory import *
@@ -44,25 +49,23 @@ class OutputFile( BaseObject ):
 
 
 
-class AnlyWorker( multiprocessing.Process ):
-	def __init__( self, tid, task, args, taskQueue, resultQueue ):
+class AnlyWorker( object ):
+	def __init__( self, tid, task, args ):
 		super(AnlyWorker, self).__init__()
-		self.taskQueue = taskQueue
-		self.resultQueue = resultQueue
 		self.tid = tid
 		self.task = task
 		self.args = args
 
 	def run( self ):
-		print '=====================process', self.tid, 'started========================'
+		print func_name(), '>> =====================process', self.tid, 'started========================'
 		ofileList = self.do_task( self.tid, self.task, self.args )
-		self.resultQueue.put( (self.tid, ofileList) )
+		print func_name(), '>> process:', self.tid, 'exit'
+		return ofileList
 
-		print 'process', self.tid, 'exit'
 
 	def do_task( self, tid, task, args ):
-		print '%%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args, task
-		
+		print func_name(), '>> %%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args
+	
 		anlyFactory = AnalyserFactory()
 		parser = create_parser_from_type( args )
 		self.parser = parser
@@ -71,17 +74,12 @@ class AnlyWorker( multiprocessing.Process ):
 	
 		self.update_anlylist_info( tid, task, anlyList )
 
-		while True:
-			#time.sleep(0.2)
-			break
-		print func_name(), '>>', anlyList
-
 		#parse all the files
 		for ifile in task.inputList:
 			startTime = time.time()
 			lineCount = self.anly_file( tid, ifile )
 			elapsed = time.time() - startTime
-			print '===============================:', 'process', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
+			print '===============================:', 'tid:', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
 	
 		outputList = list()
 		for anly in anlyList:
@@ -105,8 +103,13 @@ class AnlyWorker( multiprocessing.Process ):
 			#for the tasks, must abey to the startTime setting in the config files
 			#so, no need to adjust the startTime end endTime
 
-			#open the output files
-			anly.outPath += '.' + str(tid)
+			#open the output file
+			dirName = os.path.dirname( anly.outPath )
+			odir = 'tmp'
+			dirName = os.path.join( dirName, 'tmp' )
+			mkdir( dirName )
+			baseName = os.path.basename( anly.outPath ) + '.' + str(tid)
+			anly.outPath = os.path.join( dirName, baseName )
 			anly.open_output_files()
 			print func_name(), '>>tid:', tid, anly
 	
@@ -135,15 +138,19 @@ class AnlyWorker( multiprocessing.Process ):
 		endOffset = ifile.endOffset
 	
 		fin = open( path, 'r' )
+		curPos = 0
 		if offset > 0:
 			fin.seek( offset, 0 )
+			curPos = offset
 		lineCount = 0
 		for line in fin:
 			if endOffset >= 0:
-				pos = fin.tell()
-				if pos > endOffset:
+				if curPos >= endOffset:
 					break
 			lineCount += 1
+			curPos += len(line)
+			if line.startswith( '#' ):
+				continue
 			self.__parse_log( line )
 		fin.close()
 	
@@ -151,8 +158,18 @@ class AnlyWorker( multiprocessing.Process ):
 	
 	def __str__( self ):
 		return str( self.__dict__ )
-	
-	
+
+
+class AnlyProcess( multiprocessing.Process ):
+	def __init__( self, tid, task, args, outQueue ):
+		super(AnlyProcess, self).__init__()
+		self.tid = tid
+		self.worker = AnlyWorker( tid, task, args )
+		self.outQueue = outQueue
+
+	def run( self ):
+		ofileList = self.worker.run()
+		self.outQueue.put( (self.tid, ofileList) )
 	
 	
 	

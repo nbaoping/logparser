@@ -1,7 +1,6 @@
 
 <translog>
-	<pace>1</pace>
-	<!--
+	<pace>5</pace>
 	<analyser>
 		<type>bandwidth</type>
 		<type>activeSessions</type>
@@ -42,7 +41,6 @@
 		</outputs>
 		<pace>1</pace>
 	</analyser>
-	-->
 
 	<analyser>
 		<outputs>
@@ -67,10 +65,12 @@
 				</output>
 			</output>
 		</outputs>
+		<pace>3</pace>
 	</analyser>
 
 	<analyser>
 		<type>counter</type>
+		<pace>4</pace>
 	</analyser>
 
 	<analyser>

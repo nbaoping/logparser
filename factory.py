@@ -77,6 +77,7 @@ class AnalyserFactory:
 			if funcItem is not None:
 				anly = funcItem[1]( funcItem[0], config )
 				anly.sorted = args.sorted
+				anly.atype = config.type
 				if config.insertValue is not None:
 					anly.insertValue = config.insertValue
 				analysers.append( anly )

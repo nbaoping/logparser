@@ -6,12 +6,10 @@ Features:
 3. support not singleType value in output
 4. support sub-outputs in map output
 5. optimize tool running speed with multiple processes
-	#TODO
 
 Bugs:
 1. some tokens of webengine have not been defined with the right parse functions
 2. error output file not closed
-	#TODO
 3. error output file no need to be created when there is no errorlog
 
 ===============================================================================
