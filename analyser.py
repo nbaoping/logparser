@@ -709,9 +709,16 @@ class SingleAnalyser( Analyser ):
 					ret = self.sampler.add_sample( sampleTime, avalue )
 				else:
 					ret = self.sampler.add_samples( sampleTime, avalue, num )
+					if ret > 0:		#need to flash the buffer to the file
+						ctime = sampleTime
+						print func_name(), '>>', '******************need to try again*****************', ret
+						while ret > 0:
+							ctime += ret * self.sampler.pace
+							num -= ret
+							ret = self.sampler.add_samples( ctime, avalue, num )
 
 		if ret != 0:
-			print 'add sample failed', logInfo.recvdTime, sampleTime, value, ret, self.sampler
+			print 'add sample failed', logInfo.recvdTime, sampleTime, ret, self.sampler, self.__helper.isSingleType
 			return False
 		return True
 

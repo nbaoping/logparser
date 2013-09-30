@@ -1,5 +1,7 @@
 
 <translog>
+	<startTime>2013/05/26-20:00:00</startTime>
+	<endTime>2013/05/26-22:00:00</endTime>
 	<analyser>
 		<type>bandwidth</type>
 		<pace>10</pace>

@@ -275,6 +275,8 @@ class XactParser:
 	def __analyse_files( self, files, parser, anlyHandler ):
 		count = 0
 		print 'total ', len(files), ' files to be analyzed'
+		startTime = time.time()
+		totalLineCount = 0
 		for item in files:
 			count += 1
 			path = item[1]
@@ -282,16 +284,24 @@ class XactParser:
 			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
 			start = time.time()
 			lineCount = self.__analyse_file( path, parser, anlyHandler )
+			totalLineCount += lineCount
 			elapsed = time.time() - start
 			print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
+
+		spent = time.time() - startTime
+		print '===============================total spent:', spent, 'seconds, total line count:', totalLineCount, 'lines'
 
 	def __analyse_file( self, path, parser, anlyHandler ):
 		fin = open( path, 'r' )
 		first = True
 		lineCount = 0
+		lastTime = time.time()
 		for line in fin:
 			lineCount += 1
 			self.__analyse_line( parser, anlyHandler, line )
+			if (lineCount%20000) == 0:
+				spent = time.time() - lastTime
+				print 'parsed', lineCount, 'lines in', spent, 'seconds in', path
 
 		fin.close()
 		anlyHandler.flush()
@@ -336,7 +346,8 @@ class XactParser:
 				logInfo = parser.parse_line( line )
 				break
 			except:
-				traceback.print_exc()
+				#traceback.print_exc()
+				pass
 			num += 1
 		fin.close()
 		if logInfo is not None:

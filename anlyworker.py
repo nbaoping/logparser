@@ -58,9 +58,11 @@ class AnlyWorker( object ):
 
 	def run( self ):
 		print func_name(), '>> =====================process', self.tid, 'started========================'
-		ofileList = self.do_task( self.tid, self.task, self.args )
-		print func_name(), '>> process:', self.tid, 'exit'
-		return ofileList
+		stime = time.time()
+		(totalLineCount, ofileList) = self.do_task( self.tid, self.task, self.args )
+		spent = time.time() - stime
+		print func_name(), '>> process:', self.tid, 'exit', 'parsed total lines:', totalLineCount, 'in', spent, 'seconds'
+		return (totalLineCount, ofileList)
 
 
 	def do_task( self, tid, task, args ):
@@ -74,10 +76,12 @@ class AnlyWorker( object ):
 	
 		self.update_anlylist_info( tid, task, anlyList )
 
+		totalLineCount = 0
 		#parse all the files
 		for ifile in task.inputList:
 			startTime = time.time()
 			lineCount = self.anly_file( tid, ifile )
+			totalLineCount += lineCount
 			elapsed = time.time() - startTime
 			print '===============================:', 'tid:', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
 	
@@ -90,7 +94,7 @@ class AnlyWorker( object ):
 			ofile.fileStartTime = anly.fileStartTime
 			ofile.fileEndTime = anly.fileEndTime
 	
-		return outputList
+		return (totalLineCount, outputList)
 
 	def update_anlylist_info( self, tid, task, anlyList ):
 		stime = int(task.startTime)
@@ -143,6 +147,7 @@ class AnlyWorker( object ):
 			fin.seek( offset, 0 )
 			curPos = offset
 		lineCount = 0
+		lastTime = time.time()
 		for line in fin:
 			if endOffset >= 0:
 				if curPos >= endOffset:
@@ -152,6 +157,9 @@ class AnlyWorker( object ):
 			if line.startswith( '#' ):
 				continue
 			self.__parse_log( line )
+			if (lineCount%100000) == 0:
+				spent = time.time() - lastTime
+				print func_name(), '>>', tid, 'parsed', lineCount, 'lines in', spent, 'seconds in', path
 		fin.close()
 	
 		return lineCount
@@ -159,19 +167,21 @@ class AnlyWorker( object ):
 	def __str__( self ):
 		return str( self.__dict__ )
 
-
-class AnlyProcess( multiprocessing.Process ):
-	def __init__( self, tid, task, args, outQueue ):
-		super(AnlyProcess, self).__init__()
-		self.tid = tid
-		self.worker = AnlyWorker( tid, task, args )
-		self.outQueue = outQueue
-
-	def run( self ):
-		ofileList = self.worker.run()
-		self.outQueue.put( (self.tid, ofileList) )
+try:
+	class AnlyProcess( multiprocessing.Process ):
+		def __init__( self, tid, task, args, outQueue ):
+			super(AnlyProcess, self).__init__()
+			self.tid = tid
+			self.args = args
+			self.worker = AnlyWorker( tid, task, args )
+			self.outQueue = outQueue
 	
+		def run( self ):
+			(totalLineCount, ofileList) = self.worker.run()
+			self.outQueue.put( (self.tid, totalLineCount, ofileList) )
 	
+except:
+	pass
 	
 	
 	

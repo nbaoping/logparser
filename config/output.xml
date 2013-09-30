@@ -1,6 +1,7 @@
 
 <translog>
 	<pace>5</pace>
+
 	<analyser>
 		<type>bandwidth</type>
 		<type>activeSessions</type>
@@ -8,12 +9,12 @@
 			<output>
 				<fmtName>bytesSentAll</fmtName>
 				<expType>timeAverage</expType>
-				<unitrate>0.0000076294</unitrate>
+				<unitRate>0.0000076294</unitRate>
 			</output>
 			<output>
 				<fmtName>servTime</fmtName>
 				<expType>timeActive</expType>
-				<unitrate>0.000001</unitrate>
+				<unitRate>0.000001</unitRate>
 			</output>
 			<output>
 				<fmtName>servTime</fmtName>
@@ -45,20 +46,17 @@
 	<analyser>
 		<outputs>
 			<output>
-				<expType>count</expType>
-			</output>
-			<output>
 				<fmtName>status</fmtName>
 				<expType>map</expType>
 				<output>
 					<fmtName>bytesSentAll</fmtName>
 					<expType>timeAverage</expType>
-					<unitrate>0.0000076294</unitrate>
+					<unitRate>0.0000076294</unitRate>
 				</output>
 				<output>
 					<fmtName>servTime</fmtName>
 					<expType>timeActive</expType>
-					<unitrate>0.000001</unitrate>
+					<unitRate>0.000001</unitRate>
 				</output>
 				<output>
 					<expType>count</expType>

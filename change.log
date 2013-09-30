@@ -1,3 +1,17 @@
+version 3.2.1
+
+Enhancements:
+1. using multiple processes to optimize the merge procedure
+
+Bugs:
+1. when the seg output file size is 0, it may crash
+2. fix some problems when running in python 2.4
+3. crash when there is only one output in the outputs element
+4. crash when running in python 2.4 without set the <num cores>
+
+===============================================================================
+
+
 version 3.2
 
 Features:

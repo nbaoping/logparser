@@ -1,5 +1,4 @@
 import threading
-#import multiprocessing
 import time
 import os
 import traceback
@@ -14,6 +13,9 @@ class OfileMerger( BaseObject ):
 		self.anly = anly 
 		self.ofileList = ofileList
 		self.bufTime = 1800
+
+	def get_out_path( self ):
+		return self.anly.outPath
 
 	def merge( self ):
 		print func_name(), '>> begin to merge files, total size:', len(self.ofileList), 'anly:', self.anly
@@ -61,6 +63,10 @@ class OfileMerger( BaseObject ):
 
 		fileSize = os.path.getsize( ofile.outPath )
 		ofile.fileSize = fileSize
+
+		if fileSize == 0:
+			ofile.isValid = False
+			return
 
 		#get the head info
 		pos = 0
@@ -395,8 +401,6 @@ class AnlyHandler( BaseObject ):
 		self.args = args
 		self.enableParallel = args.enableParallel
 		numCores = args.numCores
-		if numCores < 0:
-			numCores = multiprocessing.cpu_count()
 		self.numCores = numCores
 
 	#used for none multiprocessing
@@ -433,20 +437,20 @@ class AnlyHandler( BaseObject ):
 		taskList = self.__get_input_tasks( segList )
 		print 'taskList', self.__dump_list(taskList)
 		self.__close_output_files()
-		if NEW_VERSION:
-			self.__map_reduce2( taskList )
+		if is_new_version():
+			self.__map_reduce2( taskList, totalSize )
 		else:
-			self.__map_reduce1( taskList )
+			self.__map_reduce1( taskList, totalSize )
 
 	def do_task( self, tid, task, args ):
 		print func_name(), '>>========tid:', tid, args
 
 		worker = AnlyWorker( tid, task, args )
-		ofileList = worker.run()
+		(lineCount, ofileList) = worker.run()
 
-		return (tid, ofileList)
+		return (tid, lineCount, ofileList)
 
-	def __map_reduce1( self, taskList ):
+	def __map_reduce1( self, taskList, totalSize ):
 		startTime = time.time()
 
 		results = pprocess.Map( limit=self.numCores )
@@ -460,9 +464,15 @@ class AnlyHandler( BaseObject ):
 
 		ofileMap = dict()
 		print '\n\n**************output results********************'
+
+		totalLineCount = 0
 		idx = 0
-		for (tid, ofileList) in results:
+		firstExitTime = -1
+		for (tid, lineCount, ofileList) in results:
+			totalLineCount += lineCount
 			idx += 1
+			if firstExitTime < 0:
+				firstExitTime = time.time()
 			print func_name(), '>> got the', str(idx)+'th result, tid:', tid, 'ofileList len:', len(ofileList)
 			ofileMap[tid] = ofileList
 
@@ -483,16 +493,40 @@ class AnlyHandler( BaseObject ):
 			merger = OfileMerger( anly, ofileList )
 			mergerList.append( merger )
 
-		for merger in mergerList:
-			merger.merge()
+		waitTime = time.time() - firstExitTime
+		self.merge_ofiles( mergerList )
 
 		mspent = time.time() - mstime
 		print func_name(), '>> =====================merge spent time:', mspent, 'seconds'
 		spent = time.time() - startTime
 
-		print '=====================spent time:', spent, 'seconds'
+		print func_name(), '>>' '=====================spent time:', spent, 'seconds', 'wait time:', \
+				waitTime, 'seconds.', 'total parsed line count:', totalLineCount, \
+				'file size:', totalSize/1024/1024, 'MBytes'
 
-	def __map_reduce2( self, taskList ):
+	def __merge_task( self, merger ):
+		stime = time.time()
+		merger.merge()
+		spent = time.time() - stime
+		return (merger.get_out_path(), spent)
+
+	def merge_ofiles( self, mergerList ):
+		size = len(mergerList)
+		results = pprocess.Map( limit=size )
+		handler = results.manage( pprocess.MakeParallel(AnlyHandler.__merge_task) )
+
+		#perform the tasks
+		tid = 0
+		for merger in mergerList:
+			tid += 1
+			handler( self, merger )
+
+		total = 0
+		for (outPath, spent) in results:
+			total += 1
+			print func_name(), '>>', 'merged output file:', outPath, 'in', spent, 'seconds. total merged now:', total
+
+	def __map_reduce2( self, taskList, totalSize ):
 		stime = time.time()
 
 		rqueue = multiprocessing.Queue()
@@ -509,11 +543,16 @@ class AnlyHandler( BaseObject ):
 
 		for worker in workerList:
 			worker.start()
-
+	
+		totalLineCount = 0
+		firstExitTime = -1
 		idx = 0
 		for worker in workerList:
 			idx += 1
-			(tid, ofileList) = rqueue.get()
+			(tid, lineCount, ofileList) = rqueue.get()
+			totalLineCount += lineCount
+			if firstExitTime < 0:
+				firstExitTime = time.time()
 			print func_name(), '>> got the', str(idx)+'th result, tid:', tid, 'ofileList len:', len(ofileList)
 			worker = workerMap[tid]
 			worker.ofileList = ofileList
@@ -533,8 +572,8 @@ class AnlyHandler( BaseObject ):
 			merger = OfileMerger( anly, ofileList )
 			mergerList.append( merger )
 
-		for merger in mergerList:
-			merger.merge()
+		waitTime = time.time() - firstExitTime
+		self.merge_ofiles( mergerList )
 
 		mspent = time.time() - mstime
 		print func_name(), '>> =====================merge spent time:', mspent, 'seconds'
@@ -542,7 +581,10 @@ class AnlyHandler( BaseObject ):
 		for worker in workerList:
 			worker.join()
 		spent = time.time() - stime
-		print func_name(), '>> =====================spent time:', spent, 'seconds'
+
+		print func_name(), '>>' '=====================spent time:', spent, 'seconds', 'wait time:', \
+				waitTime, 'seconds.', 'total parsed line count:', totalLineCount, \
+				'file size:', totalSize/1024/1024, 'MBytes'
 
 	def __close_output_files( self ):
 		for anly in self.anlyList:

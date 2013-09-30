@@ -19,7 +19,7 @@ class OutputCfg( BaseObject ):
 		self.fmtName = None
 		self.exptype = 'raw'
 		self.split = True
-		self.unitrate = 1
+		self.unitRate = 1
 		self.insertValue = None
 		self.outList = None
 
@@ -83,6 +83,7 @@ class AnalyserFactory:
 				analysers.append( anly )
 			else:
 				print 'no create function for analyser', config 
+
 		return analysers
 
 	def __parse_gloabl_config( self, rootNode ):
@@ -232,11 +233,8 @@ class AnalyserFactory:
 			name = cnode.nodeName
 			if name == 'outputs':
 				outList = self.__parse_outputs( cnode )
-				print outList[0]
-				print outList[1]
 				outsList.append( outList )
 		
-		print outsList
 		return outsList
 
 	def __parse_outputs( self, node ):
@@ -272,8 +270,8 @@ class AnalyserFactory:
 				ocfg.split = int( value )
 			elif name == 'insertValue':
 				ocfg.insertValue = value
-			elif name == 'unitrate':
-				ocfg.unitrate = float( value )
+			elif name == 'unitRate':
+				ocfg.unitRate = float( value )
 			elif name == 'output':
 				cocfg = self.__parse_output( cnode )
 				outList.append( cocfg )
@@ -333,11 +331,11 @@ class AnalyserFactory:
 				else:
 					ocfg.insertValue = None
 
-				rateList = get_xmlnode( inode, 'unitrate' )
+				rateList = get_xmlnode( inode, 'unitRate' )
 				if len(rateList) > 0:
-					ocfg.unitrate = float( get_nodevalue(rateList[0]) )
+					ocfg.unitRate = float( get_nodevalue(rateList[0]) )
 				else:
-					ocfg.unitrate = 1
+					ocfg.unitRate = 1
 
 				print ocfg
 				if ocfg.exptype == 'raw':
@@ -420,10 +418,8 @@ class AnalyserFactory:
 				#for raw type, all the others are raw types
 				helper = RawOutputHelper( config.outList )
 			else:
-				if len(config.outList) > 1:
-					helper = OutputsHelper( config.outList, config.pace )
-				else:
-					helper = OutputHelper( config.outList[0] )
+				helper = OutputsHelper( config.outList, config.pace )
+
 		helper.sorted = config.sorted
 
 		if atype == 'single':

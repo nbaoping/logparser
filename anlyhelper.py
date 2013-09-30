@@ -58,6 +58,7 @@ class AnalyserHelper( BaseObject ):
 	#the parsing must start from the offset
 	#psplit stands for the split of the parent helper
 	def value_str( self, vstr, offset, psplit ):
+		print func_name(), '>>', 'not implement', self
 		raise_virtual( func_name() )
 
 	def get_split( self ):
@@ -309,6 +310,9 @@ class CounterHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		return value < 0
 
+	def str_head( self ):
+		return 'counter'
+
 	def str_value( self, value ):
 		return str( value )
 
@@ -430,7 +434,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		self.fmtName = ocfg.fmtName
 		self.exptype = ocfg.exptype
 		self.pace = ocfg.pace
-		self.unitrate = ocfg.unitrate
+		self.unitRate = ocfg.unitRate
 		self.insertValue = ocfg.insertValue
 	
 	def init_value( self, value ):
@@ -465,7 +469,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		if value is None:
 			return '0'
 
-		value = round( value * self.unitrate, 3 )
+		value = round( value * self.unitRate, 3 )
 		return str(value)
 
 	def value_str( self, vstr, offset, psplit ):
@@ -475,7 +479,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		tstr = vstr[offset:nidx]
 		#print vstr, offset, tstr
 		value = float( tstr )
-		value /= self.unitrate
+		value /= self.unitRate
 
 		return ( [value], nidx )
 
@@ -486,7 +490,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 		self.fmtName = ocfg.fmtName
 		self.exptype = ocfg.exptype
 		self.pace = ocfg.pace
-		self.unitrate = ocfg.unitrate
+		self.unitRate = ocfg.unitRate
 		self.insertValue = ocfg.insertValue
 	
 	def init_value( self, value ):
@@ -494,7 +498,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 	
 	def get_value( self, logInfo ):
 		value = logInfo.get_member( self.fmtName )
-		servTime = value * self.unitrate
+		servTime = value * self.unitRate
 		if servTime == 0:
 			servTime = 1
 		num = servTime / self.pace
@@ -838,7 +842,6 @@ class OutMapHelper( AnalyserHelper ):
 		self.split = True
 		self.endChar = ' '
 		self.helperList = None
-		print '==================================\n'
 		if ocfg.outList is not None:
 			self.helperList = list()
 			print ocfg.outList
@@ -851,9 +854,8 @@ class OutMapHelper( AnalyserHelper ):
 	
 	def __create_output_helper( self, ocfg ):
 		exptype = ocfg.exptype
-		print func_name(), ocfg
 		helper = create_base_helper( ocfg )
-		print helper
+		print func_name(), ocfg, helper
 
 		return helper
 

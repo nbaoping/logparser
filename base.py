@@ -21,6 +21,9 @@ RES_DIR = 'output'
 __TIME_FMT = '%Y/%m/%d-%H:%M:%S'
 __START_TIME = datetime( 1970, 1, 1 )
 
+def is_new_version( ):
+	return NEW_VERSION
+
 def strptime( tstr, fmt ):
 	if NEW_VERSION:
 		return datetime.strptime( tstr, fmt )
