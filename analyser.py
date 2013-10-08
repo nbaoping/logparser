@@ -8,6 +8,7 @@
 
 from datetime import timedelta
 import os
+import sys
 #from cStringIO import StringIO
 from StringIO import StringIO
 from  xml.dom import  minidom
@@ -121,6 +122,7 @@ class Analyser( BaseObject ):
 
 	def get_sample_end_time( self, logInfo ):
 		endTime = self.align_time_to_pace( self.endTime )
+		print func_name(), '>>sampler endTime:', str_seconds(endTime), 'tid:', self.tid
 		return endTime
 
 	def analyse_log( self, logInfo ):
@@ -143,6 +145,7 @@ class Analyser( BaseObject ):
 			ret = self.anly_negative_pace( logInfo )
 		else:
 			ret = self.anly_pace( logInfo )
+
 		if not ret and self.sampler is not None and self.sampler.startTime > self.startTime:
 			if self.ferr is None:
 				self.ferr = open( self.errPath, 'w' )
@@ -268,9 +271,13 @@ class BandwidthAnalyser( Analyser ):
 		elif ret > 0:		#need to flash the buffer to the file
 			ctime = logInfo.recvdTime
 			while ret > 0:
+				print '%%%%%%%%%%%%%%%%%%%', ret
 				ctime += ret * self.sampler.pace
 				num -= ret
 				ret = self.sampler.add_samples( ctime, value, num )
+
+		if ret < 0:
+			return False
 		return True
 
 
@@ -302,7 +309,7 @@ class BandwidthAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
@@ -312,6 +319,8 @@ class BandwidthAnalyser( Analyser ):
 		self.output_head()
 		for value in blist:
 			if curTime < minTime:
+				if value != 0:
+					print '************************wrong filtering', str_seconds(curTime), str_seconds(minTime)
 				curTime += pace
 				continue
 			if maxTime > 0 and curTime > maxTime:
@@ -418,7 +427,7 @@ class StatusAnalyser( Analyser ):
 		bufio = StringIO()
 		print func_name(), '>> flush data,', self
 
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
@@ -521,7 +530,7 @@ class XactRateAnalyser( Analyser ):
 		bufio = StringIO()
 		print func_name(), '>> flush data,', self
 
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
@@ -634,7 +643,7 @@ class DescAnalyser( Analyser ):
 		bufio = StringIO()
 		print func_name(), '>> flush data,', self
 
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
@@ -762,7 +771,7 @@ class SingleAnalyser( Analyser ):
 		print func_name(), '>> flush data,', self
 
 		split = self.__helper.get_split()
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1
@@ -933,7 +942,7 @@ class ActiveSessionsAnalyser( Analyser ):
 		bufio = StringIO()
 		print func_name(), '>> flush data,', self
 
-		minTime = sampler.minTime
+		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
 		if pace < 0:
 			minTime = maxTime = -1

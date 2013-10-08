@@ -469,7 +469,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		if value is None:
 			return '0'
 
-		value = round( value * self.unitRate, 3 )
+		value = round( value * self.unitRate / self.pace, 3 )
 		return str(value)
 
 	def value_str( self, vstr, offset, psplit ):
@@ -478,7 +478,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 			nidx = len(vstr)
 		tstr = vstr[offset:nidx]
 		#print vstr, offset, tstr
-		value = float( tstr )
+		value = float( tstr ) * self.pace
 		value /= self.unitRate
 
 		return ( [value], nidx )

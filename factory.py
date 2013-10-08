@@ -119,7 +119,7 @@ class AnalyserFactory:
 			print 'global insertValue:', insertValue
 		if outNode:
 			outPath = get_nodevalue( outNode )
-		return (pace, stime, etime, insertValue, outNode)
+		return (pace, stime, etime, insertValue, outPath)
 
 	def __parse_xml( self, inputPath, xmlfile ):
 		configList = list()

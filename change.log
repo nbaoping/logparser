@@ -1,3 +1,12 @@
+version 3.2.2
+
+Bugs:
+1. merge point value not right for bandwidth analyser with pace 10
+	RC: minTime control in the sampler should be aligned to the pace
+
+===============================================================================
+
+
 version 3.2.1
 
 Enhancements:

@@ -238,6 +238,9 @@ class WELogParser( LogParser ):
 				return None
 			line = line.replace( '|', '\t', 1 )
 			fields = line.split( '\t' )
+		elif self.fmtType.startswith( 'we_' ):
+			line = line.replace( '\t', ' ' )
+			fields = line.split( ' ' )
 		else:
 			fields = line.split( ' ' )
 		if len(fields) < len(self.__parsefuncs):
