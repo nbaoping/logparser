@@ -1,5 +1,6 @@
 
 <translog>
+	<outPath>tmp/</outPath>
 	<analyser>
 		<type>bandwidth</type>
 		<outputs>

@@ -27,6 +27,19 @@ class TranslogCtx( object ):
 	def register( self ):
 		raise_virtual( func_name() )
 
+	def parse_string( self, field, logInfo, fmt ):
+		return field
+
+	def parse_int( self, field, logInfo, fmt ):
+		if field == '-':
+			return 0
+		return int(field)
+
+	def parse_float( self, field, logInfo, fmt ):
+		if field == '-':
+			return 0.0
+		return float(field)
+
 
 class SRXactCtx( TranslogCtx ):
 	def __init__( self ):
@@ -196,6 +209,10 @@ class WEXactCtx( TranslogCtx ):
 		register_token( '%C_clt', 'cal_time', WEXactCtx.__parse_string, self )
 		register_token( '%C_crt', 'cr_time', WEXactCtx.__parse_string, self )
 		register_token( '%C_odt', 'os_time', WEXactCtx.__parse_string, self )
+		register_token( '%K', 'cwndFlicker', TranslogCtx.parse_int, self )
+		register_token( '%J', 'xferRtt', WEXactCtx.__parse_xfer_time, self )
+		register_token( '%J_avg', 'avgXferRtt', TranslogCtx.parse_int, self )
+		register_token( '%J_max', 'maxXferRtt', TranslogCtx.parse_int, self )
 
 	def __parse_lookup_time( self, field, logInfo, fmt ):
 		segs = field.split( '|' )
@@ -207,6 +224,17 @@ class WEXactCtx( TranslogCtx ):
 		return field
 
 	def __parse_string( self, field, logInfo, fmt ):
+		return field
+
+	def __parse_xfer_time( self, field, logInfo, fmt ):
+		if field == '-':
+			logInfo.avgXferRtt = 0
+			logInfo.maxXferRtt = 0
+		else:
+			segs = field.split( '|' )
+			logInfo.avgXferRtt = int( segs[0] )
+			logInfo.maxXferRtt = int( segs[1] )
+
 		return field
 
 

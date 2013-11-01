@@ -1,0 +1,25 @@
+
+<translog>
+	<analyser>
+		<type>filter</type>
+		<filters>
+			<filter>
+				<fmtName>servTime</fmtName>
+				<low>10000000</low>
+			</filter>
+			<filter>
+				<fmtName>cwndFlicker</fmtName>
+				<high>1000000000</high>
+			</filter>
+			<filter>
+				<fmtName>avgXferRtt</fmtName>
+				<high>1000000000</high>
+			</filter>
+			<filter>
+				<fmtName>maxXferRtt</fmtName>
+				<high>1000000000</high>
+			</filter>
+		</filters>
+		<pace>10</pace>
+	</analyser>
+</translog>

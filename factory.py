@@ -38,7 +38,8 @@ class AnalyserFactory:
 				'assemble' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
 				'counter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
 				'activeSessions' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_active_sessions),
-				'output' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
+				'output' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
+				'filter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
 				}
 
 	def __get_parse_func( self, anlyType ):
@@ -419,6 +420,9 @@ class AnalyserFactory:
 				helper = RawOutputHelper( config.outList )
 			else:
 				helper = OutputsHelper( config.outList, config.pace )
+		elif config.type == 'filter':
+			anly = FilterAnalyser( config )
+			return anly
 
 		helper.sorted = config.sorted
 

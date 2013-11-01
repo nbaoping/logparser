@@ -683,6 +683,16 @@ class DescAnalyser( Analyser ):
 			self.sampler.flush()
 			self.sampler = None
 
+class FilterAnalyser( Analyser ):
+	def __init__( self, config ):
+		super( FilterAnalyser, self ).__init__( config )
+
+	def anly_pace( self, logInfo ):
+		print logInfo.originLine
+
+	def on_close( self ):
+		pass
+
 
 class SingleAnalyser( Analyser ):
 	def __init__( self, config, helper ):
