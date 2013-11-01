@@ -1,3 +1,12 @@
+version 3.2.3 2013/10/18
+
+Features:
+1. add filter analyser support
+	only output the results into stdout
+
+===============================================================================
+
+
 version 3.2.2
 
 Bugs:
