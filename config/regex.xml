@@ -1,0 +1,53 @@
+
+<translog>
+	<!-- '(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)' -->
+	<formatter>
+		<!--logTime>
+			<value>($1)/($2)/($3)</value>
+			<timeFmt>
+				<match>\[(\S+)\.(\S+)\+\S+\]</match>
+				<fmt>%d/%b/%Y:%H:%M:%S</fmt>
+			</timeFmt>
+		</logTime>
+		<servTime>
+			<value>($4)</value>
+			<type>float</type>
+		</servTime>
+		<field>
+			<value>($6)</value>
+			<fmtName>description</fmtName>
+		</field>
+		<field>
+			<value>($8)</value>
+			<fmtName>bytesSentAll</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<expValue>($8)/($4)*1000000.0</expValue>
+			<fmtName>band</fmtName>
+			<type>int</type>
+		</field-->
+		<field>
+			<value>(%O)</value>
+			<fmtName>band</fmtName>
+			<type>int</type>
+		</field>
+	</formatter>
+
+	<analyser>
+		<type>bandwidth</type>
+		<outputs>
+			<output>
+				<fmtName>bytesSentAll</fmtName>
+				<expType>timeAverage</expType>
+				<unitRate>0.0000076294</unitRate>
+			</output>
+			<output>
+				<fmtName>band</fmtName>
+				<expType>timeAverage</expType>
+				<unitRate>0.0000076294</unitRate>
+			</output>
+		</outputs>
+		<pace>10</pace>
+	</analyser>
+</translog>
