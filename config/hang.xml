@@ -1,0 +1,24 @@
+
+<translog>
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+		<startTime>2013/11/01-00:00:00</startTime>
+		<filters>
+			<filter>
+				<fmtName>originLine</fmtName>
+				<keyword>ERRO</keyword>
+				<!--
+				<orExp>
+					<keyword>dataserver</keyword>
+					<keyword>data server</keyword>
+					<keyword> ds </keyword>
+					<keyword>bind</keyword>
+					<keyword>connect</keyword>
+					<keyword>get</keyword>
+				</orExp>
+				-->
+			</filter>
+		</filters>
+	</analyser>
+</translog>

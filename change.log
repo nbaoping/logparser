@@ -3,6 +3,17 @@ version 3.2.3 2013/10/18
 Features:
 1. add filter analyser support
 	only output the results into stdout
+2. add common format support
+3. support re-format the log fields
+4. support regex log type
+	by setting the log regex format and with the help of the feature 3, we can parse any type of logs now
+
+Bugs:
+1. fix the bug that parsing failure for webengine abr
+2. fix the bug that parsing failure when there are spaces in the fields
+	convert the spaces in the fields to '|'
+3. fix the bug that it fails to give the regex format as argument directly
+	add support for short name format file as '-s' option
 
 ===============================================================================
 

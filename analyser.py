@@ -55,8 +55,7 @@ class Analyser( BaseObject ):
 		if toFile:
 			self.outPath = config.outPath
 			self.errPath = config.outPath + '.errlog' 
-			self.fout = open( config.outPath, 'w' )
-			#self.ferr = open( self.errPath, 'w' )
+			self.fout = None
 			self.ferr = None
 			print self.fout
 		self.filter = config.filter

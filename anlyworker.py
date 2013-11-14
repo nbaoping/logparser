@@ -11,6 +11,7 @@ from base import *
 from factory import *
 from anlyhandler import *
 from logparser import *
+from regexformat import *
 
 def create_parser_from_type( args ):
 	parser = None
@@ -20,7 +21,11 @@ def create_parser_from_type( args ):
 		parser = WELogParser( fmt, args.fieldParser, args.fmtType )
 	elif logType == 'errorlog':
 		parser = ErrorlogParser()
+	elif logType == 'regex':
+		parser = RegexParser(fmt)
 	
+	if parser != None:
+		parser.formatter = args.formatter
 	return parser
 
 
@@ -70,10 +75,10 @@ class AnlyWorker( object ):
 		print func_name(), '>> %%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args
 	
 		anlyFactory = AnalyserFactory()
-		parser = create_parser_from_type( args )
-		self.parser = parser
 		anlyList = anlyFactory.create_from_args( args, task.startTime, task.endTime )
 		self.anlyList = anlyList
+		parser = create_parser_from_type( args )
+		self.parser = parser
 	
 		self.update_anlylist_info( tid, task, anlyList )
 
@@ -120,7 +125,10 @@ class AnlyWorker( object ):
 	
 	def __parse_line( self, line ):
 		try:
-			logInfo = self.parser.parse_line( line )
+			parser = self.parser
+			logInfo = parser.parse_line( line )
+			if parser.formatter is not None:
+				parser.formatter.fmt_log( logInfo )
 			return logInfo
 		except:
 			traceback.print_exc()

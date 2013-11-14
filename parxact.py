@@ -17,6 +17,7 @@ from logparser import *
 from factory import *
 from errorlog import *
 from anlyhandler import *
+from anlyworker import *
 
 
 class XactParser:
@@ -27,44 +28,32 @@ class XactParser:
 
 	def parse( self, args ):
 		logType = args.type
-		if logType == 'translog':
-			self.__parse_translog( args )
-		elif logType == 'errorlog':
-			self.__parse_errorlog( args )
+
+		anlyList = self.anlyFactory.create_from_args( args, -1, -1)
+		self.anlyList = anlyList
+		parser = create_parser_from_type( args )
+		if parser == None:
+			print 'wrong log type:', logType
+			return
+		print args
+		if args.inputType == 'stdin':
+			self.__parse_stdin( args, parser )
+		else:
+			self.__parse_logs( args, parser )
 	
 	def close( self ):
 		if self.anlyList is not None:
 			for anly in self.anlyList:
 				anly.close()
 
-	def __parse_errorlog( self, args ):
-		print 'parse errorlog in', args.path
-		parser = ErrorlogParser()
-		if args.inputType == 'stdin':
-			self.__parse_stdin( args, parser )
-		else:
-			self.__parse_logs( args, parser )
-
-	def __parse_translog( self, args ):
-		print 'parse translog in', args.path
-		fmt = WE_XACTLOG_EXT_SQUID_STR
-		if args.fmt is not None:
-			fmt = args.fmt
-		print 'translog format:', fmt
-		parser = WELogParser( fmt, args.fieldParser, args.fmtType )
-		if args.inputType == 'stdin':
-			self.__parse_stdin( args, parser )
-		else:
-			self.__parse_logs( args, parser )
-
 	def __parse_stdin( self, args, parser ):
-		anlyList = self.anlyFactory.create_from_args( args, -1, -1)
-		self.anlyList = anlyList
-		anlyHandler = AnlyHandler( parser, anlyList, args )
+		anlyHandler = AnlyHandler( parser, self.anlyList, args )
 		self.__analyse_stdin( parser, anlyHandler )
 		anlyHandler.close()
 
 	def __parse_logs( self, args, parser ):
+		anlyList = self.anlyList
+		parser.formatter = args.formatter
 		files = self.__stat_files( args.path, parser )
 		if len(files) == 0:
 			print 'no translog files, please check the logs path:', args.path
@@ -72,8 +61,7 @@ class XactParser:
 		startTime = files[0][0]
 		endTime = files[-1][0]
 		print 'all files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
-		anlyList = self.anlyFactory.create_from_args( args, startTime, endTime )
-		self.anlyList = anlyList
+		print args
 		files = self.__sample_files( files, anlyList )
 		if files is None or len(files) == 0:
 			print 'no file need to be parsed'
@@ -85,6 +73,8 @@ class XactParser:
 		if args.enableParallel:
 			anlyHandler.analyse_files( files )
 		else:
+			for anly in anlyList:
+				anly.open_output_files()
 			self.__analyse_files( files, parser, anlyHandler )
 		anlyHandler.close()
 
@@ -293,6 +283,7 @@ class XactParser:
 
 	def __analyse_file( self, path, parser, anlyHandler ):
 		fin = open( path, 'r' )
+		baseName = os.path.basename( path )
 		first = True
 		lineCount = 0
 		lastTime = time.time()
@@ -321,13 +312,16 @@ class XactParser:
 		elapsed = time.time() - startTime
 		print '===============================:', elapsed * 1000, 'ms, total', lineCount, 'lines'
 
-	def __analyse_line( self, parser, anlyHandler, line ):
+	def __analyse_line( self, parser, anlyHandler, line, fileName=None ):
 		line = line.strip()
 		if len(line) == 0:
 			return False
 		if line[0] == '#':
 			return False
 		
+		#for test
+		if fileName is not None:
+			line += ' -->' + fileName
 		anlyHandler.parse_log( line )
 		return True
 
@@ -336,7 +330,9 @@ class XactParser:
 		fin = open( path, 'r' )
 		num = 0
 		logInfo = None
+		formatter = parser.formatter
 		for line in fin:
+			#print line
 			line = line.strip()
 			if len(line) == 0:
 				continue
@@ -344,9 +340,12 @@ class XactParser:
 				continue
 			try:
 				logInfo = parser.parse_line( line )
-				break
+				if logInfo is not None:
+					if formatter is not None:
+						formatter.fmt_log( logInfo )
+					break
 			except:
-				#traceback.print_exc()
+				traceback.print_exc()
 				pass
 			num += 1
 		fin.close()

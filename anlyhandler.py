@@ -415,10 +415,15 @@ class AnlyHandler( BaseObject ):
 
 	def __parse_line( self, line ):
 		try:
-			logInfo = self.parser.parse_line( line )
+			parser = self.parser
+			logInfo = parser.parse_line( line )
+			if parser.formatter is not None:
+				parser.formatter.fmt_log( logInfo )
 			return logInfo
 		except:
+			print line
 			traceback.print_exc()
+			sys.exit(0)
 
 		return None
 

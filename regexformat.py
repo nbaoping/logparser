@@ -20,7 +20,7 @@ class RegexParser( LogParser ):
 	def parse_line( self, line ):
 		res = self.pattern.match( line )
 		if res is None:
-			print '=====================res none'
+			print '=====================res none', line
 			return None
 
 		logInfo = LogInfo()
@@ -140,7 +140,7 @@ class LogFormatter( BaseObject ):
 		self.fieldList = None
 
 	def fmt_log( self, logInfo ):
-		if self.fieldList is None:
+		if logInfo is None or self.fieldList is None:
 			return
 
 		for field in self.fieldList:

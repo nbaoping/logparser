@@ -27,6 +27,11 @@ __md_fmt_map = {
 		'fms_old':'%f_sip %f_xev %f_xctg %f_dat %f_tim %f_tz %f_xcx %f_sip %f_xpd %f_xcl %f_xml %f_xad %f_xvh %f_xap %f_xai %f_xdr %f_xst %f_cip %f_cpr %f_sur %f_csus %f_csuq %f_crf %f_cua %f_cci %f_csbt %f_scbt %f_cnt %f_xsn %f_xsq %f_xsrq %f_xss %f_xsu %f_xfn %f_xfe %f_xfs %f_xfl %f_xsp %f_csp %f_cssb %f_scsb %f_xsrn %f_xsqb %f_xcm %f_xed %f_xsd %f_xts %f_xtsq %f_xtfe %f_xtm %f_xso %f_xpl %f_xpu %f_xsrd %f_xff'
 		}
 
+__md_regex_fmt_map = {
+		#'we_ext':'(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)'
+		'we_ext':'(\S+?)/(\S+?)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)',
+		'we_clf':'(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+http://\S+\.se\.(.+?)/(\S+?)/(\S+?)/(\S+?)/\S+\s+.+'
+		}
 
 #some logs are sorted originally
 __logs_sorted_map = {
@@ -39,11 +44,18 @@ def get_log_fmt( customer ):
 		return __cus_fmt_map[ customer ]
 	return None
 
-def get_module_fmt( mdname ):
+def get_module_fmt( mdname, logType ):
 	mdname = mdname.lower()
-	if mdname in __md_fmt_map:
-		return __md_fmt_map[mdname]
+	mdMap = __md_fmt_map
+
+	if mdname in mdMap:
+		return mdMap[mdname]
 	return None
+
+def register_log_fmt( shortName, fmt ):
+	mdname = shortName.lower()
+	mdMap = __md_fmt_map
+	mdMap[mdname] = fmt
 
 def is_log_sorted( mdname ):
 	mdname = mdname.lower()

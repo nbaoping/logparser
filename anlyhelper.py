@@ -246,7 +246,7 @@ class AssembleHelper( AnalyserHelper ):
 	def __init__( self ):
 		super(AssembleHelper, self).__init__()
 		self.useInterStr = True
-		self.sampleThres = 1000
+		self.sampleThres = 1000000
 	
 	#return the statistics value
 	def get_value( self, logInfo ):

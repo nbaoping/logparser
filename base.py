@@ -24,6 +24,19 @@ __START_TIME = datetime( 1970, 1, 1 )
 def is_new_version( ):
 	return NEW_VERSION
 
+def std_fmt_name( fmtName ):
+	if fmtName.startswith( '$' ):
+		nstr = fmtName[1:len(fmtName)]
+		fmtName = '_commonVal' + nstr
+	return fmtName
+
+def form_common_fmt_name( num ):
+	fmtName = '_commonVal' + str(num)
+	return fmtName
+
+def is_common_fmt_name( fmtName ):
+	return fmtName.startswith( '_commonVal' )
+
 def strptime( tstr, fmt ):
 	if NEW_VERSION:
 		return datetime.strptime( tstr, fmt )
@@ -68,6 +81,21 @@ def mkdir( dname ):
 	if not os.path.exists( dname ):
 		os.makedirs( dname )
 
+def splitall(path):
+	allparts = []
+	while 1:
+		parts = os.path.split(path)
+		if parts[0] == path:  # sentinel for absolute paths
+			allparts.insert(0, parts[0])
+			break
+		elif parts[1] == path: # sentinel for relative paths
+			allparts.insert(0, parts[1])
+			break
+		else:
+			path = parts[0]
+			allparts.insert(0, parts[1])
+	return allparts
+
 def func_name():
 	#print inspect.stack()
 	return inspect.stack()[1][3]
@@ -111,7 +139,7 @@ class BaseObject( object ):
 class InputArgs( BaseObject ):
 	def __init__( self ):
 		self.inputType = 'files'
-		self.path = None
+		self.path = '%stdin%'
 		self.type = 'translog'
 		self.fmt = None
 		self.configPath = None
@@ -151,8 +179,12 @@ class InputArgs( BaseObject ):
 			elif arg == '-p':
 				self.numCores = int( argv[idx+1] )
 				idx += 2
+			elif arg == '-s':
+				self.__parse_short_name_file( argv[idx+1] )
+				idx += 2
 			else:
 				idx += 2
+
 		if not self.path or not self.configPath:
 			print 'invalid input arguments'
 			print '\tlogs path and config file must be setted\n'
@@ -168,20 +200,31 @@ class InputArgs( BaseObject ):
 			self.fmt = get_log_fmt( self.customer )
 		if self.fmt is not None:
 			self.fmtType = self.fmt
-			mdfmt = get_module_fmt( self.fmt )
+			mdfmt = get_module_fmt( self.fmt, self.type )
 			if mdfmt is not None:
 				print 'using module format:', mdfmt
 				self.fmt = mdfmt
 				self.sorted = is_log_sorted(mdfmt)
-			else:
-				if self.fmt[0] != '%':
-					print 'the log format', self.fmt, 'not exist'
-					return False
 
 		if self.numCores > 1:
 			self.enableParallel = True
 
 		return True
+
+	def __parse_short_name_file( self, ipath ):
+		fin = open( ipath, 'r' )
+		for line in fin:
+			line = line.strip()
+			if len(line) == 0 or line.startswith( '#' ):
+				continue
+
+			segs = line.split( '=' )
+			shortName = segs[0].strip()
+			fmt = segs[1].strip()
+			if len(shortName) > 0 and len(fmt) > 0:
+				register_log_fmt( shortName, fmt )
+			else:
+				print 'wrong shortName line', line
 						
 	def __print_usage( self ):
 		print 'Usage:'

@@ -1,0 +1,44 @@
+
+<translog>
+	<!-- '(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)' -->
+	<!-- (\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+http://\S+\.se\.(\S+?)/(\S+?)/(\S+?)/(\S+?)/\S+\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+) -->
+	<startTime>2013/11/07-20:00:00</startTime>
+	<endTime>2013/11/07-22:30:00</endTime>
+	<formatter>
+		<logTime>
+			<value>($1)</value>
+			<timeFmt>
+				<match>\[(\S+)\.(\S+)\+\S+\]</match>
+				<fmt>%d/%b/%Y:%H:%M:%S</fmt>
+			</timeFmt>
+		</logTime>
+		<servTime>
+			<value>($2)</value>
+			<type>int</type>
+		</servTime>
+		<field>
+			<value>($8)/($9)/($10)/($11)</value>
+			<fmtName>channel</fmtName>
+		</field>
+		<field>
+			<value>($6)</value>
+			<fmtName>bytesSentAll</fmtName>
+			<type>int</type>
+		</field>
+	</formatter>
+
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>channel</fmtName>
+				<expType>map</expType>
+				<output>
+					<fmtName>bytesSentAll</fmtName>
+					<expType>timeAverage</expType>
+					<unitRate>0.0000076294</unitRate>
+				</output>
+			</output>
+		</outputs>
+		<pace>10</pace>
+	</analyser>
+</translog>

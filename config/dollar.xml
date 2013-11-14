@@ -1,0 +1,18 @@
+
+<translog>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>$1</fmtName>
+				<expType>max</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>$1</fmtName>
+				<low>5000000</low>
+			</filter>
+		</filters>
+		<pace>10</pace>
+	</analyser>
+</translog>

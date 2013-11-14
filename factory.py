@@ -8,6 +8,7 @@
 from analyser import *
 from filter import *
 from anlyhelper import *
+from regexformat import *
 
 from operator import itemgetter
 #======================================================================
@@ -71,7 +72,7 @@ class AnalyserFactory:
 
 	def __create_from_config( self, args ):
 		analysers = list()
-		configList = self.__parse_xml( args.outdir, args.configPath )
+		configList = self.__parse_xml( args.outdir, args.configPath, args )
 		for config in configList:
 			config.sorted = args.sorted
 			funcItem = self.__get_create_func( config.type )
@@ -88,7 +89,7 @@ class AnalyserFactory:
 		return analysers
 
 	def __parse_gloabl_config( self, rootNode ):
-		paceNode = stimeNode = etimeNode = insertNode = outNode = None
+		paceNode = stimeNode = etimeNode = insertNode = outNode = fmtNode = None
 		for cnode in rootNode.childNodes:
 			name = cnode.nodeName
 			if name == 'pace':
@@ -101,12 +102,15 @@ class AnalyserFactory:
 				insertNode = cnode
 			elif name == 'outPath':
 				outNode = cnode
+			elif name == 'formatter':
+				fmtNode = cnode
 
 		pace = None
 		stime = None
 		etime = None
 		insertValue = None
 		outPath = None
+		formatter = None
 		if paceNode:
 			pace = int( get_nodevalue(paceNode) )
 		if stimeNode:
@@ -120,14 +124,19 @@ class AnalyserFactory:
 			print 'global insertValue:', insertValue
 		if outNode:
 			outPath = get_nodevalue( outNode )
-		return (pace, stime, etime, insertValue, outPath)
+		if fmtNode:
+			formatter = LogFormatter()
+			formatter.parse_xml( fmtNode )
 
-	def __parse_xml( self, inputPath, xmlfile ):
+		return (pace, stime, etime, insertValue, outPath, formatter)
+
+	def __parse_xml( self, inputPath, xmlfile, args ):
 		configList = list()
 		doc = minidom.parse( xmlfile )
 		root = doc.documentElement
 		anlyNodes = get_xmlnode( root, 'analyser' )
-		(gpace, gstime, getime, insertValue, outPath) = self.__parse_gloabl_config( root )
+		(gpace, gstime, getime, insertValue, outPath, formatter) = self.__parse_gloabl_config( root )
+		args.formatter = formatter
 		print 'global config', gpace, gstime, getime, insertValue, outPath
 		count = 0
 		total = 0
@@ -264,7 +273,7 @@ class AnalyserFactory:
 			value = get_nodevalue( cnode )
 			print '\t', value
 			if name == 'fmtName':
-				ocfg.fmtName = value
+				ocfg.fmtName = std_fmt_name( value )
 			elif name == 'expType':
 				ocfg.exptype = value
 			elif name == 'split':
@@ -315,6 +324,7 @@ class AnalyserFactory:
 				if len(fnodeList) > 0:
 					fnode = fnodeList[0]
 					ocfg.fmtName = get_nodevalue( fnode )
+					ocfg.fmtName = std_fmt_name( ocfg.fmtName )
 				tlist = get_xmlnode( inode, 'expType' )
 				if len(tlist) > 0:
 					ocfg.exptype = get_nodevalue( tlist[0] )

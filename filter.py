@@ -7,6 +7,7 @@
 
 
 import re
+import traceback
 
 from base import *
 from expression import *
@@ -59,10 +60,20 @@ def check_name( name ):
 class Filter( Expression ):
 	def __init__( self, fmtName ):
 		self.fmtName = fmtName
+		self.isCommonFmt = is_common_fmt_name( fmtName )
 
 	def is_true( self, logInfo ):
 		value = logInfo.get_member( self.fmtName )
-		return self.filter( value )
+		if not self.isCommonFmt:
+			return self.filter( value )
+		else:
+			#for common fmtName, should handle exception since we don't know the value type
+			try:
+				return self.filter( value )
+			except:
+				traceback.print_exc()
+				return False
+
 
 	def filter( self, value ):
 		raise_virtual( func_name() )
@@ -102,6 +113,8 @@ class LowValueExp( Expression ):
 	def is_true( self, value ):
 		if self.lowValue == 'min':
 			return True
+		
+		value = float( value )
 		return self.lowValue <= value
 
 
@@ -113,6 +126,7 @@ class HighValueExp( Expression ):
 	def is_true( self, value ):
 		if self.highValue == 'max':
 			return True
+		value = float( value )
 		return self.highValue >= value
 
 
@@ -229,7 +243,8 @@ class BaseFilter( object ):
 			print 'no fmtName in filter'
 			return None
 		fmtName = get_nodevalue( fmtNodeList[0] )
-		if not check_name(fmtName):
+		fmtName = std_fmt_name( fmtName )
+		if not check_name(fmtName) and not is_common_fmt_name(fmtName):
 			print 'invalid filter name:', fmtName
 			return None
 
@@ -239,8 +254,10 @@ class BaseFilter( object ):
 		else:
 			ftype = get_name_type( fmtName )
 			if ftype is None:
-				print 'invalid fmtName:', fmtName
-				return None
+				if not is_common_fmt_name(fmtName):
+					print 'invalid fmtName:', fmtName
+					return None
+				ftype = 'string'
 		expList = list()
 
 		slist = parse_exp_from_xml( node, BaseFilter.__parse_filter_args, self )

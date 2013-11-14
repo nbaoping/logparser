@@ -10,6 +10,32 @@ from datetime import datetime
 from base import *
 from filter import *
 
+def standard_translog( line ):
+	isInField = False
+	idx = 0
+	nidx = line.find( '"' )
+	if nidx < 0:
+		return line
+
+	nline = ''
+	while nidx >= 0:
+		if isInField:
+			segStr = line[idx:nidx]
+			nstr = segStr.replace( ' ', '|' )
+			isInField = False
+		else:
+			isInField = True
+			nstr = line[idx:nidx]
+		nline += nstr
+
+		idx = nidx + 1 #skip the '"'
+		nidx = line.find( '"', idx )
+	
+	nstr = line[idx:len(line)]
+	nline += nstr
+	return nline
+
+
 class LogParser( object ):
 	def __init__( self ):
 		pass
@@ -20,6 +46,7 @@ class LogParser( object ):
 class LogInfo( object ):
 	def __init__( self ):
 		self.servTime = 0
+		self._commonIndex = 0
 	
 	def set_member( self, mname, value ):
 		self.__dict__[mname] = value
@@ -175,8 +202,20 @@ def get_name_by_fmt( fmt ):
 		return __fmtNameMap[fmt]
 	return None
 
+def std_common_value( fmt, value ):
+	vtype = fmt[2:len(vtype)]
+	if vtype == 'f':
+		value = float(value)
+	elif vtype == 'i':
+		value = int(value)
+	return value
+
 def set_log_info( logInfo, fmt, value ):
-	name = get_name_by_fmt( fmt )
+	if fmt.startswith('%$'):
+		logInfo._commonIndex += 1
+		name = form_common_fmt_name( logInfo._commonIndex )
+	else:
+		name = get_name_by_fmt( fmt )
 	if name is None:
 		return
 	logInfo.set_member( name, value )
@@ -232,6 +271,7 @@ class WELogParser( LogParser ):
 		if self.__parsefuncs is None:
 			print 'fatal error, format not setted'
 			return None
+		line = standard_translog( line )
 		fields = None
 		if self.fmtType.startswith( 'fms' ):
 			if line.startswith( 's-ip' ):
@@ -392,6 +432,9 @@ class WELogParser( LogParser ):
 
 
 WELogParser.fmtmap = {
+			'%$':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
+			'%$i':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setCip),
+			'%$f':(WELogParser.parseFloat, WELogInfo.setDummy),# WELogInfo.setCip),
 			'%a':(WELogParser.parseString, WELogInfo.setDummy),# WELogInfo.setCip),
 			'%A':(WELogParser.parseString, WELogInfo.setDummy),
 			'%b':(WELogParser.parseInt, WELogInfo.setDummy),# WELogInfo.setSent),
