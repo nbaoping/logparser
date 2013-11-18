@@ -1,14 +1,15 @@
 
 <translog>
+	<startTime>2013/11/10-19:00:00</startTime>
 	<analyser>
 		<type>bandwidth</type>
-		<outputs>
+		<!--outputs>
 			<output>
 				<fmtName>bytesSentAll</fmtName>
 				<expType>timeAverage</expType>
 				<unitRate>0.0000076294</unitRate>
 			</output>
-		</outputs>
+		</outputs-->
 		<pace>10</pace>
 	</analyser>
 	<!--

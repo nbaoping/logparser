@@ -7,6 +7,32 @@ from base import *
 BUF_TIME = 36000		#in seconds
 NUM_THRES = 36000
 
+def time_average( value, logTime, servTime, startTime, pace ):
+	endTime = logTime + servTime
+	midSeg = endSeg = None
+	midNum = 0
+	metime = None
+	mstime = int((logTime-startTime)/pace)*pace + pace + startTime
+	if mstime < endTime:
+		headSeg = mstime - logTime
+		midNum = int((endTime-mstime)/pace)
+		metime = midNum*pace + mstime
+		midSeg = metime - mstime
+		endSeg = endTime - metime
+	else:
+		headSeg = servTime
+	
+	hval = float(headSeg)/servTime * value
+	mval = endVal = None
+	if midNum > 0:
+		mval = float(midSeg)/servTime * value / midNum
+	else:
+		mstime = None
+	if endSeg is not None:
+		endVal = float(endSeg)/servTime * value
+
+	return (hval, (mstime, mval, midNum), (metime, endVal))
+
 class AnalyserHelper( BaseObject ):
 	def __init__( self, isSingleType = True ):
 		self.isSingleType = isSingleType
@@ -725,14 +751,14 @@ class OutAverageHelper( AnalyserHelper ):
 	
 	def get_value( self, logInfo ):
 		value = logInfo.get_member( self.fmtName )
-		return value
+		return (value, 1)
 
 	def init_value( self, value ):
 		return (0, 0)
 	
 	def update_value( self, oldValue, sampleValue ):
-		total = oldValue[0] + sampleValue
-		count = oldValue[1] + 1
+		total = oldValue[0] + sampleValue[0]
+		count = oldValue[1] + sampleValue[1]
 		value = (total, count)
 
 		return value
@@ -741,24 +767,44 @@ class OutAverageHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.exptype + ';count'
 
+	#parse head info from string
+	def head_str( self, hstr, offset, psplit ):
+		nidx = hstr.find( ';', offset )
+		if nidx < 0:
+			nidx = len(hstr)
+		cidx = nidx + 1
+		nidx = hstr.find( psplit, cidx )
+		if nidx < 0:
+			nidx = len(hstr)
+		return nidx
+	
 	def str_value( self, value ):
 		if value is None:
-			return '0'
+			return '0;0'
 
 		count = value[1]
 		total = value[0]
 		if count == 0:
-			return '0'
+			return '0;0'
 		avg = round(total * 1.0 / count, 3)
-		return str(avg)
+		return str(avg) + ';' + str(count)
 
 	def value_str( self, vstr, offset, psplit ):
-		nidx = vstr.find( psplit, offset )
+		nidx = vstr.find( ';', offset )
 		if nidx < 0:
 			nidx = len(vstr)
-		value = (float( vstr[offset:nidx] ), 1)
+		value = float( vstr[offset:nidx] )
+		
+		curIdx = nidx + 1
+		nidx = vstr.find( psplit, curIdx )
+		if nidx < 0:
+			nidx = len(vstr)
+		count = int( vstr[curIdx:nidx] )
+
+		value *= count
+		value = (value, count)
 
 		return ( [value], nidx )
 

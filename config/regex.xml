@@ -2,7 +2,7 @@
 <translog>
 	<!-- '(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)' -->
 	<formatter>
-		<!--logTime>
+		<logTime>
 			<value>($1)/($2)/($3)</value>
 			<timeFmt>
 				<match>\[(\S+)\.(\S+)\+\S+\]</match>
@@ -26,7 +26,7 @@
 			<expValue>($8)/($4)*1000000.0</expValue>
 			<fmtName>band</fmtName>
 			<type>int</type>
-		</field-->
+		</field>
 		<field>
 			<value>(%O)</value>
 			<fmtName>band</fmtName>

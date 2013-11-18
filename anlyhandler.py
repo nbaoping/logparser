@@ -13,6 +13,7 @@ class OfileMerger( BaseObject ):
 		self.anly = anly 
 		self.ofileList = ofileList
 		self.bufTime = 1800
+		self.optEnable = False
 
 	def get_out_path( self ):
 		return self.anly.outPath
@@ -130,7 +131,7 @@ class OfileMerger( BaseObject ):
 
 		idx = 0
 		for ofile in ofileList:
-			if headChanged:
+			if headChanged or not self.optEnable:
 				ofile.headOffset = ofile.fileSize
 				ofile.tailOffset = 0
 			else:
@@ -418,12 +419,11 @@ class AnlyHandler( BaseObject ):
 			parser = self.parser
 			logInfo = parser.parse_line( line )
 			if parser.formatter is not None:
-				parser.formatter.fmt_log( logInfo )
+				logInfo = parser.formatter.fmt_log( logInfo )
 			return logInfo
 		except:
 			print line
 			traceback.print_exc()
-			sys.exit(0)
 
 		return None
 
@@ -442,10 +442,10 @@ class AnlyHandler( BaseObject ):
 		taskList = self.__get_input_tasks( segList )
 		print 'taskList', self.__dump_list(taskList)
 		self.__close_output_files()
-		if is_new_version():
-			self.__map_reduce2( taskList, totalSize )
-		else:
-			self.__map_reduce1( taskList, totalSize )
+		#if is_new_version():
+			#self.__map_reduce2( taskList, totalSize )
+		#else:
+		self.__map_reduce1( taskList, totalSize )
 
 	def do_task( self, tid, task, args ):
 		print func_name(), '>>========tid:', tid, args
@@ -511,7 +511,10 @@ class AnlyHandler( BaseObject ):
 
 	def __merge_task( self, merger ):
 		stime = time.time()
-		merger.merge()
+		try:
+			merger.merge()
+		except:
+			traceback.print_exc()
 		spent = time.time() - stime
 		return (merger.get_out_path(), spent)
 

@@ -14,13 +14,17 @@ from logparser import *
 
 class RegexParser( LogParser ):
 	def __init__( self, pattern ):
+		self.logLevel = 0
 		self.pattern = re.compile( pattern )
+		if self.pattern is None:
+			raise Exception( 'invalid pattern:'+pattern )
 		print self.pattern, pattern
 
 	def parse_line( self, line ):
 		res = self.pattern.match( line )
 		if res is None:
-			print '=====================res none', line
+			if self.logLevel > 0:
+				print '=====================res none', line
 			return None
 
 		logInfo = LogInfo()
@@ -102,7 +106,7 @@ class FmtField( BaseObject ):
 		else:
 			value = fieldStr
 
-		self.__fmt_value( logInfo, self.fmtName, value )
+		return self.__fmt_value( logInfo, self.fmtName, value )
 
 	def __fmt_value( self, logInfo, fmtName, value ):
 		ftype = self.fieldType
@@ -112,7 +116,14 @@ class FmtField( BaseObject ):
 			value = float(value) * self.unitRate
 		elif ftype == 'timeFmt':
 			value = self.timeFmt.fmt_time( value )
+		elif ftype == 'fieldFmt':
+			fieldLogInfo = self.fieldParser.parse_field( value )
+			if fieldLogInfo is not None:
+				self.fieldParser.update_field( logInfo, fieldLogInfo )
+				return True
+			return False
 		logInfo.set_member( fmtName, value )
+		return True
 
 	def __to_fmtlist( self, tokenList ):
 		fmtList = list()
@@ -133,20 +144,82 @@ class FmtField( BaseObject ):
 		return valList
 
 
+class FieldParser( BaseObject ):
+	def __init__( self ):
+		self.logLevel = 0
+		self.regex = None
+		self.fieldList = None
+		self.parser = None
+		self.case = None
+
+	def is_valid( self ):
+		return self.parser is not None
+
+	def init_parser( self ):
+		if self.regex is None:
+			return False
+
+		self.parser = RegexParser( self.regex )
+		return True
+
+	def parse_field( self, fieldValue ):
+		if not self.is_valid():
+			return None
+		if self.fieldList is None:
+			return None
+
+		case = self.case
+		if case is not None:
+			if case == 'lower':
+				fieldValue = fieldValue.lower()
+			elif case == 'upper':
+				fieldValue = fieldValue.upper()
+
+		logInfo = self.parser.parse_line( fieldValue )
+		if logInfo is None:
+			if self.logLevel > 0:
+				print '&&&&&&&&&&&', fieldValue, self.regex
+			return None
+		
+		for field in self.fieldList:
+			field.fmt_field( logInfo )
+
+		return logInfo
+
+	def update_field( self, orgLogInfo, fieldLogInfo ):
+		for field in self.fieldList:
+			fmtName = field.fmtName
+			value = fieldLogInfo.get_member( fmtName )
+			orgLogInfo.set_member( fmtName, value )
+
+
 class LogFormatter( BaseObject ):
 	def __init__( self ):
 		self.logTimeFiled = None
 		self.servTimeField = None
 		self.fieldList = None
+		self.beStrict = False
 
 	def fmt_log( self, logInfo ):
 		if logInfo is None or self.fieldList is None:
-			return
+			return logInfo
 
+		ret = True
 		for field in self.fieldList:
-			field.fmt_field( logInfo )
+			rc = field.fmt_field( logInfo )
+			if not rc:
+				ret = False
+
+		if self.beStrict and not ret:
+			return None
+		return logInfo
 
 	def parse_xml( self, node ):
+		fieldList = self.__parse_all_fields( node )
+		if len(fieldList) > 0:
+			self.fieldList = fieldList
+
+	def __parse_all_fields( self, node ):
 		fieldList = list()
 		for cnode in node.childNodes:
 			name = cnode.nodeName
@@ -163,13 +236,15 @@ class LogFormatter( BaseObject ):
 				self.servTimeField = field
 			elif name == 'field':
 				field = self.__parse_field_node( cnode )
+			elif name == 'strict':
+				nodeValue = get_nodevalue( cnode )
+				self.beStrict = (int( nodeValue ) != 0)
+				continue
 
-			field.init_field()
 			print field
 			fieldList.append( field )
-		
-		if len(fieldList) > 0:
-			self.fieldList = fieldList
+			
+		return fieldList
 
 	def __parse_field_node( self, node ):
 		field =  FmtField()
@@ -194,9 +269,16 @@ class LogFormatter( BaseObject ):
 				if timeFmt is not None:
 					field.fieldType = 'timeFmt'
 					field.timeFmt = timeFmt
+			elif name == 'fieldFmt':
+				parser = self.__parse_field_parser_node( cnode )
+				if parser is not None:
+					field.fmtName = '__fieldFmt__'
+					field.fieldType = 'fieldFmt'
+					field.fieldParser = parser
 			elif name == 'unitRate':
 				field.unitRate = float(nodeValue)
 
+		field.init_field()
 		return field
 
 	def __parse_time_fmt_node( self, node ):
@@ -214,6 +296,34 @@ class LogFormatter( BaseObject ):
 
 		if timeFmt.is_valid():
 			return timeFmt
+		return None
+
+	def __parse_field_parser_node( self, node ):
+		parser = FieldParser()
+		fieldList = list()
+		for cnode in node.childNodes:
+			name = cnode.nodeName
+			if name.startswith( '#' ):
+				continue
+
+			nodeValue = get_nodevalue( cnode )
+			if name == 'match':
+				parser.regex = nodeValue
+			elif name == 'case':
+				parser.case = nodeValue
+			elif name == 'field':
+				field = self.__parse_field_node( cnode )
+				if field.is_valid():
+					fieldList.append( field )
+				else:
+					print 'invalid field,', field
+
+		if len(fieldList) > 0:
+			parser.fieldList = fieldList
+
+		parser.init_parser()
+		if parser.is_valid():
+			return parser
 		return None
 
 

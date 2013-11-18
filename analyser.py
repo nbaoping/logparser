@@ -256,6 +256,39 @@ class BandwidthAnalyser( Analyser ):
 		servTime = logInfo.servTime / 1000000.0
 		if servTime == 0:
 			servTime = 1
+		value = logInfo.bytesSentAll
+		logTime = logInfo.recvdTime
+		startTime = self.sampler.startTime
+		pace = self.sampler.pace
+		valtul = time_average( value, logTime, servTime, startTime, pace )
+		(hval, (mstime, mval, midNum), (metime, endVal)) = valtul
+		
+		ret = self.sampler.add_sample( logTime, hval)
+		if mstime > 0:
+			ret = self.sampler.add_samples( mstime, mval, midNum)
+			if ret > 0:		#need to flash the buffer to the file
+				ctime = mstime
+				num = midNum
+				while ret > 0:
+					print '%%%%%%%%%%%%%%%%%%%', ret
+					ctime += ret * self.sampler.pace
+					num -= ret
+					ret = self.sampler.add_samples( ctime, value, num )
+
+		if metime > 0:
+			ret = self.sampler.add_sample( metime, endVal)
+
+		if ret < 0:
+			return False
+		return True
+	
+
+	def anly_pace_old( self, logInfo ):
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		servTime = logInfo.servTime / 1000000.0
+		if servTime == 0:
+			servTime = 1
 		num = servTime / self.sampler.pace
 		if num <= 1:
 			value = logInfo.bytesSentAll
@@ -284,6 +317,8 @@ class BandwidthAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = vtime
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, NUM_THRES, BandwidthAnalyser.__flush_callback, self )
 			self.sampler = Sampler( sargs )
@@ -389,6 +424,8 @@ class StatusAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = int(vtime)
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, NUM_THRES, StatusAnalyser.__flush_callback, self )
 			self.sampler = MutableSampler( sargs, StatusAnalyser.__init_value, StatusAnalyser.__update_value )
@@ -503,6 +540,8 @@ class XactRateAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = int(vtime)
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, NUM_THRES, XactRateAnalyser.__flush_callback, self )
 			self.sampler = Sampler( sargs )
@@ -605,6 +644,8 @@ class DescAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = int(vtime)
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, NUM_THRES, DescAnalyser.__flush_callback, self )
 			self.sampler = MutableSampler( sargs, DescAnalyser.__init_value, DescAnalyser.__update_value )
@@ -744,6 +785,8 @@ class SingleAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = int(vtime)
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, self.__helper.sampleThres, SingleAnalyser.__flush_callback, self )
 			self.sampler = MutableSampler( sargs, SingleAnalyser.__init_value, SingleAnalyser.__update_value )
@@ -925,6 +968,8 @@ class ActiveSessionsAnalyser( Analyser ):
 		if self.sampler is None:
 			startTime = self.get_sample_start_time( None )
 			endTime = self.get_sample_end_time( None )
+			if startTime <= 0:
+				startTime = int(vtime)
 			sargs = SamplerArgs( startTime, endTime, self.pace,
 				self.bufTime, NUM_THRES, ActiveSessionsAnalyser.__flush_callback, self )
 			self.sampler = Sampler( sargs )

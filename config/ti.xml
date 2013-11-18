@@ -1,20 +1,54 @@
 
 <translog>
-	<pace>1</pace>
+	<!--startTime>2013/11/10-21:00:00</startTime>
+	<endTime>2013/11/10-21:30:00</endTime-->
 	<analyser>
-		<type>bandwidth</type>
-		<type>counter</type>
-		<type>activeSessions</type>
+		<outputs>
+			<output>
+				<fmtName>bytesSentAll</fmtName>
+				<expType>timeAverage</expType>
+				<unitRate>0.0000076294</unitRate>
+			</output>
+			<output>
+				<fmtName>servTime</fmtName>
+				<expType>timeActive</expType>
+				<unitRate>0.000001</unitRate>
+			</output>
+			<output>
+				<expType>count</expType>
+			</output>
+			<output>
+				<fmtName>servTime</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>servTime</fmtName>
+				<expType>max</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>bytesSentAll</fmtName>
+				<high>10000000</high>
+			</filter>
+		</filters>
+		<pace>1</pace>
+	</analyser>
+	<!--
+	<analyser>
+		<type>status</type>
 		<type>requestdes</type>
-		<startTime>2013/07/11-23:35:00</startTime>
-		<endTime>2013/07/11-23:37:43</endTime>
+		<pace>-1</pace>
 	</analyser>
 	<analyser>
-		<type>bandwidth</type>
 		<type>counter</type>
 		<type>activeSessions</type>
-		<type>requestdes</type>
-		<startTime>2013/07/12-00:12:00</startTime>
-		<endTime>2013/07/12-00:14:00</endTime>
+		<pace>1</pace>
 	</analyser>
+
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+	</analyser>
+	-->
 </translog>

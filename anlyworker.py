@@ -128,7 +128,7 @@ class AnlyWorker( object ):
 			parser = self.parser
 			logInfo = parser.parse_line( line )
 			if parser.formatter is not None:
-				parser.formatter.fmt_log( logInfo )
+				logInfo = parser.formatter.fmt_log( logInfo )
 			return logInfo
 		except:
 			traceback.print_exc()
@@ -167,7 +167,8 @@ class AnlyWorker( object ):
 				continue
 			self.__parse_log( line )
 			if (lineCount%100000) == 0:
-				spent = time.time() - lastTime
+				now = time.time()
+				spent = round(now - lastTime, 3 )
 				print func_name(), '>>', tid, 'parsed', lineCount, 'lines in', spent, 'seconds in', path
 		fin.close()
 	

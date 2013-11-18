@@ -8,6 +8,7 @@
 
 import re
 import traceback
+import sys
 
 from base import *
 from expression import *
@@ -244,9 +245,9 @@ class BaseFilter( object ):
 			return None
 		fmtName = get_nodevalue( fmtNodeList[0] )
 		fmtName = std_fmt_name( fmtName )
-		if not check_name(fmtName) and not is_common_fmt_name(fmtName):
-			print 'invalid filter name:', fmtName
-			return None
+		#if not check_name(fmtName) and not is_common_fmt_name(fmtName):
+			#print 'invalid filter name:', fmtName
+			#return None
 
 		typeNodeList = get_xmlnode( node, 'type' )
 		if typeNodeList is not None and len(typeNodeList) > 0:
@@ -254,9 +255,9 @@ class BaseFilter( object ):
 		else:
 			ftype = get_name_type( fmtName )
 			if ftype is None:
-				if not is_common_fmt_name(fmtName):
-					print 'invalid fmtName:', fmtName
-					return None
+				#if not is_common_fmt_name(fmtName):
+					#print 'invalid fmtName:', fmtName
+					#return None
 				ftype = 'string'
 		expList = list()
 

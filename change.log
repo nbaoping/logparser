@@ -5,8 +5,11 @@ Features:
 	only output the results into stdout
 2. add common format support
 3. support re-format the log fields
+	with the <formatter> element
 4. support regex log type
 	by setting the log regex format and with the help of the feature 3, we can parse any type of logs now
+5. support regex format the log fields
+	in the <formatter>, we can use the regex to retrieve any part of the log fields and set them as the new fields with the given fmtNames
 
 Bugs:
 1. fix the bug that parsing failure for webengine abr
@@ -14,6 +17,14 @@ Bugs:
 	convert the spaces in the fields to '|'
 3. fix the bug that it fails to give the regex format as argument directly
 	add support for short name format file as '-s' option
+4. the joint point values are not correct for the average helper in merging
+	output the count meantime so it can recover the original total value
+5. merge activeSessions wrong
+	defencive fix: disable optimization for merging
+6. bandwidth and activeSessions not acurate
+	for bandwidth, modify the standord bandwidth analyser, which is ok now. But for the customized timeAverage, it cannot be modified based on current framework;
+	for activeSessions, it's acurate, no need to change
+7. fix the bug that the sampler flush from the 1969 year when merging
 
 ===============================================================================
 
