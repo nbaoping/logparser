@@ -1,0 +1,33 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- startTime means we only calculate the logs starting from this time -->
+  <startTime>2013/11/10-19:00:00</startTime>
+  <!-- pace using the translog will influence every analyser
+     unless analyser has its onw pace -->
+  <pace>1</pace>
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+ <analyser>
+   <!-- using the outputs means the customized analyser -->
+   <outputs>
+     <!-- basic unit of customized outputs, defines what to output -->
+     <output>
+       <!-- to calculate the 'servTime' log field -->
+       <fmtName>servTime</fmtName>
+       <!-- using the average static function -->
+       <expType>average</expType>
+     </output>
+   </outputs>
+
+   <!-- filters is the container that includes one or more filter -->
+   <filters>
+     <!-- filter is used to filter out the logs that are not satified the conditions -->
+     <filter>
+       <!-- always filter by the log field, here use the bytesSentAll log field -->
+       <fmtName>bytesSentAll</fmtName>
+       <!-- 'high' expression, all the logs that has a bytesSentAll greater than 10MB will be filtered out -->
+       <high>10000000</high>
+     </filter>
+   </filters>
+  </analyser>
+</translog>
+

@@ -23,9 +23,9 @@
 					<fmtName>ismFile</fmtName>
 				</field>
 				<field>
-					<expValue>($4)/1000000.0</expValue>
+					<expValue>($4)/1000</expValue>
 					<fmtName>qualitylevels</fmtName>
-					<type>float</type>
+					<type>int</type>
 				</field>
 				<field>
 					<value>($5)</value>

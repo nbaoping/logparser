@@ -1,0 +1,15 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- startTime means we only calculate the logs starting from this time -->
+  <startTime>2013/11/10-19:00:00</startTime>
+  <!-- pace using the translog will influence every analyser
+     unless analyser has its onw pace -->
+  <pace>1</pace>
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+ <analyser>
+   <!-- if more analysers using the same profile, they can be defined in one analyser -->
+    <type>activeSessions</type>
+    <type>counter</type>
+  </analyser>
+</translog>
+

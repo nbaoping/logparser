@@ -78,7 +78,10 @@ class FmtField( BaseObject ):
 			return
 
 		value = self.value
-		pattern = re.compile( '\([$%].*?\)' )
+		#% is used for translog
+		#$ is used for regex
+		#@ is used for fmtName
+		pattern = re.compile( '\([$%@].*?\)' )
 		strList = pattern.split( value )
 		tokenList = pattern.findall( value )
 		fmtList = self.__to_fmtlist( tokenList )
@@ -128,11 +131,17 @@ class FmtField( BaseObject ):
 	def __to_fmtlist( self, tokenList ):
 		fmtList = list()
 		for token in tokenList:
+			#rid the '()'
 			token = token[1:len(token)-1]
 			if token.startswith( '$' ):
 				fmtName = std_fmt_name( token )
+			elif token.startswith( '@' ):
+				fmtName = token[1:len(token)]
 			else:
 				fmtName = get_name_by_fmt( token )
+			
+			if fmtName is None:
+				raise Exception( 'fmtName none with token:' + token )
 			fmtList.append( fmtName )
 		return fmtList
 
