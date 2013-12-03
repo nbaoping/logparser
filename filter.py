@@ -236,6 +236,9 @@ class BaseFilter( object ):
 		name = node.nodeName
 		if name == 'filter':
 			return self.__parse_filter( node )
+		elif name == 'id':
+			idstr = get_nodevalue( node )
+			self.idstr = idstr
 		return None
 
 	def __parse_filter( self, node ):

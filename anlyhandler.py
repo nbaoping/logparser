@@ -420,6 +420,9 @@ class AnlyHandler( BaseObject ):
 			logInfo = parser.parse_line( line )
 			if parser.formatter is not None:
 				logInfo = parser.formatter.fmt_log( logInfo )
+			if logInfo is not None:
+				#print logInfo
+				pass
 			return logInfo
 		except:
 			print line

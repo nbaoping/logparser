@@ -1,5 +1,12 @@
 
 <translog>
+		<formatter>
+			<field>
+				<expValue>(%Z)+3600</expValue>
+				<fmtName>recvdTime</fmtName>
+				<type>int</type>
+			</field>
+		</formatter>
 	<!--
 	<analyser>
 		<outputs>

@@ -104,7 +104,7 @@ def raise_virtual( func ):
 	raise Exception( 'derived must implement '+func+' virtual function' )
 
 def get_attrvalue(node, attrname):
-     return node.getAttribute(attrname)
+     return node.getAttribute(attrname).encode('utf-8','ignore')
 
 def get_nodevalue(node, index = 0):
     return node.childNodes[index].nodeValue.encode('utf-8','ignore')
@@ -134,7 +134,7 @@ class BaseObject( object ):
 			obj.set_member( mname, value )
 
 	def __str__( self ):
-		return str( self.__dict__ )
+		return str( self.__dict__ ) + '\t' + str( type(self) )
 
 class InputArgs( BaseObject ):
 	def __init__( self ):
