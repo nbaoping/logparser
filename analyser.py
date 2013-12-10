@@ -39,7 +39,7 @@ class AnalyConfig( BaseObject ):
 class Analyser( BaseObject ):
 	def __init__( self, config, toFile = True ):
 		self.parser = None	#this may be assigned outside
-
+		self.oneProcessMode = 1
 		self.atype = ''
 		self.startTime = config.startTime
 		self.endTime = config.endTime
@@ -59,6 +59,9 @@ class Analyser( BaseObject ):
 			self.ferr = None
 			print self.fout
 		self.filter = config.filter
+
+	def set_one_process_mode( self, mode ):
+		self.oneProcessMode = mode
 
 	def close_output_files( self ):
 		if self.fout is not None:
@@ -740,6 +743,10 @@ class SingleAnalyser( Analyser ):
 		self.sampler = None
 		self.__helper = helper
 		self.firstFlush = True
+
+	def set_one_process_mode( self, mode ):
+		self.oneProcessMode = mode
+		self.__helper.set_one_process_mode( mode )
 
 	def anly_zero_pace( self, logInfo ):
 		tstr = str_seconds( logInfo.recvdTime )

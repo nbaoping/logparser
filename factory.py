@@ -19,10 +19,12 @@ class OutputCfg( BaseObject ):
 	def __init__( self ):
 		self.fmtName = None
 		self.exptype = 'raw'
+		self.sort = False
 		self.split = True
 		self.unitRate = 1
 		self.insertValue = None
 		self.outList = None
+		self.calcTiming = False
 
 
 class AnalyserFactory:
@@ -276,12 +278,18 @@ class AnalyserFactory:
 				ocfg.fmtName = std_fmt_name( value )
 			elif name == 'expType':
 				ocfg.exptype = value
+			elif name == 'sort':
+				val = int( value )
+				ocfg.sort = val > 0
 			elif name == 'split':
 				ocfg.split = int( value )
 			elif name == 'insertValue':
 				ocfg.insertValue = value
 			elif name == 'unitRate':
 				ocfg.unitRate = float( value )
+			elif name == 'timing':
+				val = int( value )
+				ocfg.calcTiming = (val > 0)
 			elif name == 'output':
 				cocfg = self.__parse_output( cnode )
 				outList.append( cocfg )
@@ -291,7 +299,7 @@ class AnalyserFactory:
 			outList = self.__check_raw_in_list( outList )
 			ocfg.outList = outList
 			print '**************&&&&&&&&&&&&&', outList
-
+		
 		return ocfg
 
 	#in raw mode, only raw exptype is allowed

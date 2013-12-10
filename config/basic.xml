@@ -1,40 +1,57 @@
 
 <translog>
-	<startTime>2013/11/10-19:00:00</startTime>
-	<analyser>
-		<type>bandwidth</type>
-		<type>counter</type>
-		<type>activeSessions</type>
-		<!--outputs>
-			<output>
-				<fmtName>bytesSentAll</fmtName>
-				<expType>timeAverage</expType>
-				<unitRate>0.0000076294</unitRate>
-			</output>
-		</outputs-->
-		<!--filters>
+	<startTime>2013/11/26-02:00:00</startTime>
+	<endTime>2013/11/26-12:00:00</endTime>
+	<!--outPath>../hlstest/output/web</outPath-->
+	<formatter>
+		<filters>
+			<id>ft1</id>
 			<filter>
 				<fmtName>description</fmtName>
-				<keyword>ABORT</keyword>
+				<keyword>HIT</keyword>
 			</filter>
-		</filters-->
-		<pace>1</pace>
-	</analyser>
-	<!--
+		</filters>
+		<field>
+			<blockValue>
+				<if con="@ft1">
+					<value>CACHE_HIT</value>
+				</if>
+				<else>
+					<value>CACHE_MISS</value>
+				</else>
+			</blockValue>
+			<fmtName>cacheStatus</fmtName>
+		</field>
+	</formatter>
 	<analyser>
-		<type>status</type>
-		<type>requestdes</type>
-		<pace>-1</pace>
+		<type>xactrate</type>
+		<outputs>
+			<output>
+				<fmtName>servTime</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>cacheStatus</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<pace>5</pace>
 	</analyser>
 	<analyser>
-		<type>counter</type>
 		<type>activeSessions</type>
-		<pace>1</pace>
+		<pace>5</pace>
 	</analyser>
-
 	<analyser>
-		<type>assemble</type>
-		<pace>1</pace>
+		<type>bandwidth</type>
+		<pace>10</pace>
 	</analyser>
-	-->
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<pace>5</pace>
+	</analyser>
 </translog>

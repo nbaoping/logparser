@@ -40,6 +40,10 @@ class AnalyserHelper( BaseObject ):
 		self.useInterStr = False
 		self.sorted = False
 		self.insertValue = None
+		self.oneProcessMode = 1
+
+	def set_one_process_mode( self, mode ):
+		self.oneProcessMode = mode
 
 	def get_buf_time( self ):
 		if self.sorted:
@@ -547,13 +551,20 @@ class OutTimeActiveHelper( AnalyserHelper ):
 		if value is None:
 			return '0'
 
+		if self.calcTiming and self.pace > 0:
+			value /= self.pace
+			value = round( value, 3 )
 		return str(value)
 
 	def value_str( self, vstr, offset, psplit ):
 		nidx = vstr.find( psplit, offset )
 		if nidx < 0:
 			nidx = len(vstr)
-		value = int( vstr[offset:nidx] )
+		if self.calcTiming and self.pace > 0:
+			value = float( vstr[offset:nidx] )
+			value *= self.pace
+		else:
+			value = int( vstr[offset:nidx] )
 
 		return ( [value], nidx )
 
@@ -563,6 +574,7 @@ class OutCountHelper( AnalyserHelper ):
 		super(OutCountHelper, self).__init__()
 		self.exptype = ocfg.exptype
 		self.insertValue = ocfg.insertValue
+		self.pace = ocfg.pace
 	
 	def get_value( self, logInfo ):
 		return 1
@@ -584,14 +596,21 @@ class OutCountHelper( AnalyserHelper ):
 	def str_value( self, value ):
 		if value is None:
 			return '0'
-
+		
+		if self.calcTiming and self.pace > 0:
+			value /= self.pace
+			value = round( value, 3 )
 		return str(value)
 
 	def value_str( self, vstr, offset, psplit ):
 		nidx = vstr.find( psplit, offset )
 		if nidx < 0:
 			nidx = len(vstr)
-		value = int( vstr[offset:nidx] )
+		if self.calcTiming and self.pace > 0:
+			value = float( vstr[offset:nidx] )
+			value *= self.pace
+		else:
+			value = int( vstr[offset:nidx] )
 
 		return ( [value], nidx )
 
@@ -625,6 +644,9 @@ class OutSumHelper( AnalyserHelper ):
 		if value is None:
 			return '0'
 
+		if self.calcTiming and self.pace > 0:
+			value /= self.pace
+			value = round( value, 3 )
 		return str(value)
 
 	def value_str( self, vstr, offset, psplit ):
@@ -632,6 +654,8 @@ class OutSumHelper( AnalyserHelper ):
 		if nidx < 0:
 			nidx = len(vstr)
 		value = float( vstr[offset:nidx] )
+		if self.calcTiming and self.pace > 0:
+			value *= self.pace
 
 		return ( [value], nidx )
 
@@ -872,7 +896,9 @@ def create_base_helper( ocfg ):
 		helper = OutCountHelper( ocfg )
 	elif exptype == 'amount':
 		helper = OutAmountHelper( ocfg )
-
+	
+	if helper is not None:
+		helper.calcTiming = ocfg.calcTiming
 	return helper
 
 
@@ -881,6 +907,8 @@ class OutMapHelper( AnalyserHelper ):
 		super(OutMapHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
 		self.exptype = ocfg.exptype
+		self.sortOut = ocfg.sort
+		self.pace = ocfg.pace
 		self.insertValue = ocfg.insertValue
 		self.keyMap = dict()
 		self.keyList = None		#used to string the value
@@ -904,6 +932,14 @@ class OutMapHelper( AnalyserHelper ):
 		print func_name(), ocfg, helper
 
 		return helper
+
+	def set_one_process_mode( self, mode ):
+		self.oneProcessMode = mode
+		if self.helperList is None:
+			return
+
+		for helper in self.helperList:
+			helper.set_one_process_mode( mode )
 
 	def init_value( self, value ):
 		value = dict()
@@ -980,6 +1016,9 @@ class OutMapHelper( AnalyserHelper ):
 		self.keyList.sort()
 
 	def str_head( self ):
+		return self.__str_head()
+
+	def __str_head( self ):
 		split = self.get_split()
 		hstr = ''
 		for key in self.keyList:
@@ -1063,11 +1102,22 @@ class OutMapHelper( AnalyserHelper ):
 
 		return vstr
 
+	def __need_sort( self ):
+		if self.oneProcessMode and self.pace < 0 and self.sortOut and self.helperList is None:
+			return True
+		return False
 
 	def str_value( self, value ):
+		if self.__need_sort():
+			return self.__sort_str_value( value )
+		else:
+			return self.__str_value( value )
+
+	def __str_value( self, value ):
 		idx = 0
 		ss = ''
 		split = self.get_split()
+
 		for key in self.keyList:
 			if idx > 0:
 				ss += split
@@ -1083,6 +1133,23 @@ class OutMapHelper( AnalyserHelper ):
 				ss += self.__get_outlist_value( valList, split )
 			idx += 1
 		return ss + split
+
+	def __sort_str_value( self, value ):
+		split = self.get_split()
+		itemList = list()
+		for key in self.keyList:
+			if key in value:
+				count = value[key]
+			else:
+				count = 0
+			itemList.append( (count, key) )
+		
+		sortList = sorted( itemList, key=itemgetter(0), reverse=True )
+		vstr = '\nchannel' + split + 'total count' + '\n'
+		for (count, key) in sortList:
+			vstr += key + split + str(count) + '\n'
+
+		return vstr
 
 	def value_str( self, vstr, offset, psplit ):
 		split = self.get_split()
@@ -1262,6 +1329,11 @@ class OutputsHelper( AnalyserHelper ):
 			helper = create_base_helper( ocfg )
 
 		return helper
+
+	def set_one_process_mode( self, mode ):
+		self.oneProcessMode = mode
+		for helper in self.helperList:
+			helper.set_one_process_mode( mode )
 
 	def init_value( self, value ):
 		vlist = list()

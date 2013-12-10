@@ -327,6 +327,10 @@ class XactParser:
 
 	#get the first received time
 	def __get_file_stime( self, path, parser ):
+		fileTime = self.__try_get_time_from_file_name( path )
+		if fileTime > 0:
+			return fileTime
+
 		fin = open( path, 'r' )
 		num = 0
 		logInfo = None
@@ -345,11 +349,30 @@ class XactParser:
 						formatter.fmt_log( logInfo )
 					break
 			except:
-				traceback.print_exc()
+				#traceback.print_exc()
 				pass
 			num += 1
 		fin.close()
 		if logInfo is not None:
 			return logInfo.recvdTime
 		return -1
+
+	def __try_get_time_from_file_name( self, filePath ):
+		baseName = os.path.basename( filePath )
+		segs = baseName.split( '_' )
+		if len(segs) < 3:
+			return -1
+
+		dateStr = segs[-3]
+		timeStr = dateStr + '-' + segs[-2]
+		timeFmt = '%Y%m%d-%H%M%S'
+		try:
+			dtime = strptime( timeStr, timeFmt )
+			seconds = total_seconds( dtime )
+			return seconds
+		except:
+			return -1
+
+
+
 

@@ -351,6 +351,10 @@ class FmtField( BaseObject ):
 			value = int(value) * self.unitRate
 		elif ftype == 'float':
 			value = float(value) * self.unitRate
+		elif ftype == 'lowercase':
+			value = value.lower()
+		elif ftype == 'uppercase':
+			value = value.upper()
 		elif ftype == 'timeFmt':
 			value = self.timeFmt.fmt_time( value )
 		elif ftype == 'fieldFmt':

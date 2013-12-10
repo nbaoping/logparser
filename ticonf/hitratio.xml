@@ -1,0 +1,42 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- pace using the translog will influence every analyser
+     unless analyser has its onw pace -->
+  <pace>1</pace>
+  <startTime>2013/11/10-19:00:00</startTime>
+  <formatter>
+    <filters>
+      <id>ft1</id>
+      <filter>
+        <fmtName>description</fmtName>
+        <keyword>HIT</keyword>
+      </filter>
+    </filters>
+
+    <field>
+      <blockValue>
+        <if con="@ft1">
+          <value>CACHE_HIT</value>
+        </if>
+        <else>
+          <value>CACHE_MISS</value>
+        </else>
+      </blockValue>
+      <fmtName>cacheStatus</fmtName>
+    </field>
+  </formatter>
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+ <analyser>
+   <!-- using the outputs means the customized analyser -->
+   <outputs>
+     <!-- basic unit of customized outputs, defines what to output -->
+     <output>
+       <!-- to calculate the 'cacheStatus' log field -->
+       <fmtName>cacheStatus</fmtName>
+       <!-- using the map static function -->
+       <expType>map</expType>
+     </output>
+   </outputs>
+  </analyser>
+</translog>
+

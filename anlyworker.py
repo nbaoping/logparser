@@ -106,6 +106,7 @@ class AnlyWorker( object ):
 		stime = int(task.startTime)
 		etime = int(task.endTime)
 		for anly in anlyList:
+			anly.set_one_process_mode( 0 )
 			anly.tid = tid
 			anly.startBufTime = task.startBufTime
 			pace = anly.pace

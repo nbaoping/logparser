@@ -1,3 +1,23 @@
+
+===============================================================================
+
+
+version 3.2.4 2013/12/03
+Features:
+1. add block value support, like ifblock
+2. add filters support for the conditions of the ifblock
+3. add support sorting for map output, when the pace is -1
+4. add 'lowercase' and 'uppercase' type in the field in the formatter
+
+
+Bugs:
+1. try first parse the file time from the file name in case the disorder of the translog
+2. fmtName is like 'CACHE_MISS' in map's output will make merge failed
+	#TODO
+
+===============================================================================
+
+
 version 3.2.3 2013/10/18
 
 Features:

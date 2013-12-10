@@ -1,0 +1,67 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- pace using the translog will influence every analyser
+   unless analyser has its onw pace -->
+  <pace>10</pace>
+  <startTime>2013/11/10-19:00:00</startTime>
+  <formatter>
+    <filters>
+      <id>ft1</id>
+      <filter>
+        <fmtName>urlAll</fmtName>
+        <keyword>.ts</keyword>
+      </filter>
+    </filters>
+    <filters>
+      <id>ft2</id>
+      <filter>
+        <fmtName>urlAll</fmtName>
+        <keyword>qualitylevels</keyword>
+      </filter>
+    </filters>
+
+    <field>
+      <value>(@urlAll)</value>
+      <fmtName>urlAll</fmtName>
+      <type>lowercase</type>
+    </field>
+    <field>
+      <blockValue>
+        <if con="@ft1">
+          <expValue>(@bytesSentAll)*8/10/1000</expValue>
+        </if>
+        <elif con="@ft2">
+          <expValue>(@bytesSentAll)*8/2/1000</expValue>
+        </elif>
+        <else>
+          <value>0</value>
+        </else>
+      </blockValue>
+      <fmtName>qualitylevels</fmtName>
+      <type>int</type>
+    </field>
+  </formatter>
+  <!-- analyser is the basic unit that defines how to parse and what to output-->
+  <analyser>
+    <!-- using the outputs means the customized analyser -->
+    <outputs>
+      <!-- basic unit of customized outputs, defines what to output -->
+      <output>
+        <fmtName>qualitylevels</fmtName>
+        <expType>average</expType>
+      </output>
+    </outputs>
+    <filters>
+      <filter>
+        <!-- only use the small file, size < 15MB -->
+        <fmtName>bytesSentAll</fmtName>
+        <high>15000000</high>
+      </filter>
+      <filter>
+        <fmtName>qualitylevels</fmtName>
+        <low>400</low>
+      </filter>
+    </filters>
+  </analyser>
+</translog>
+

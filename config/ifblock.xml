@@ -92,6 +92,15 @@
 				<fmtName>qualitylevels</fmtName>
 				<expType>map</expType>
 			</output>
+			<output>
+				<expType>count</expType>
+				<timing>1</timing>
+			</output>
+			<!--output>
+				<fmtName>servTime</fmtName>
+				<expType>timeActive</expType>
+				<timing>1</timing>
+			</output-->
 		</outputs>
 	</analyser>
 </translog>

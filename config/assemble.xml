@@ -1,0 +1,13 @@
+
+<translog>
+	<analyser>
+		<type>assemble</type>
+		<pace>1</pace>
+		<filters>
+			<filter>
+				<fmtName>status</fmtName>
+				<equal>200</equal>
+			</filter>
+		</filters>
+	</analyser>
+</translog>
