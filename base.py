@@ -59,19 +59,19 @@ def delta_time( dtime1, dtime2 ):
 	delta = dtime2 - dtime1
 	return delta.total_seconds()
 
-def str_time( dtime ):
-	return datetime.strftime( dtime, __TIME_FMT )
+def str_time( dtime, fmt=__TIME_FMT ):
+	return datetime.strftime( dtime, fmt )
 
-def time_str( tstr ):
-	return strptime( tstr, __TIME_FMT )
+def time_str( tstr, fmt=__TIME_FMT ):
+	return strptime( tstr, fmt )
 
-def seconds_str( tstr ):
-	dtime = strptime( tstr, __TIME_FMT )
+def seconds_str( tstr, fmt=__TIME_FMT ):
+	dtime = strptime( tstr, fmt )
 	return total_seconds( dtime )
 
-def str_seconds( seconds ):
+def str_seconds( seconds, fmt=__TIME_FMT ):
 	dtime = to_datetime( seconds )
-	return str_time( dtime )
+	return str_time( dtime, fmt )
 
 def cur_timestr( ):
 	now = datetime.now()
@@ -148,6 +148,7 @@ class InputArgs( BaseObject ):
 		self.sorted = False
 		self.enableParallel = False
 		self.numCores = -1
+		self.mergeMode = False
 
 	def parse_argv( self, argv ):
 		idx = 1
@@ -182,6 +183,9 @@ class InputArgs( BaseObject ):
 			elif arg == '-s':
 				self.__parse_short_name_file( argv[idx+1] )
 				idx += 2
+			elif arg == '-m':
+				self.mergeMode = True
+				idx += 1
 			else:
 				idx += 2
 

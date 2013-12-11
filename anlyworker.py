@@ -164,6 +164,7 @@ class AnlyWorker( object ):
 					break
 			lineCount += 1
 			curPos += len(line)
+			line = line.strip()
 			if line.startswith( '#' ):
 				continue
 			self.__parse_log( line )

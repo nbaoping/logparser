@@ -39,7 +39,11 @@ class XactParser:
 		if args.inputType == 'stdin':
 			self.__parse_stdin( args, parser )
 		else:
-			self.__parse_logs( args, parser )
+			if args.mergeMode:
+				mergerHelper = MergerHelper( args.path, anlyList, parser )
+				mergerHelper.merge()
+			else:
+				self.__parse_logs( args, parser )
 	
 	def close( self ):
 		if self.anlyList is not None:

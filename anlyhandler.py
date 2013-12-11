@@ -3,6 +3,8 @@ import time
 import os
 import traceback
 from StringIO import StringIO
+import re
+from operator import itemgetter
 
 import pprocess
 from base import *
@@ -393,6 +395,173 @@ class OfileMerger( BaseObject ):
 				break
 			anly.output_data( data, rsize )
 			size -= rsize
+
+class MergerHelper( BaseObject ):
+	def __init__( self, inDir, anlyList, parser ):
+		self.anlyList = anlyList
+		self.parser = parser
+		self.inDir = inDir
+		self.pattern = '(\S+?)__(\d+)_(\d+_)?(\D+).+\.txt\.?(\S+)?'
+		self.regex = re.compile( self.pattern )
+		self.timeFmt = '%Y%m%d-%H%M%S' 
+
+	def merge( self ):
+		parseListList = self.__parse_file_dir( self.inDir )
+		if parseListList is None:
+			return
+
+		startTime = time.time() 
+		for parseList in parseListList:
+			mergerList = list()
+			for (anly, ntime, ofileList) in parseList:
+				self.__reset_anly( anly, ntime )
+				anly.parser = self.parser
+				merger = OfileMerger( anly, ofileList )
+				mergerList.append( merger )
+	
+			self.merge_ofiles( mergerList )
+	
+		mspent = time.time() - startTime
+		print func_name(), '>> =====================merge spent time:', mspent, 'seconds'
+
+	def __reset_anly( self, anly, ntime ):
+		fileName = os.path.basename( anly.outPath )
+		dirName = os.path.dirname( anly.outPath )
+		timeStr = str_seconds( ntime, self.timeFmt )
+
+		nidx = fileName.find( '_' )
+		tailPart = fileName[nidx:len(fileName)]
+		fileName = timeStr + tailPart
+
+		anly.outPath = os.path.join( dirName, fileName )
+
+	def __parse_file_dir( self, inDir ):
+		fileMap = dict()
+		pidList = list()
+		for fileName in os.listdir(inDir):
+			ipath = os.path.join( inDir, fileName )
+			if not os.path.isfile(ipath):
+				continue
+
+			info = self.__parse_file_name( fileName )
+			if info is None:
+				continue
+
+			pid = info[2]
+			if pid in fileMap:
+				flist = fileMap[pid]
+			else:
+				pidList.append( pid )
+				flist = list()
+				fileMap[pid] = flist
+
+			flist.append( info )
+
+		pidList = sorted( pidList )
+		#sort the file list by time
+		for pid in pidList:
+			flist = fileMap[pid]
+			flist = sorted( flist, key=itemgetter(0, 1) )
+			fileMap[pid] = flist
+		
+		parseListList = self.__parse_ofile_lists( inDir, self.anlyList, pidList, fileMap )
+		return parseListList
+
+	def __parse_ofile_lists( self, inDir, anlyList, pidList, fileMap ):
+		parseListList = list()
+		pid = pidList[0]
+		flist = fileMap[pid]
+		totalSize = len(flist)
+
+		idx = 0
+		while idx < totalSize:
+			curFail = False
+			parseList = list()
+			for anly in anlyList:
+				ninfo = self.__parse_file_name( os.path.basename(anly.outPath) )
+				naid = ninfo[1]
+				ofileList = list()
+				ntime = None
+				#get ofileList
+				print idx, totalSize, len(anlyList), curFail
+				for pid in pidList:
+					flist = fileMap[pid]
+					info = flist[idx]
+					aid = info[1]
+					if ntime is None:
+						ntime = info[0]
+					print pid, naid, aid
+					if naid == aid:
+						fpath = os.path.join( inDir, info[-1] )
+						ofile = OutputFile( fpath, None )
+						ofileList.append( ofile )
+					else:
+						#any failure will cause skipping this cycle
+						curFail = True
+				
+				idx += 1
+				parseList.append( (anly, ntime, ofileList) )
+
+			if not curFail:
+				parseListList.append( parseList )
+
+		return parseListList
+
+	def __parse_file_name( self, fileName ):
+		try:
+			res = self.regex.match( fileName )
+			grps = res.groups()
+			if len(grps) < 5:
+				return none
+
+			timeStr = grps[0]
+			aid = grps[1]
+			cid = grps[2]
+			name = grps[3]
+			pid = grps[4]
+
+			fmt = self.timeFmt
+			dtime = strptime( timeStr, fmt )
+			time = total_seconds( dtime )
+			anlyId = aid + '_'
+			if cid is not None:
+				anlyId += cid
+			anlyId += name
+			if pid is None:
+				pid = 0
+			else:
+				pid = int(pid)
+
+			return (time, anlyId, pid, fileName)
+		except:
+			traceback.print_exc()
+			return None
+
+	def __merge_task( self, merger ):
+		stime = time.time()
+		try:
+			merger.merge()
+		except:
+			traceback.print_exc()
+		spent = time.time() - stime
+		return (merger.get_out_path(), spent)
+
+	def merge_ofiles( self, mergerList ):
+		size = len(mergerList)
+		results = pprocess.Map( limit=size )
+		handler = results.manage( pprocess.MakeParallel(MergerHelper.__merge_task) )
+
+		#perform the tasks
+		tid = 0
+		for merger in mergerList:
+			tid += 1
+			handler( self, merger )
+
+		total = 0
+		for (outPath, spent) in results:
+			total += 1
+			print func_name(), '>>', 'merged output file:', outPath, 'in', spent, 'seconds. total merged now:', total
+
 
 
 class AnlyHandler( BaseObject ):
