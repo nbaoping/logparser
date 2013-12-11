@@ -341,7 +341,7 @@ class FmtField( BaseObject ):
 	def fmt_field( self, logInfo ):
 		value = self.fieldValue.form_value( logInfo )
 		if value is None:
-			print 'error, failed to format field'
+			#print 'error, failed to format field'
 			return False
 		return self.__fmt_value( logInfo, self.fmtName, value )
 

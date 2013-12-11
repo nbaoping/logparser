@@ -1077,12 +1077,11 @@ class OutMapHelper( AnalyserHelper ):
 	def __read_outlist_head( self, hstr, offset, split ):
 		cidx = offset
 		for helper in self.helperList:
-			nidx = hstr.find( split, cidx )
-			#the nidx must not be -1
-			substr = hstr[ cidx:nidx ]
-			eidx = substr.find( '_' )
-			key = substr[ 0:eidx ]
-			cidx = nidx + 1
+			nidx = hstr.find( '_', cidx )
+			key = hstr[cidx:nidx]
+			cidx = nidx + 1 #skip the '_'
+			nidx = helper.head_str( hstr, cidx, split )
+			cidx = nidx + 1 #skip the split
 
 		return (key, nidx)
 
