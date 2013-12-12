@@ -401,7 +401,7 @@ class MergerHelper( BaseObject ):
 		self.anlyList = anlyList
 		self.parser = parser
 		self.inDir = inDir
-		self.pattern = '(\S+?)__(\d+)_(\d+_)?(\D+).+\.txt\.?(\S+)?'
+		self.pattern = '(\S+?)__(\d+)_(\d+_)?(\S+?_).+\.txt\.?(\S+)?'
 		self.regex = re.compile( self.pattern )
 		self.timeFmt = '%Y%m%d-%H%M%S' 
 
@@ -436,6 +436,7 @@ class MergerHelper( BaseObject ):
 		anly.outPath = os.path.join( dirName, fileName )
 
 	def __parse_file_dir( self, inDir ):
+		anlyList = self.anlyList
 		fileMap = dict()
 		pidList = list()
 		for fileName in os.listdir(inDir):
@@ -464,8 +465,111 @@ class MergerHelper( BaseObject ):
 			flist = sorted( flist, key=itemgetter(0, 1) )
 			fileMap[pid] = flist
 		
-		parseListList = self.__parse_ofile_lists( inDir, self.anlyList, pidList, fileMap )
+		#parseListList = self.__parse_ofile_lists( inDir, self.anlyList, pidList, fileMap )
+		splitFileMap = self.__split_list_in_map( fileMap )
+		mapList = self.__get_valid_file_map_list( anlyList, pidList, splitFileMap )
+		parseListList = self.__parse_map_list( inDir, anlyList, pidList, mapList )
 		return parseListList
+
+	def __split_list_in_map( self, fileMap ):
+		for pid in fileMap.keys():
+			flist = fileMap[pid]
+			#split the list by time
+			splitList = list()
+			cycleList = list()
+			curTime = -1
+			for info in flist:
+				time = info[0]
+				if curTime < 0:
+					curTime = time
+					cycleList.append( info )
+				else:
+					if time == curTime:
+						#in the current cycle
+						cycleList.append( info )
+					else:
+						#start a new cycle
+						splitList.append( cycleList )
+						cycleList = list()
+						curTime = time
+						cycleList.append( info )
+			
+			if len(cycleList) > 0:
+				splitList.append( cycleList )
+
+			fileMap[pid] = splitList
+		
+		return fileMap
+
+	def __get_valid_file_map_list( self, anlyList, pidList, splitFileMap ):
+		pid = pidList[0]
+		slist = splitFileMap[pid]
+		number = len(slist)
+		mapList = list()
+		idx = 0
+		while idx < number:
+			curMap = dict()
+			for pid in pidList:
+				slist = splitFileMap[pid]
+				if idx >= len(slist):
+					#this cycle is invalid, skip all the cycleLists
+					curMap = None
+					break
+
+				cycleList = slist[idx]
+				if not self.__is_list_valid( anlyList, cycleList ):
+					#this cycle is invalid, skip all the cycleLists
+					curMap = None
+					break
+				curMap[pid] = cycleList
+			
+			idx += 1 #to another cycle
+			if curMap is not None:
+				mapList.append( curMap )
+
+		return mapList
+
+	def __parse_map_list( self, inDir, anlyList, pidList, mapList ):
+		parseListList = list()
+		for fileMap in mapList:
+			idx = 0
+			parseList = list()
+			for anly in anlyList:
+				ofileList = list()
+				ntime = None
+				for pid in pidList:
+					cycleList = fileMap[pid]
+					info = cycleList[idx]
+					if ntime is None:
+						ntime = info[0]
+
+					fpath = os.path.join( inDir, info[-1] )
+					ofile = OutputFile( fpath, None )
+					ofileList.append( ofile )
+				
+				idx += 1
+				parseList.append( (anly, ntime, ofileList) )
+			
+			parseListList.append( parseList )
+
+		return parseListList
+	
+	def __is_list_valid( self, anlyList, cycleList ):
+		idx = 0
+		for anly in anlyList:
+			if idx >= len(cycleList):
+				return False
+
+			ninfo = self.__parse_file_name( os.path.basename(anly.outPath) )
+			naid = ninfo[1]
+			info = cycleList[idx]
+			aid = info[1]
+			if naid != aid:
+				return False
+			idx += 1
+
+		return True
+
 
 	def __parse_ofile_lists( self, inDir, anlyList, pidList, fileMap ):
 		parseListList = list()

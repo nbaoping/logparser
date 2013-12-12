@@ -17,6 +17,7 @@ from operator import itemgetter
 
 class OutputCfg( BaseObject ):
 	def __init__( self ):
+		self.idName = ''
 		self.fmtName = None
 		self.exptype = 'raw'
 		self.sort = False
@@ -203,17 +204,20 @@ class AnalyserFactory:
 			incount = 0
 
 			#add config for output list
-			for ilist in outsList:
+			for (ilist, idName) in outsList:
 				nconfig = AnalyConfig()
 				config.copy_object( nconfig )
 				nconfig.outList = ilist
 				incount += 1
 				ntype = 'output'
+				hashVal = self.__hash_to_int( idName )
+				print idName, hashVal
 				nconfig.type = ntype
 				funcItem = self.__get_parse_func( ntype )
 				if funcItem is not None:
 					funcItem[1]( funcItem[0], nconfig, node )
-				fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + ntype + '_' + str(nconfig.pace) + '_out_.txt'
+				fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + \
+						ntype + str(hashVal) + '_' + str(nconfig.pace) + '_out_.txt'
 				nconfig.outPath = os.path.join( inputPath, fname )
 				print 'parsed anlyser', nconfig
 				configList.append( nconfig )
@@ -239,27 +243,39 @@ class AnalyserFactory:
 		print 'total ', total, 'Analysers parsed'
 		return configList
 
+	def __hash_to_int( self, ostr ):
+		idx = 0
+		hashVal = 0
+		while idx < len(ostr):
+			cval = ord( ostr[idx] )
+			hashVal += cval*(idx+1)
+			idx += 1
+
+		return hashVal
+
 	def __parse_outputs_list( self, node ):
 		outsList = list()
 		for cnode in node.childNodes:
 			name = cnode.nodeName
 			if name == 'outputs':
-				outList = self.__parse_outputs( cnode )
-				outsList.append( outList )
+				outListInfo = self.__parse_outputs( cnode )
+				outsList.append( outListInfo )
 		
 		return outsList
 
 	def __parse_outputs( self, node ):
 		outList = list()
+		idName = ''
 		for cnode in node.childNodes:
 			name = cnode.nodeName
 			if name == 'output':
 				ocfg = self.__parse_output( cnode )
+				idName += '_' + ocfg.idName
 				outList.append( ocfg )
 
 		outList = self.__check_raw_in_list( outList )
 
-		return outList
+		return (outList, idName)
 
 
 	def __parse_output( self, node ):
@@ -276,8 +292,10 @@ class AnalyserFactory:
 			print '\t', value
 			if name == 'fmtName':
 				ocfg.fmtName = std_fmt_name( value )
+				ocfg.idName += ocfg.fmtName
 			elif name == 'expType':
 				ocfg.exptype = value
+				ocfg.idName += '_' + value
 			elif name == 'sort':
 				val = int( value )
 				ocfg.sort = val > 0
@@ -292,6 +310,7 @@ class AnalyserFactory:
 				ocfg.calcTiming = (val > 0)
 			elif name == 'output':
 				cocfg = self.__parse_output( cnode )
+				ocfg.idName += '_' + cocfg.idName
 				outList.append( cocfg )
 
 		if len(outList) > 0:
