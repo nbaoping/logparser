@@ -161,7 +161,8 @@ class Sampler( object ):
 				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
 		curList = self.slist1
 		#must call before change the status of the sampler
-		self.flush_cb( self.cbobj, self, curList )
+		if not self.is_empty():
+			self.flush_cb( self.cbobj, self, curList )
 		if self.pace > 0:
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2
@@ -335,7 +336,8 @@ class MutableSampler( BaseObject ):
 				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
 		curList = self.slist1
 		#must call before change the status of the sampler
-		self.flush_cb( self.cbobj, self, curList )
+		if not self.is_empty():
+			self.flush_cb( self.cbobj, self, curList )
 		if self.pace > 0:
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2

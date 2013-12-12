@@ -10,6 +10,7 @@ from datetime import timedelta
 import os
 import inspect
 from  xml.dom import  minidom
+import traceback
 
 import recipe
 from customer import *
@@ -78,8 +79,12 @@ def cur_timestr( ):
 	return str_time( now )
 
 def mkdir( dname ):
-	if not os.path.exists( dname ):
-		os.makedirs( dname )
+	try:
+		if not os.path.exists( dname ):
+			os.makedirs( dname )
+	except:
+		traceback.print_exc()
+		print 'create directory:', dname, 'failed'
 
 def splitall(path):
 	allparts = []

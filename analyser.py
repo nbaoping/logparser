@@ -362,7 +362,7 @@ class BandwidthAnalyser( Analyser ):
 				continue
 			if maxTime > 0 and curTime > maxTime:
 				break
-
+			
 			self.__write_line( bufio, value, curTime, toAdd, pace )
 			curTime += pace
 		ostr = bufio.getvalue()
@@ -531,6 +531,15 @@ class XactRateAnalyser( Analyser ):
 		self.fout.write( log )
 		return True
 
+	def anly_negative_pace( self, logInfo ):
+		return self.anly_pace( logInfo )
+
+		if self.sampler is None:
+			self.__create_sampler( logInfo )
+		if self.sampler.add_sample( self.sampler.startTime, 1 ) != 0:
+			return False
+		return True
+
 	def anly_pace( self, logInfo ):
 		if self.sampler is None:
 			self.__create_sampler( logInfo )
@@ -594,7 +603,8 @@ class XactRateAnalyser( Analyser ):
 		tstr = str_seconds( sampleTime )
 		bufio.write( tstr )
 		bufio.write( ';' )
-		value /= float(pace)
+		if pace > 0:
+			value /= float(pace)
 		value = int( value + 0.5 )
 		bufio.write( str(value) )
 		bufio.write( '\n' )
@@ -854,6 +864,7 @@ class SingleAnalyser( Analyser ):
 						tstr = str_seconds( sampleTime )
 						bufio.write( tstr )
 						bufio.write( split )
+						print tstr, vstr, toAdd, pace
 					bufio.write( vstr )
 					bufio.write( '\n' )
 					if bufio.len > 10485760:	#10Mbytes
