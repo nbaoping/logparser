@@ -249,16 +249,16 @@ class XactParser:
 	def __stat_files( self, path, parser ):
 		fileList = list()
 		print 'stat files in:', path
-		for root, dirs, files in os.walk( path ):
-			if RES_DIR in dirs:
-				dirs.remove( RES_DIR )
-			for fname in files:
+		for fname in os.listdir(path):
+			fpath = os.path.join( path, fname )
+			if not os.path.isfile(fpath):
+				continue
+			else:
 				if fname.endswith( '.status' ):
 					continue
 				if fname == 'working.log':
 					continue
 				#print 'stat file', root, fname
-				fpath = os.path.join( root, fname )
 				stime = self.__get_file_stime( fpath, parser )
 				if stime > 0:
 					fileList.append( (stime, fpath) )
