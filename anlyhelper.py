@@ -1067,7 +1067,7 @@ class OutMapHelper( AnalyserHelper ):
 		subHead = ''
 		kstr = str(key)
 		for helper in self.helperList:
-			th = kstr + '_' + helper.str_head()
+			th = kstr + ':' + helper.str_head()
 			if subHead != '':
 				subHead += split
 			subHead += th 
@@ -1077,7 +1077,7 @@ class OutMapHelper( AnalyserHelper ):
 	def __read_outlist_head( self, hstr, offset, split ):
 		cidx = offset
 		for helper in self.helperList:
-			nidx = hstr.find( '_', cidx )
+			nidx = hstr.find( ':', cidx )
 			key = hstr[cidx:nidx]
 			cidx = nidx + 1 #skip the '_'
 			nidx = helper.head_str( hstr, cidx, split )
