@@ -1,6 +1,7 @@
 from operator import itemgetter
 from StringIO import StringIO
 import traceback
+import logging
 
 from base import *
 
@@ -88,7 +89,7 @@ class AnalyserHelper( BaseObject ):
 	#the parsing must start from the offset
 	#psplit stands for the split of the parent helper
 	def value_str( self, vstr, offset, psplit ):
-		print func_name(), '>>', 'not implement', self
+		logging.error( 'not implement '+str(self) )
 		raise_virtual( func_name() )
 
 	def get_split( self ):
@@ -131,7 +132,7 @@ class AnalyserHelper( BaseObject ):
 							svalList.append( avalue )
 						else:
 							#normally only one sigle avalue can be received
-							print 'error, only one sigle value allowed, avalue:', avalue
+							logging.error( 'error, only one sigle value allowed, avalue:'+str(avalue) )
 					else:
 						mvalList.append( (idx, (avalue, num)) )
 
@@ -147,9 +148,7 @@ class AnalyserHelper( BaseObject ):
 		cidx = offset
 		maxLen = 0
 		for helper in helperList:
-			#print func_name(), '>>', vstr, 'cur:', vstr[cidx], 'idx:', cidx
 			(valList, cidx) = helper.value_str( vstr, cidx, split )
-			#print func_name(), '>>', valList, cidx
 			vlen = len(valList)
 			if vlen > maxLen:
 				maxLen = vlen
@@ -160,7 +159,6 @@ class AnalyserHelper( BaseObject ):
 		#convert to the new list
 		newValList = list()
 		idx = 0
-		#print func_name(), '>>maxLen:', maxLen, outValList
 		while idx < maxLen:
 			valList = list()
 			for vlist in outValList:
@@ -172,7 +170,6 @@ class AnalyserHelper( BaseObject ):
 			newValList.append( valList )
 			idx += 1
 
-		#print func_name(), '>>maxLen:', maxLen, newValList
 		return (newValList, offset)
 
 
@@ -315,7 +312,7 @@ class AssembleHelper( AnalyserHelper ):
 		try:
 			logInfo = self.parser.parse_line( vstr )
 		except:
-			print traceback.print_exc()
+			logging.debug( '\n'+traceback.format_exc() )
 
 		if logInfo is not None:
 			sampleValue = self.get_value( logInfo )
@@ -507,7 +504,6 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		if nidx < 0:
 			nidx = len(vstr)
 		tstr = vstr[offset:nidx]
-		#print vstr, offset, tstr
 		value = float( tstr ) * self.pace
 		value /= self.unitRate
 
@@ -918,7 +914,7 @@ class OutMapHelper( AnalyserHelper ):
 		self.helperList = None
 		if ocfg.outList is not None:
 			self.helperList = list()
-			print ocfg.outList
+			logging.debug( ocfg.outList )
 			for subCfg in ocfg.outList:
 				subCfg.pace = ocfg.pace
 				helper = self.__create_output_helper( subCfg )
@@ -929,7 +925,7 @@ class OutMapHelper( AnalyserHelper ):
 	def __create_output_helper( self, ocfg ):
 		exptype = ocfg.exptype
 		helper = create_base_helper( ocfg )
-		print func_name(), ocfg, helper
+		logging.debug( str(ocfg)+str(helper) )
 
 		return helper
 
@@ -1320,7 +1316,6 @@ class OutputsHelper( AnalyserHelper ):
 	def __create_output_helper( self, ocfg ):
 		exptype = ocfg.exptype
 		helper = None
-		print 'exptype-->', exptype
 		if exptype == 'map':
 			helper = OutMapHelper( ocfg )
 

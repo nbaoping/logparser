@@ -8,6 +8,7 @@
 
 import re
 import traceback
+import logging
 
 from base import *
 from logparser import *
@@ -20,13 +21,12 @@ class RegexParser( LogParser ):
 		self.pattern = re.compile( pattern )
 		if self.pattern is None:
 			raise Exception( 'invalid pattern:'+pattern )
-		print self.pattern, pattern
+		logging.info( str(self.pattern)+' with pattern:'+pattern )
 
 	def parse_line( self, line ):
 		res = self.pattern.match( line )
 		if res is None:
-			if self.logLevel > 0:
-				print '=====================res none', line
+			logging.debug( '=====================res none'+line )
 			return None
 
 		logInfo = LogInfo()
@@ -104,7 +104,7 @@ class BasicValue( FieldValue ):
 		super(BasicValue, self).__init__()
 		self.isExp = isExp
 		self.__init_value( value )
-		print self
+		logging.debug( 'BasicValue:'+str(self) )
 
 	def __init_value( self, value ):
 		#% is used for translog
@@ -134,8 +134,8 @@ class BasicValue( FieldValue ):
 			try:
 				value = eval( fieldStr )
 			except:
-				traceback.print_exc()
-				print 'fieldStr:', fieldStr
+				logging.debug( '\n'+traceback.format_exc() )
+				logging.debug( 'fieldStr:'+fieldStr )
 		else:
 			value = fieldStr
 		
@@ -174,7 +174,7 @@ class ConClause( BaseObject ):
 		self.bvalue = None
 		self.fieldValue = fieldValue
 		self.__init_con( filters, con )
-		print self
+		logging.debug( 'ConClause:'+str(self) )
 
 	def form_value( self, logInfo ):
 		if self.is_true( logInfo ):
@@ -191,7 +191,7 @@ class ConClause( BaseObject ):
 				return True
 			return False
 
-		print 'error, no condition available in clause:', self 
+		logging.debug( 'error, no condition available in clause:'+str(self) )
 		return False 
 
 	def __init_con( self, filters, con ):
@@ -205,7 +205,6 @@ class ConClause( BaseObject ):
 			#use the expValue to be the condition
 			bvalue = BasicValue( con, True )
 			self.bvalue = bvalue
-			print bvalue
 
 
 class IfBlockValue( FieldValue ):
@@ -218,7 +217,7 @@ class IfBlockValue( FieldValue ):
 
 	def form_value( self, logInfo ):
 		if self.ifClause is None:
-			print 'invalid IfBlockValue:', self
+			logging.error( 'invalid IfBlockValue:'+str(self) )
 			return None
 
 		bvalue = self.ifClause.form_value( logInfo )
@@ -341,7 +340,7 @@ class FmtField( BaseObject ):
 	def fmt_field( self, logInfo ):
 		value = self.fieldValue.form_value( logInfo )
 		if value is None:
-			#print 'error, failed to format field'
+			logging.debug( 'error, failed to format field' )
 			return False
 		return self.__fmt_value( logInfo, self.fmtName, value )
 
@@ -402,8 +401,7 @@ class FieldParser( BaseObject ):
 
 		logInfo = self.parser.parse_line( fieldValue )
 		if logInfo is None:
-			if self.logLevel > 0:
-				print '&&&&&&&&&&&', fieldValue, self.regex
+			logging.debug( 'parse fieldValue failed, fieldValue:'+fieldValue+',regex:'+str(self.regex) )
 			return None
 		
 		for field in self.fieldList:
@@ -478,7 +476,7 @@ class LogFormatter( BaseObject ):
 					filters.add_filter( bfilter )
 					continue
 
-			print field
+			logging.info( 'parsed one field:'+str(field) )
 			fieldList.append( field )
 		
 		return (fieldList, filters)
@@ -574,7 +572,7 @@ class LogFormatter( BaseObject ):
 				if field.is_valid():
 					fieldList.append( field )
 				else:
-					print 'invalid field,', field
+					logging.error( 'invalid field,'+str(field) )
 
 		if len(fieldList) > 0:
 			parser.fieldList = fieldList

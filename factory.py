@@ -4,6 +4,7 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 #*********************************************************************************************#
+import logging
 
 from analyser import *
 from filter import *
@@ -87,7 +88,7 @@ class AnalyserFactory:
 					anly.insertValue = config.insertValue
 				analysers.append( anly )
 			else:
-				print 'no create function for analyser', config 
+				logging.error( 'no create function for analyser'+str(config) )
 
 		return analysers
 
@@ -118,13 +119,13 @@ class AnalyserFactory:
 			pace = int( get_nodevalue(paceNode) )
 		if stimeNode:
 			stime = seconds_str( get_nodevalue(stimeNode) )
-			print stime, str_seconds( stime )
+			logging.info( 'start time:'+str_seconds( stime ) )
 		if etimeNode:
 			etime = seconds_str( get_nodevalue(etimeNode) )
-			print etime, str_seconds( etime )
+			logging.info( 'end time:'+str_seconds( etime ) )
 		if insertNode:
 			insertValue = get_nodevalue(insertNode)
-			print 'global insertValue:', insertValue
+			logging.debug( 'global insertValue:'+insertValue )
 		if outNode:
 			outPath = get_nodevalue( outNode )
 		if fmtNode:
@@ -140,7 +141,8 @@ class AnalyserFactory:
 		anlyNodes = get_xmlnode( root, 'analyser' )
 		(gpace, gstime, getime, insertValue, outPath, formatter) = self.__parse_gloabl_config( root )
 		args.formatter = formatter
-		print 'global config', gpace, gstime, getime, insertValue, outPath
+		logging.info( 'global config, pace:'+str(gpace)+',stime:'+\
+				str(gstime)+',etime:'+str(getime)+',insertValue:'+str(insertValue)+',outPath:'+str(outPath) )
 		count = 0
 		total = 0
 		curTimeStr = cur_timestr() + '_'
@@ -165,7 +167,7 @@ class AnalyserFactory:
 
 			nodeTypeList = get_xmlnode( node, 'type' )
 			if (nodeTypeList is None or len(nodeTypeList) == 0) and len(outsList) == 0:
-				print 'invalid node', node
+				logging.error( 'invalid node'+str(node) )
 				continue
 			count += 1
 			nodePaceList = get_xmlnode( node, 'pace' )
@@ -180,10 +182,10 @@ class AnalyserFactory:
 				config.pace = int( get_nodevalue( nodePaceList[0] ) )
 			if nodeStimeList:
 				config.startTime = seconds_str( get_nodevalue( nodeStimeList[0] ) )
-				print config.startTime
+				logging.debug( 'start time:' + str(config.startTime) )
 			if nodeEtimeList:
 				config.endTime = seconds_str( get_nodevalue(nodeEtimeList[0]) )
-				print config.endTime
+				logging.debug( 'end time:' + str(config.endTime) )
 			if nodeInsertList:
 				config.insertValue = get_nodevalue(nodeInsertList[0])
 			if nodePath:
@@ -211,7 +213,7 @@ class AnalyserFactory:
 				incount += 1
 				ntype = 'output'
 				hashVal = self.__hash_to_int( idName )
-				print idName, hashVal
+				logging.debug( 'idName:'+idName+',hashVal:'+str(hashVal) )
 				nconfig.type = ntype
 				funcItem = self.__get_parse_func( ntype )
 				if funcItem is not None:
@@ -219,7 +221,7 @@ class AnalyserFactory:
 				fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + \
 						ntype + str(hashVal) + '_' + str(nconfig.pace) + '_out_.txt'
 				nconfig.outPath = os.path.join( inputPath, fname )
-				print 'parsed anlyser', nconfig
+				logging.info( 'parsed anlyser'+str(nconfig) )
 				configList.append( nconfig )
 
 			ownFile = len(nodeTypeList) > 1
@@ -236,11 +238,11 @@ class AnalyserFactory:
 				if ownFile:
 					fname = curTimeStr + '_' + str(count) + '_' + str(incount) + '_' + ntype + '_' + str(nconfig.pace) + '.txt'
 					nconfig.outPath = os.path.join( inputPath, fname )
-				print 'parsed anlyser', nconfig
+				logging.info( 'parsed anlyser'+str(nconfig) )
 				configList.append( nconfig )
 
 			total += incount
-		print 'total ', total, 'Analysers parsed'
+		logging.info( 'total '+str(total)+' Analysers parsed' )
 		return configList
 
 	def __hash_to_int( self, ostr ):
@@ -287,9 +289,7 @@ class AnalyserFactory:
 			if name.startswith( '#' ):
 				continue
 
-			print name, cnode, cnode.childNodes
 			value = get_nodevalue( cnode )
-			print '\t', value
 			if name == 'fmtName':
 				ocfg.fmtName = std_fmt_name( value )
 				ocfg.idName += ocfg.fmtName
@@ -314,10 +314,10 @@ class AnalyserFactory:
 				outList.append( cocfg )
 
 		if len(outList) > 0:
-			print '**************&&&&&&&&&&&&&', outList
+			logging.debug( '**************&&&&&&&&&&&&&'+str(outList) )
 			outList = self.__check_raw_in_list( outList )
 			ocfg.outList = outList
-			print '**************&&&&&&&&&&&&&', outList
+			logging.debug( '**************&&&&&&&&&&&&&'+str(outList) )
 		
 		return ocfg
 
@@ -333,7 +333,7 @@ class AnalyserFactory:
 
 		if len(rawList) > 0:
 			for ocfg in ridList:
-				print '***********only raw ouput is allowed, will engore the output type', ocfg.exptype
+				logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.exptype) )
 			return rawList
 
 		return outList
@@ -375,11 +375,11 @@ class AnalyserFactory:
 				else:
 					ocfg.unitRate = 1
 
-				print ocfg
+				logging.debug( ocfg )
 				if ocfg.exptype == 'raw':
 					hasRaw = True
 				elif hasRaw:
-					print '***********only raw ouput is allowed, will engore the output type', ocfg.exptype
+					logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.exptype) )
 					continue
 				ilist.append( ocfg )
 			

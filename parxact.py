@@ -11,6 +11,7 @@ import sys
 from operator import itemgetter
 import time
 import traceback
+import logging
 
 from analyser import *
 from logparser import *
@@ -33,9 +34,9 @@ class XactParser:
 		self.anlyList = anlyList
 		parser = create_parser_from_type( args )
 		if parser == None:
-			print 'wrong log type:', logType
+			logging.error( 'wrong log type:'+str(logType) )
 			return
-		print args
+		logging.debug( 'args:'+str(args) )
 		if args.inputType == 'stdin':
 			self.__parse_stdin( args, parser )
 		else:
@@ -60,19 +61,19 @@ class XactParser:
 		parser.formatter = args.formatter
 		files = self.__stat_files( args.path, parser )
 		if len(files) == 0:
-			print 'no translog files, please check the logs path:', args.path
+			logging.error( 'no translog files, please check the logs path:'+args.path )
 			return
 		startTime = files[0][0]
 		endTime = files[-1][0]
-		print 'all files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
-		print args
+		logging.info( 'all files>> start time:'+str_seconds(startTime)+',end time:'+str_seconds(endTime) )
+		logging.debug( 'args:'+str(args) )
 		files = self.__sample_files( files, anlyList )
 		if files is None or len(files) == 0:
-			print 'no file need to be parsed'
+			logging.error( 'no file need to be parsed' )
 			return
 		startTime = files[0][0]
 		endTime = files[-1][0]
-		print 'sampled files>> start time:', str_seconds(startTime), 'end time:', str_seconds(endTime)
+		logging.info( 'sampled files>> start time:'+str_seconds(startTime)+',end time:'+str_seconds(endTime) )
 		anlyHandler = AnlyHandler( parser, anlyList, args )
 		if args.enableParallel:
 			anlyHandler.analyse_files( files )
@@ -133,7 +134,7 @@ class XactParser:
 			etime = rg[1]
 			clist = self.__find_files_in_range( fileList, stime, etime )
 			if len(clist) == 0:
-				print 'error, no files for range(',  stime, ',', etime, ')'
+				logging.error( 'error, no files for range('+str(stime)+','+str(etime)+')' )
 				continue
 			if tarList is None:
 				tarList = clist
@@ -155,7 +156,7 @@ class XactParser:
 
 	def __print_range_list( self, rangeList ):
 		ss = None
-		print 'time range list'
+		logging.debug( 'time range list' )
 		for rg in rangeList:
 			sstr = str_seconds( rg[0] )
 			estr = str_seconds( rg[1] )
@@ -166,7 +167,7 @@ class XactParser:
 				ss = tmp
 			else:
 				ss += ', ' + tmp
-		print '\t', ss
+		logging.debug( '\t', ss )
 
 	def __sample_files_old( self, fileList, anlyList ):
 		stime = -1
@@ -185,15 +186,14 @@ class XactParser:
 			else:
 				etime = -1
 				break
-		print '-----', stime, etime
-		print '-----', str_seconds(stime), str_seconds(etime)
+		logging.debug( '-----'+str_seconds(stime)+str_seconds(etime) )
 		#sample the files based on the time range
 		if stime < 0 and etime < 0:
 			return fileList
 		sidx = -1
 		eidx = 0
 		size = len(fileList)
-		print fileList[0][0], fileList[-1][0]
+		logging.debug( str(fileList[0][0])+str(fileList[-1][0]) )
 		while eidx < size:
 			time = fileList[eidx][0]
 			if stime > 0 and sidx < 0 and time > stime:
@@ -211,9 +211,6 @@ class XactParser:
 			sidx = 0
 		if etime <= 0:
 			eidx = size
-		print sidx, eidx
-		print fileList[sidx][0]
-		print str_seconds(fileList[sidx][0])
 		return fileList[ sidx:eidx ]
 
 
@@ -223,7 +220,7 @@ class XactParser:
 		sidx = -1
 		eidx = 0
 		size = len(fileList)
-		print fileList[0][0], fileList[-1][0]
+		logging.debug( str(fileList[0][0])+str(fileList[-1][0]) )
 		while eidx < size:
 			time = fileList[eidx][0]
 			if stime > 0 and sidx < 0 and time > stime:
@@ -241,14 +238,11 @@ class XactParser:
 			sidx = 0
 		if etime <= 0:
 			eidx = size
-		print sidx, eidx
-		print fileList[sidx][0]
-		print str_seconds(fileList[sidx][0])
 		return fileList[ sidx:eidx ]
 
 	def __stat_files( self, path, parser ):
 		fileList = list()
-		print 'stat files in:', path
+		logging.info( 'stat files in:'+path )
 		for fname in os.listdir(path):
 			fpath = os.path.join( path, fname )
 			if not os.path.isfile(fpath):
@@ -258,7 +252,6 @@ class XactParser:
 					continue
 				if fname == 'working.log':
 					continue
-				#print 'stat file', root, fname
 				stime = self.__get_file_stime( fpath, parser )
 				if stime > 0:
 					fileList.append( (stime, fpath) )
@@ -268,22 +261,22 @@ class XactParser:
 
 	def __analyse_files( self, files, parser, anlyHandler ):
 		count = 0
-		print 'total ', len(files), ' files to be analyzed'
+		logging.info( 'total '+str(len(files))+' files to be analyzed' )
 		startTime = time.time()
 		totalLineCount = 0
 		for item in files:
 			count += 1
 			path = item[1]
 			tstr = str_seconds( item[0] )
-			print 'analyse the', str(count), 'th file--> [', tstr, ']', path
+			logging.info( 'analyse the '+str(count)+'th file--> ['+tstr+']'+path )
 			start = time.time()
 			lineCount = self.__analyse_file( path, parser, anlyHandler )
 			totalLineCount += lineCount
 			elapsed = time.time() - start
-			print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
+			logging.info( '===============================elapsed:'+str(elapsed * 1000)+'ms,'+str(lineCount)+' lines' )
 
 		spent = time.time() - startTime
-		print '===============================total spent:', spent, 'seconds, total line count:', totalLineCount, 'lines'
+		logging.info( '===============================total spent:'+str(spent)+' seconds, total line count:'+str(totalLineCount)+' lines' )
 
 	def __analyse_file( self, path, parser, anlyHandler ):
 		fin = open( path, 'r' )
@@ -296,7 +289,7 @@ class XactParser:
 			self.__analyse_line( parser, anlyHandler, line )
 			if (lineCount%20000) == 0:
 				spent = time.time() - lastTime
-				print 'parsed', lineCount, 'lines in', spent, 'seconds in', path
+				logging.info( 'parsed '+str(lineCount)+' lines in '+str(spent)+' seconds in '+path )
 
 		fin.close()
 		anlyHandler.flush()
@@ -310,11 +303,11 @@ class XactParser:
 			self.__analyse_line( parser, anlyHandler, line )
 			if (lineCount%10000) == 0:
 				elapsed = time.time() - startTime
-				print '===============================:', elapsed * 1000, 'ms,', lineCount, 'lines'
+				logging.info( '===============================:'+str(elapsed * 1000)+'ms,'+str(lineCount)+'lines' )
 				startTime = time.time()
 
 		elapsed = time.time() - startTime
-		print '===============================:', elapsed * 1000, 'ms, total', lineCount, 'lines'
+		logging.info( '===============================:'+str(elapsed * 1000)+'ms, total '+str(lineCount)+' lines' )
 
 	def __analyse_line( self, parser, anlyHandler, line, fileName=None ):
 		line = line.strip()
@@ -340,7 +333,6 @@ class XactParser:
 		logInfo = None
 		formatter = parser.formatter
 		for line in fin:
-			#print line
 			line = line.strip()
 			if len(line) == 0:
 				continue
@@ -353,7 +345,7 @@ class XactParser:
 						formatter.fmt_log( logInfo )
 					break
 			except:
-				#traceback.print_exc()
+				logging.debug( '\n'+traceback.format_exc() )
 				pass
 			num += 1
 		fin.close()

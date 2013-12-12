@@ -5,6 +5,8 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 
+import logging
+
 from base import *
 
 class SamplerArgs( object ):
@@ -24,7 +26,7 @@ class Sampler( object ):
 	def __init__( self, args ):
 		if args.pace == 0:
 			raise Exception( 'sampler not support zero pace' )
-		print 'create sampler', args
+		logging.info( 'create sampler with args:'+str(args) )
 		self.slist1 = None
 		self.slist2 = None
 		self.reset( args )
@@ -47,7 +49,7 @@ class Sampler( object ):
 		if args.startTime < 0:
 			args.startTime = 0
 		self.startTime = int(args.startTime)
-		print 'sample start time:', str_seconds(self.startTime)
+		logging.info( 'reset sample, start time:'+str_seconds(self.startTime) )
 		self.orgStartTime = int(args.startTime)
 		self.pace = args.pace
 		self.endTime = int(args.endTime)
@@ -136,7 +138,7 @@ class Sampler( object ):
 		self.__flush_buffer()
 
 	def __add_sample( self, idx, value ):
-		#print 'add sample', idx, value
+		logging.debug( 'add sample, idx:'+str(idx)+',value:'+str(value) )
 		if idx >= self.__total:
 			return 1
 
@@ -157,8 +159,8 @@ class Sampler( object ):
 		return self.size() == 0
 
 	def __flush_buffer( self ):
-		print func_name(), '>>', 'minTime:', str_seconds(self.minTime), 'maxTime:', str_seconds(self.maxTime),\
-				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
+		logging.info( 'minTime:'+str_seconds(self.minTime)+',maxTime:'+str_seconds(self.maxTime)+\
+				',total samplers:'+str(self.totalCount1)+',list len:'+str(len(self.slist1)) )
 		curList = self.slist1
 		#must call before change the status of the sampler
 		if not self.is_empty():
@@ -186,7 +188,7 @@ class MutableSampler( BaseObject ):
 	def __init__( self, args, init_value, update_value ):
 		if args.pace == 0:
 			raise Exception( 'sampler not support zero pace' )
-		print 'create sampler', args
+		logging.info( 'create sampler, with args:'+str(args) )
 		self.slist1 = None
 		self.slist2 = None
 		self.reset( args )
@@ -253,11 +255,11 @@ class MutableSampler( BaseObject ):
 		if self.pace > 0:
 			idx = int( (time - self.startTime) / self.pace )
 		if idx < 0:
-			print 'old time', time, self.startTime
+			logging.debug( 'old time:'+str_seconds(time)+',startTime:'+str_seconds(self.startTime) )
 			return -1
 		#if idx is out of the buffer, reset the buffer to the current sample
 		if idx > self.__total*2:
-			print 'out of buffer', idx, self.__total
+			logging.info( 'out of buffer, idx:'+str(idx)+',tail:'+str(self.__total) )
 			self.flush()
 			self.startTime = time
 			idx = 0
@@ -267,7 +269,7 @@ class MutableSampler( BaseObject ):
 			#try again
 			ret = self.add_sample( time, value )
 		if ret == 1:
-			print 'failed to add', 'idx:', idx, 'total:', self.__total
+			logging.error( 'failed to add sample, idx:'+str(idx)+',total:'+str(self.__total) )
 		elif ret == 0:
 			self.__stat_cur_time( time, time )
 		return ret
@@ -308,7 +310,7 @@ class MutableSampler( BaseObject ):
 		self.__flush_buffer()
 
 	def __add_sample( self, idx, value ):
-		#print 'add sample', idx, value
+		logging.debug( 'add sample'+str(idx)+',value:'+str(value) )
 		if idx >= self.__total:
 			return 1
 		size = self.__total / 2
@@ -332,8 +334,8 @@ class MutableSampler( BaseObject ):
 		return self.size() == 0
 
 	def __flush_buffer( self ):
-		print func_name(), '>>', 'minTime:', str_seconds(self.minTime), 'maxTime:', str_seconds(self.maxTime), \
-				'total samplers:', self.totalCount1, 'list len:', len(self.slist1)
+		logging.info( 'minTime:'+str_seconds(self.minTime)+',maxTime:'+str_seconds(self.maxTime)+ \
+				',total samplers:'+str(self.totalCount1)+',list len:'+str(len(self.slist1)) )
 		curList = self.slist1
 		#must call before change the status of the sampler
 		if not self.is_empty():

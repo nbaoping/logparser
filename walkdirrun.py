@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 def get_run_cmd( lpath ):
 	args = ''
@@ -17,7 +18,7 @@ def get_run_cmd( lpath ):
 
 def run_one_dir( lpath ):
 	cmd = get_run_cmd( lpath )
-	print cmd
+	logging.info( cmd )
 	os.system( cmd )
 
 def walk_run( logDir ):

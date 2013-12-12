@@ -4,7 +4,7 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 #*********************************************************************************************#
-
+import logging
 
 from datetime import datetime
 from base import *
@@ -269,7 +269,7 @@ class WELogParser( LogParser ):
 
 	def parse_line( self, line ):
 		if self.__parsefuncs is None:
-			print 'fatal error, format not setted'
+			logging.error( 'fatal error, format not setted' )
 			return None
 		line = standard_translog( line )
 		fields = None
@@ -284,22 +284,20 @@ class WELogParser( LogParser ):
 		else:
 			fields = line.split( ' ' )
 		if len(fields) < len(self.__parsefuncs):
-			#print 'invalid line:', line
-			#return None
+			logging.debug( 'invalid line:'+line )
 			#append '-' for the old version
 			rest = len(self.__parsefuncs) - len(fields)
 			count = 0
 			while count < rest:
 				fields.append( '-' )
 				count += 1
-		#logInfo = WELogInfo()
 		logInfo = LogInfo()
 		logInfo.originLine = line
 		i = 0
 		for funcs in self.__parsefuncs:
 			value = funcs[0]( funcs[3], fields[i], logInfo, funcs[2] )
 			if value is None:
-				print 'parse line failed', line
+				logging.debug( 'parse line failed:'+line )
 				return None
 			set_log_info( logInfo, funcs[2], value )
 			i += 1
@@ -314,7 +312,7 @@ class WELogParser( LogParser ):
 			value = int( field )
 			return value
 		except:
-			print 'not a integer string', field
+			logging.debug( 'not a integer string:'+field+',fmt:'+fmt )
 			return None
 
 	def parseFloat( self, field, logInfo, fmt ):
@@ -322,7 +320,7 @@ class WELogParser( LogParser ):
 			value = float( field )
 			return value
 		except:
-			print 'not a float string', field
+			logging.debug( 'not a float string'+field+',fmt:'+fmt )
 			return None
 
 	def parseStandardTime( self, field, logInfo, fmt ):
@@ -392,7 +390,7 @@ class WELogParser( LogParser ):
 				if item:
 					fmtList.append( item )
 			else:
-				print 'error char', fmt[idx]
+				logging.error( 'error char:'+fmt[idx] )
 				break
 			nidx = fmt.find( '%', idx+off )
 			if nidx == -1:

@@ -5,7 +5,7 @@
 #*********************************************************************************************#
 #*********************************************************************************************#
 
-
+import logging
 import sys
 import signal 
 
@@ -47,7 +47,7 @@ class TestFactory( object ):
 		register_anlyser( 'test', TestFactory.__parse, TestFactory.__create, self )
 
 	def __parse( self, node ):
-		print 'parse TestFactory'
+		logging.info( 'parse TestFactory' )
 
 	def __create( self, config ):
 		anly = TestAnalyser( config )
@@ -71,7 +71,7 @@ def parse_args():
 def main():
 	if not sys.version.startswith( '2.7' ):
 		base.NEW_VERSION = False
-
+	
 	args = parse_args()
 	if not args:
 		return ;
@@ -85,15 +85,15 @@ def main():
 	parser = XactParser( )
 
 	def signal_handler(signal, frame):
-		print 'You pressed Ctrl+C!'
+		logging.info( 'You pressed Ctrl+C!' )
 		if parser is not None:
 			parser.close()
 		else:
-			print 'parser none'
+			logging.error( 'parser none' )
 		sys.exit(0)
 
 	signal.signal(signal.SIGINT, signal_handler)
-	print 'begin to parse ...'
+	logging.info( 'begin to parse ...' )
 	parser.parse( args )
 
 def profile_main():
@@ -111,15 +111,15 @@ def profile_main():
 	parser = XactParser( )
 
 	def signal_handler(signal, frame):
-		print 'You pressed Ctrl+C!'
+		logging.info( 'You pressed Ctrl+C!' )
 		if parser is not None:
 			parser.close()
 		else:
-			print 'parser none'
+			logging.error( 'parser none' )
 		sys.exit(0)
 
 	signal.signal(signal.SIGINT, signal_handler)
-	print 'begin to parse ...'
+	logging.info( 'begin to parse ...' )
 	parser.parse( args )
 
 if __name__ == '__main__':

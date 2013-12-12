@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 from base import *
 
@@ -35,8 +36,8 @@ def split_error_files( logDir ):
 			odir = os.path.join( logDir, mname )
 			mkdir( odir )
 			opath = os.path.join( odir, fileName )
-			print ipath
-			print opath
+			logging.info( 'ipath:'+ipath )
+			logging.info( 'opath:'+opath )
 			os.rename( ipath, opath )
 
 

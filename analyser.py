@@ -12,6 +12,7 @@ import sys
 #from cStringIO import StringIO
 from StringIO import StringIO
 from  xml.dom import  minidom
+import logging
 
 from base import *
 from sampler import *
@@ -57,7 +58,6 @@ class Analyser( BaseObject ):
 			self.errPath = config.outPath + '.errlog' 
 			self.fout = None
 			self.ferr = None
-			print self.fout
 		self.filter = config.filter
 
 	def set_one_process_mode( self, mode ):
@@ -65,9 +65,11 @@ class Analyser( BaseObject ):
 
 	def close_output_files( self ):
 		if self.fout is not None:
+			logging.info( 'close file:'+str(self.fout) )
 			self.fout.close()
 			self.fout = None
 		if self.ferr is not None:
+			logging.info( 'close err file:'+str(self.ferr) )
 			self.ferr.close()
 			self.ferr = None
 
@@ -77,7 +79,7 @@ class Analyser( BaseObject ):
 		self.errPath = self.outPath + '.errlog' 
 		#self.ferr = open( self.errPath, 'w' )
 		self.ferr = None
-		print self.fout
+		logging.info( 'open file:'+str(self.fout) )
 
 	def restart( self, startTime, endTime, bufTime ):
 		self.startTime = startTime
@@ -119,12 +121,12 @@ class Analyser( BaseObject ):
 			self.startTime -= startBufTime
 			returnTime = self.startTime
 
-		print func_name(), '>>sampler startTime:', str_seconds(returnTime), 'tid:', self.tid
+		logging.info( 'sampler startTime:'+str_seconds(returnTime) + ',tid:'+ str(self.tid) )
 		return returnTime
 
 	def get_sample_end_time( self, logInfo ):
 		endTime = self.align_time_to_pace( self.endTime )
-		print func_name(), '>>sampler endTime:', str_seconds(endTime), 'tid:', self.tid
+		logging.info( 'sampler endTime:'+str_seconds(endTime)+',tid:'+str(self.tid) )
 		return endTime
 
 	def analyse_log( self, logInfo ):
@@ -233,7 +235,6 @@ class BandwidthAnalyser( Analyser ):
 		servTime = logInfo.servTime / 1000000.0		#to second
 		sampleTime = logInfo.recvdTime
 		totalSent = logInfo.bytesSentAll
-		#print 'total sent:', self.totalSent, 'serv time:', self.servTime
 		band = totalSent * 8.0 / servTime / 1024 / 1024
 		band = round( band, 3 )
 		dtime = to_datetime( sampleTime )
@@ -248,7 +249,6 @@ class BandwidthAnalyser( Analyser ):
 		if servTime == 0:
 			servTime = 1
 		value = logInfo.bytesSentAll
-		#print 'servTime', servTime, 'num', num, logInfo.servTime, value
 		if self.sampler.add_sample( logInfo.recvdTime, value ) != 0:
 			return False
 		return True
@@ -273,7 +273,6 @@ class BandwidthAnalyser( Analyser ):
 				ctime = mstime
 				num = midNum
 				while ret > 0:
-					print '%%%%%%%%%%%%%%%%%%%', ret
 					ctime += ret * self.sampler.pace
 					num -= ret
 					ret = self.sampler.add_samples( ctime, value, num )
@@ -301,12 +300,12 @@ class BandwidthAnalyser( Analyser ):
 		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
 		if ret < 0:
 			if self.hasWritten:
-				print 'old log', logInfo
+				logging.debug( 'old log:'+str(logInfo) )
 			return False	#TODO
 		elif ret > 0:		#need to flash the buffer to the file
 			ctime = logInfo.recvdTime
 			while ret > 0:
-				print '%%%%%%%%%%%%%%%%%%%', ret
+				logging.debug( '%%%%%%%%%%%%%%%%%%%'+str(ret) )
 				ctime += ret * self.sampler.pace
 				num -= ret
 				ret = self.sampler.add_samples( ctime, value, num )
@@ -351,13 +350,14 @@ class BandwidthAnalyser( Analyser ):
 		if pace < 0:
 			minTime = maxTime = -1
 
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) )
 
 		self.output_head()
 		for value in blist:
 			if curTime < minTime:
 				if value != 0:
-					print '************************wrong filtering', str_seconds(curTime), str_seconds(minTime)
+					logging.warn( '************************wrong filtering'+\
+							'curTime:'+str_seconds(curTime)+',minTime:'+str_seconds(minTime) )
 				curTime += pace
 				continue
 			if maxTime > 0 and curTime > maxTime:
@@ -389,10 +389,8 @@ class BandwidthAnalyser( Analyser ):
 		return (seconds, band)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
-			#print self.sampler.slist1
-			#print self.sampler.slist2
 			self.sampler.flush()
 			self.sampler = None
 
@@ -464,7 +462,7 @@ class StatusAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) )
 
 		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
@@ -511,7 +509,7 @@ class StatusAnalyser( Analyser ):
 		return (seconds, vmap)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
@@ -578,7 +576,7 @@ class XactRateAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) ) 
 
 		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
@@ -620,7 +618,7 @@ class XactRateAnalyser( Analyser ):
 		return (seconds, value)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
@@ -694,7 +692,7 @@ class DescAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) )
 
 		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
@@ -731,7 +729,7 @@ class DescAnalyser( Analyser ):
 		return (seconds, value)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.sampler = None
@@ -787,14 +785,15 @@ class SingleAnalyser( Analyser ):
 					ret = self.sampler.add_samples( sampleTime, avalue, num )
 					if ret > 0:		#need to flash the buffer to the file
 						ctime = sampleTime
-						print func_name(), '>>', '******************need to try again*****************', ret
+						logging.warn( '>>'+'******************need to try again*****************'+str(ret) )
 						while ret > 0:
 							ctime += ret * self.sampler.pace
 							num -= ret
 							ret = self.sampler.add_samples( ctime, avalue, num )
 
 		if ret != 0:
-			print 'add sample failed', logInfo.recvdTime, sampleTime, ret, self.sampler, self.__helper.isSingleType
+			logging.debug( 'add sample failed, log time:'+str_seconds(logInfo.recvdTime)+\
+					str(sampleTime)+'ret:'+str(ret)+str(self.sampler)+str(self.__helper.isSingleType) )
 			return False
 		return True
 
@@ -837,7 +836,7 @@ class SingleAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) )
 
 		split = self.__helper.get_split()
 		minTime = self.align_time_to_pace( sampler.minTime )
@@ -864,7 +863,7 @@ class SingleAnalyser( Analyser ):
 						tstr = str_seconds( sampleTime )
 						bufio.write( tstr )
 						bufio.write( split )
-						print tstr, vstr, toAdd, pace
+						logging.debug( tstr+vstr+'toAdd:'+str(toAdd)+'pace:'+str(pace) )
 					bufio.write( vstr )
 					bufio.write( '\n' )
 					if bufio.len > 10485760:	#10Mbytes
@@ -929,7 +928,7 @@ class SingleAnalyser( Analyser ):
 		return (vtime, valList)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
 			self.sampler.flush()
 			self.__helper.on_close()
@@ -972,7 +971,7 @@ class ActiveSessionsAnalyser( Analyser ):
 		ret = self.sampler.add_samples( logInfo.recvdTime, value, num )
 		if ret < 0:
 			if self.hasWritten:
-				print 'old log', logInfo
+				logging.debug( 'old log'+str(logInfo) )
 			return False	#TODO
 		elif ret > 0:		#need to flash the buffer to the file
 			ctime = logInfo.recvdTime
@@ -1012,7 +1011,7 @@ class ActiveSessionsAnalyser( Analyser ):
 		if not time_offset:
 			toAdd = 0
 		bufio = StringIO()
-		print func_name(), '>> flush data,', self
+		logging.info( 'flush data,'+str(self) )
 
 		minTime = self.align_time_to_pace( sampler.minTime )
 		maxTime = sampler.maxTime
@@ -1052,10 +1051,8 @@ class ActiveSessionsAnalyser( Analyser ):
 		return (seconds, value)
 
 	def on_close( self ):
-		print 'close', self.__class__, self
+		logging.info( 'close'+str(self.__class__)+str(self) )
 		if self.sampler is not None:
-			#print self.sampler.slist1
-			#print self.sampler.slist2
 			self.sampler.flush()
 			self.sampler = None
 

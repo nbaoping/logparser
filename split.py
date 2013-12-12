@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from base import *
 
@@ -35,7 +36,7 @@ def split_dict( bfile, srcFile ):
 		break
 	fbase.close()
 	if kvlist is None:
-		print 'file valid', bfile
+		logging.info( 'file valid:'+str(bfile) )
 		return
 	fsrc = open( srcFile, 'r' )
 	fout = open( srcFile+'.split', 'w' )
@@ -45,7 +46,7 @@ def split_dict( bfile, srcFile ):
 			nline = 'time,' + kv[0]
 		else:
 			nline += ',' + kv[0]
-	print nline
+	logging.debug( nline )
 	fout.write( nline + '\n' )
 	for line in fsrc:
 		(time, tlist) = split_dict_line( line )
@@ -81,13 +82,13 @@ def scan_dict_files( path ):
 				bmap[name] = fpath
 			else:
 				smap[name] = fpath
-	print bmap
-	print smap
+	logging.info( bmap )
+	logging.info( smap )
 	for name in bmap.keys():
 		if name in smap:
 			bpath = bmap[name]
 			spath = smap[name]
-			print 'split dict file', spath
+			logging.debug( 'split dict file'+spath )
 			split_dict( bpath, spath )
 
 if __name__ == '__main__':

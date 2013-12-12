@@ -9,6 +9,7 @@
 import re
 import traceback
 import sys
+import logging
 
 from base import *
 from expression import *
@@ -72,7 +73,7 @@ class Filter( Expression ):
 			try:
 				return self.filter( value )
 			except:
-				traceback.print_exc()
+				logging.debug( '\n'+traceback.format_exc() )
 				return False
 
 
@@ -224,7 +225,7 @@ class BaseFilter( object ):
 			else:
 				andExp = AndExp( expList )
 				self.exp = andExp 
-		print 'parse_xml ---------------', self.exp
+		logging.debug( 'parsing filter xml '+str(self.exp) )
 		return self.exp is not None
 
 	def filter( self, logInfo ):
@@ -244,7 +245,7 @@ class BaseFilter( object ):
 	def __parse_filter( self, node ):
 		fmtNodeList = get_xmlnode( node, 'fmtName' )
 		if fmtNodeList is None or len(fmtNodeList) == 0:
-			print 'no fmtName in filter'
+			logging.warn( 'no fmtName in filter' )
 			return None
 		fmtName = get_nodevalue( fmtNodeList[0] )
 		fmtName = std_fmt_name( fmtName )
@@ -271,10 +272,10 @@ class BaseFilter( object ):
 				exp = slist[0]
 			else:
 				exp = AndExp( slist )
-		print 'expression:', exp
+		logging.debug( 'expression:'+str(exp) )
 		filter = SingleFilter( fmtName, exp )
 		expList.append( filter )
-		print 'parsed one filter', filter
+		logging.info( 'parsed one filter'+str(filter) )
 
 		return expList
 

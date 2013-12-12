@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import logging
 
 from base import *
 
@@ -19,8 +20,8 @@ def collect_output( logDir ):
 		for fileName in files:
 			ipath = os.path.join( root, fileName )
 			opath = os.path.join( cdir, mname+'_'+fileName )
-			print ipath
-			print '\t-->', opath
+			logging.info( ipath )
+			logging.info( '\t-->'+opath )
 			shutil.copyfile( ipath, opath )
 
 if __name__ == '__main__':

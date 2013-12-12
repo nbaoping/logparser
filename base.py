@@ -11,6 +11,7 @@ import os
 import inspect
 from  xml.dom import  minidom
 import traceback
+import logging
 
 import recipe
 from customer import *
@@ -19,8 +20,12 @@ NEW_VERSION = True
 
 RES_DIR = 'output'
 
+LOGGING_FORMAT = '%(asctime)s %(levelname)5s: %(filename)s:%(lineno)s[%(funcName)s]-> %(message)s'
 __TIME_FMT = '%Y/%m/%d-%H:%M:%S'
 __START_TIME = datetime( 1970, 1, 1 )
+
+def init_logging( level=logging.INFO ):
+	logging.basicConfig( level=level, format=LOGGING_FORMAT )
 
 def is_new_version( ):
 	return NEW_VERSION
@@ -83,8 +88,8 @@ def mkdir( dname ):
 		if not os.path.exists( dname ):
 			os.makedirs( dname )
 	except:
-		traceback.print_exc()
-		print 'create directory:', dname, 'failed'
+		logging.error( '\n'+traceback.format_exc() )
+		logging.error( 'create directory:'+dname+' failed' )
 
 def splitall(path):
 	allparts = []
@@ -102,7 +107,6 @@ def splitall(path):
 	return allparts
 
 def func_name():
-	#print inspect.stack()
 	return inspect.stack()[1][3]
 
 def raise_virtual( func ):
@@ -154,13 +158,14 @@ class InputArgs( BaseObject ):
 		self.enableParallel = False
 		self.numCores = -1
 		self.mergeMode = False
+		self.debugMode = 'info'
 
 	def parse_argv( self, argv ):
 		idx = 1
 		size = len(argv)
 		while idx < size:
 			if idx >= size:
-				print 'invalid input arguments'
+				logging.error( 'invalid input arguments' )
 				self.__print_usage()
 				return False
 			arg = argv[ idx ]
@@ -191,27 +196,31 @@ class InputArgs( BaseObject ):
 			elif arg == '-m':
 				self.mergeMode = True
 				idx += 1
+			elif arg == '-d':
+				self.debugMode = argv[idx+1]
+				idx += 2
 			else:
 				idx += 2
 
+		self.__set_debug_mode( self.debugMode )
 		if not self.path or not self.configPath:
-			print 'invalid input arguments'
-			print '\tlogs path and config file must be setted\n'
+			logging.error( 'invalid input arguments' )
+			logging.info( '\tlogs path and config file must be setted\n' )
 			self.__print_usage()
 			return False
 		if self.path == '%stdin%':
-			print 'will read lines from the stdin'
+			logging.info( 'will read lines from the stdin' )
 			self.path = './'
 			self.inputType = 'stdin'
 
 		if self.fmt is None and self.customer is not None:
-			print 'format not set, use customer', self.customer, ' standard format'
+			logging.info( 'format not set, use customer:'+str(self.customer)+' standard format' )
 			self.fmt = get_log_fmt( self.customer )
 		if self.fmt is not None:
 			self.fmtType = self.fmt
 			mdfmt = get_module_fmt( self.fmt, self.type )
 			if mdfmt is not None:
-				print 'using module format:', mdfmt
+				logging.info( 'using module format:'+mdfmt )
 				self.fmt = mdfmt
 				self.sorted = is_log_sorted(mdfmt)
 
@@ -219,6 +228,24 @@ class InputArgs( BaseObject ):
 			self.enableParallel = True
 
 		return True
+
+	def __set_debug_mode( self, mode ):
+		level = logging.INFO
+		if mode == 'debug':
+			level = logging.DEBUG
+		elif mode == 'info':
+			level = logging.INFO
+		elif mode == 'warn':
+			level = logging.WARN
+		elif mode == 'warning':
+			level = logging.WARNING
+		elif mode == 'error':
+			level = logging.ERROR
+		elif mode == 'critical':
+			level = logging.CRITICAL
+
+		init_logging( level )
+
 
 	def __parse_short_name_file( self, ipath ):
 		fin = open( ipath, 'r' )
@@ -233,7 +260,7 @@ class InputArgs( BaseObject ):
 			if len(shortName) > 0 and len(fmt) > 0:
 				register_log_fmt( shortName, fmt )
 			else:
-				print 'wrong shortName line', line
+				logging.error( 'wrong shortName line:'+line )
 						
 	def __print_usage( self ):
 		print 'Usage:'

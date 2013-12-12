@@ -6,6 +6,7 @@ except:
 import time
 import os
 import sys
+import logging
 
 from base import *
 from factory import *
@@ -63,16 +64,17 @@ class AnlyWorker( object ):
 		self.args = args
 
 	def run( self ):
-		print func_name(), '>> =====================process', self.tid, 'started========================'
+		logging.info( '=====================process '+str(self.tid)+' started========================' )
 		stime = time.time()
 		(totalLineCount, ofileList) = self.do_task( self.tid, self.task, self.args )
 		spent = time.time() - stime
-		print func_name(), '>> process:', self.tid, 'exit', 'parsed total lines:', totalLineCount, 'in', spent, 'seconds'
+		logging.info( 'process:'+str(self.tid)+\
+				' exit parsed total lines:'+str(totalLineCount)+' in '+str(spent)+' seconds' )
 		return (totalLineCount, ofileList)
 
 
 	def do_task( self, tid, task, args ):
-		print func_name(), '>> %%%%%%%%%%%%%%%%%%%%%%%%%%%', tid, args
+		logging.info( '%%%%%%%%%%%%%%%%%%%%%%%%%%% '+str(tid)+',args:'+str(args) )
 	
 		anlyFactory = AnalyserFactory()
 		anlyList = anlyFactory.create_from_args( args, task.startTime, task.endTime )
@@ -89,7 +91,8 @@ class AnlyWorker( object ):
 			lineCount = self.anly_file( tid, ifile )
 			totalLineCount += lineCount
 			elapsed = time.time() - startTime
-			print '===============================:', 'tid:', tid, 'elapsed:', elapsed * 1000, 'ms,', lineCount, 'lines in', ifile.path
+			logging.info( '==============================='+'tid:'+str(tid)+\
+					',elapsed:'+str(elapsed * 1000)+'ms,'+str(lineCount)+' lines in '+ifile.path )
 	
 		outputList = list()
 		for anly in anlyList:
@@ -122,17 +125,19 @@ class AnlyWorker( object ):
 			baseName = os.path.basename( anly.outPath ) + '.' + str(tid)
 			anly.outPath = os.path.join( dirName, baseName )
 			anly.open_output_files()
-			print func_name(), '>>tid:', tid, anly
+			logging.debug( 'tid:'+str(tid)+',anly:'+str(anly) )
 	
 	def __parse_line( self, line ):
 		try:
 			parser = self.parser
 			logInfo = parser.parse_line( line )
+			logging.debug( 'parsed info:'+str(logInfo) )
 			if parser.formatter is not None:
 				logInfo = parser.formatter.fmt_log( logInfo )
+				logging.debug( 'formatted info:'+str(logInfo) )
 			return logInfo
 		except:
-			traceback.print_exc()
+			logging.debug( '\n'+traceback.format_exc() )
 	
 		return None
 	
@@ -146,7 +151,7 @@ class AnlyWorker( object ):
 		return True
 	
 	def anly_file( self, tid, ifile):
-		print func_name(), 'tid:', tid, ifile
+		logging.debug( 'tid:'+str(tid)+'ifile:'+str(ifile) )
 		path = ifile.path
 		offset = ifile.offset
 		endOffset = ifile.endOffset
@@ -171,7 +176,8 @@ class AnlyWorker( object ):
 			if (lineCount%100000) == 0:
 				now = time.time()
 				spent = round(now - lastTime, 3 )
-				print func_name(), '>>', tid, 'parsed', lineCount, 'lines in', spent, 'seconds in', path
+				logging.info( 'process:'+str(tid)+' parsed '+str(lineCount)+\
+						' lines in '+str(spent)+' seconds in '+path )
 		fin.close()
 	
 		return lineCount
