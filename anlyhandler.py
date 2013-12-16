@@ -11,8 +11,21 @@ import pprocess
 from base import *
 from anlyworker import *
 
+def str_list( alist ):
+	ss = ''
+	for item in alist:
+		ss += str(item) + '\n'
+	return ss
+
+def str_map( amap ):
+	ss = ''
+	for key in amap.keys():
+		ss += str(key) + ':' + str(amap[key]) + '\n'
+	return ss
+
 class OfileMerger( BaseObject ):
 	def __init__( self, anly, ofileList ):
+		super( OfileMerger, self ).__init__( )
 		self.anly = anly 
 		self.ofileList = ofileList
 		self.bufTime = 1800
@@ -393,6 +406,7 @@ class OfileMerger( BaseObject ):
 
 class MergerHelper( BaseObject ):
 	def __init__( self, inDir, anlyList, parser ):
+		super( MergerHelper, self ).__init__( )
 		self.anlyList = anlyList
 		self.parser = parser
 		self.inDir = inDir
@@ -401,12 +415,15 @@ class MergerHelper( BaseObject ):
 		self.timeFmt = '%Y%m%d-%H%M%S' 
 
 	def merge( self ):
+		logging.info( 'merging in dir:'+self.inDir )
 		parseListList = self.__parse_file_dir( self.inDir )
-		if parseListList is None:
+		if parseListList is None or len(parseListList)==0:
+			logging.info( 'no files list got from the dir:'+self.inDir )
 			return
 
 		startTime = time.time() 
 		for parseList in parseListList:
+			logging.debug( 'got one parseList:\n'+str_list(parseList) )
 			mergerList = list()
 			for (anly, ntime, ofileList) in parseList:
 				self.__reset_anly( anly, ntime )
@@ -417,7 +434,7 @@ class MergerHelper( BaseObject ):
 			self.merge_ofiles( mergerList )
 	
 		mspent = time.time() - startTime
-		logging.debug( '=====================merge spent time:'+str(mspent)+' seconds' )
+		logging.info( '=====================merge spent time:'+str(mspent)+' seconds' )
 
 	def __reset_anly( self, anly, ntime ):
 		fileName = os.path.basename( anly.outPath )
@@ -454,11 +471,13 @@ class MergerHelper( BaseObject ):
 			flist.append( info )
 
 		pidList = sorted( pidList )
+		logging.debug( 'pidList:\n'+str_list(pidList) )
 		#sort the file list by time
 		for pid in pidList:
 			flist = fileMap[pid]
-			flist = sorted( flist, key=itemgetter(0, 1) )
+			flist = sorted( flist, key=itemgetter(0, -1) )
 			fileMap[pid] = flist
+			logging.debug( 'pid:'+str(pid)+',sorted flist:\n'+str_list(flist) )
 		
 		#parseListList = self.__parse_ofile_lists( inDir, self.anlyList, pidList, fileMap )
 		splitFileMap = self.__split_list_in_map( fileMap )
@@ -485,11 +504,13 @@ class MergerHelper( BaseObject ):
 					else:
 						#start a new cycle
 						splitList.append( cycleList )
+						logging.debug( 'pid:'+str(pid)+',add cycleList:\n'+str_list(cycleList) )
 						cycleList = list()
 						curTime = time
 						cycleList.append( info )
 			
 			if len(cycleList) > 0:
+				logging.debug( 'pid:'+str(pid)+',tail add cycleList:\n'+str_list(cycleList) )
 				splitList.append( cycleList )
 
 			fileMap[pid] = splitList
@@ -514,12 +535,15 @@ class MergerHelper( BaseObject ):
 				cycleList = slist[idx]
 				if not self.__is_list_valid( anlyList, cycleList ):
 					#this cycle is invalid, skip all the cycleLists
+					logging.debug( 'invalid cycle, skip list:\n'+str_list(cycleList) )
 					curMap = None
 					break
 				curMap[pid] = cycleList
+				logging.debug( 'pid:'+str(pid)+',add valid cycleList:\n'+str_list(cycleList) )
 			
 			idx += 1 #to another cycle
 			if curMap is not None:
+				logging.debug( 'add valid file map:\n'+str_map(curMap) )
 				mapList.append( curMap )
 
 		return mapList
@@ -538,11 +562,12 @@ class MergerHelper( BaseObject ):
 					if ntime is None:
 						ntime = info[0]
 
-					fpath = os.path.join( inDir, info[-1] )
+					fpath = os.path.join( inDir, info[3] )
 					ofile = OutputFile( fpath, None )
 					ofileList.append( ofile )
 				
 				idx += 1
+				logging.debug( 'add ofileList:\n'+str_list(ofileList) )
 				parseList.append( (anly, ntime, ofileList) )
 			
 			parseListList.append( parseList )
@@ -555,11 +580,16 @@ class MergerHelper( BaseObject ):
 			if idx >= len(cycleList):
 				return False
 
-			ninfo = self.__parse_file_name( os.path.basename(anly.outPath) )
+			fileName = os.path.basename(anly.outPath) 
+			ninfo = self.__parse_file_name( fileName )
+			if ninfo is None:
+				logging.error( 'ninfo None error with fileName:'+fileName )
+				return False
 			naid = ninfo[1]
 			info = cycleList[idx]
 			aid = info[1]
 			if naid != aid:
+				logging.info( 'aid mismatch, aid in xml:'+str(naid)+',aid in in dir:'+str(aid) )
 				return False
 			idx += 1
 
@@ -589,7 +619,7 @@ class MergerHelper( BaseObject ):
 					if ntime is None:
 						ntime = info[0]
 					if naid == aid:
-						fpath = os.path.join( inDir, info[-1] )
+						fpath = os.path.join( inDir, info[3] )
 						ofile = OutputFile( fpath, None )
 						ofileList.append( ofile )
 					else:
@@ -606,6 +636,7 @@ class MergerHelper( BaseObject ):
 
 	def __parse_file_name( self, fileName ):
 		try:
+			logging.debug( 'parse fileName:'+fileName )
 			res = self.regex.match( fileName )
 			grps = res.groups()
 			if len(grps) < 5:
@@ -620,16 +651,24 @@ class MergerHelper( BaseObject ):
 			fmt = self.timeFmt
 			dtime = strptime( timeStr, fmt )
 			time = total_seconds( dtime )
-			anlyId = aid + '_'
+			anlyId = aid 
+			anlyName = aid + '_'
 			if cid is not None:
 				anlyId += cid
-			anlyId += name
+				anlyName += cid
+			else:
+				anlyId += '0'
+			anlyName += name
+			anlyId = anlyId.rstrip( '_' )
+			anlyId = int(anlyId)
 			if pid is None:
 				pid = 0
 			else:
 				pid = int(pid)
 
-			return (time, anlyId, pid, fileName)
+			info = (time, anlyName, pid, fileName, anlyId)
+			logging.debug( 'parsed info:'+str(info) )
+			return info
 		except:
 			logging.error( '\n'+traceback.format_exc() )
 			return None
@@ -637,6 +676,7 @@ class MergerHelper( BaseObject ):
 	def __merge_task( self, merger ):
 		stime = time.time()
 		try:
+			logging.debug( 'begin mergeing with:'+str(merger) )
 			merger.merge()
 		except:
 			logging.error( '\n'+traceback.format_exc() )
@@ -644,6 +684,7 @@ class MergerHelper( BaseObject ):
 		return (merger.get_out_path(), spent)
 
 	def merge_ofiles( self, mergerList ):
+		logging.debug( 'merge all files, mergerList:'+str(mergerList) )
 		size = len(mergerList)
 		results = pprocess.Map( limit=size )
 		handler = results.manage( pprocess.MakeParallel(MergerHelper.__merge_task) )
@@ -664,6 +705,7 @@ class MergerHelper( BaseObject ):
 
 class AnlyHandler( BaseObject ):
 	def __init__( self, parser, anlyList, args ):
+		super( AnlyHandler, self ).__init__( )
 		self.parser = parser
 		self.anlyList = anlyList
 		self.args = args
