@@ -16,26 +16,86 @@ from filter import *
 
 
 class RegexParser( LogParser ):
-	def __init__( self, pattern ):
+	def __init__( self, pattern, regType='match' ):
 		self.logLevel = 0
-		self.pattern = re.compile( pattern )
-		if self.pattern is None:
+		self.regType = regType
+		self.pattern = pattern
+		self.regex = re.compile( pattern )
+		if self.regex is None:
 			raise Exception( 'invalid pattern:'+pattern )
-		logging.info( str(self.pattern)+' with pattern:'+pattern )
+		logging.info( str(self.regex)+' with pattern:'+pattern )
+		self.parseFunc = None
+		if  regType == 'match':
+			self.parseFunc = RegexParser.__parse_match
+		elif  regType == 'split':
+			self.parseFunc = RegexParser.__parse_split
+		elif  regType == 'find':
+			self.parseFunc = RegexParser.__parse_find
+		else:
+			raise Exception( 'invalid regType:'+str(regType) )
 
 	def parse_line( self, line ):
-		res = self.pattern.match( line )
+		parseFunc = self.parseFunc
+		logInfo = parseFunc( self, line )
+		if logInfo is None:
+			logging.debug( '=====================logInfo none with pattern:'+self.pattern+',line:'+line )
+			return None
+
+		return logInfo
+
+	def __set_member( self, logInfo, idx, ridx, field ):
+		fmtName = form_common_fmt_name( idx )
+		logInfo.set_member( fmtName, field )
+		fmtName = form_common_fmt_name( ridx )
+		logInfo.set_member( fmtName, field )
+
+	def __parse_match( self, line ):
+		res = self.regex.match( line )
 		if res is None:
 			logging.debug( '=====================res none'+line )
 			return None
 
 		logInfo = LogInfo()
 		idx = 0
-		for field in res.groups():
+		flist = res.groups()
+		ridx = -1 * len(flist)
+		for field in flist:
 			idx += 1
-			fmtName = form_common_fmt_name( idx )
-			logInfo.set_member( fmtName, field )
+			self.__set_member( logInfo, idx, ridx, field )
+			ridx += 1
 		return logInfo
+
+	def __parse_split( self, line ):
+		res = self.regex.split( line )
+		if res is None:
+			return None
+
+		logInfo = LogInfo()
+		idx = 0
+		ridx = -1 * len(res)
+		for field in res:
+			idx += 1
+			self.__set_member( logInfo, idx, ridx, field )
+			ridx += 1
+
+		return logInfo
+
+	def __parse_find( self, line ):
+		res = self.regex.findall( line )
+		if res is None:
+			return None
+
+		logInfo = LogInfo()
+		idx = 0
+		ridx = -1 * len(res)
+		for field in res:
+			idx += 1
+			self.__set_member( logInfo, idx, ridx, field )
+			ridx += 1
+
+		return logInfo
+
+
 
 class TimeFmt( BaseObject ):
 	def __init__( self ):
@@ -372,6 +432,7 @@ class FieldParser( BaseObject ):
 		self.filters = FmtFilters(None)
 		self.logLevel = 0
 		self.regex = None
+		self.regType = 'match'
 		self.fieldList = None
 		self.parser = None
 		self.case = None
@@ -383,7 +444,7 @@ class FieldParser( BaseObject ):
 		if self.regex is None:
 			return False
 
-		self.parser = RegexParser( self.regex )
+		self.parser = RegexParser( self.regex, self.regType )
 		return True
 
 	def parse_field( self, fieldValue ):
@@ -518,7 +579,7 @@ class LogFormatter( BaseObject ):
 					field.fieldType = 'timeFmt'
 					field.timeFmt = timeFmt
 			elif name == 'fieldFmt':
-				parser = self.__parse_field_parser_node( cnode, filters )
+				parser = self.__parse_field_fmt_node( cnode, filters )
 				if parser is not None:
 					field.fmtName = '__fieldFmt__'
 					field.fieldType = 'fieldFmt'
@@ -548,7 +609,7 @@ class LogFormatter( BaseObject ):
 			return timeFmt
 		return None
 
-	def __parse_field_parser_node( self, node, parentFilters ):
+	def __parse_field_fmt_node( self, node, parentFilters ):
 		filters = FmtFilters( parentFilters )
 		parser = FieldParser()
 		fieldList = list()
@@ -560,6 +621,12 @@ class LogFormatter( BaseObject ):
 			nodeValue = get_nodevalue( cnode )
 			if name == 'match':
 				parser.regex = nodeValue
+			elif name == 'split':
+				parser.regex = nodeValue
+				parser.regType = 'split'
+			elif name == 'find':
+				parser.regex = nodeValue
+				parser.regType = 'find'
 			elif name == 'case':
 				parser.case = nodeValue
 			elif name == 'filters':

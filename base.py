@@ -33,11 +33,16 @@ def is_new_version( ):
 def std_fmt_name( fmtName ):
 	if fmtName.startswith( '$' ):
 		nstr = fmtName[1:len(fmtName)]
+		if nstr[0] == '-':
+			nstr = nstr.replace( '-', '_' )
 		fmtName = '_commonVal' + nstr
 	return fmtName
 
 def form_common_fmt_name( num ):
-	fmtName = '_commonVal' + str(num)
+	nstr = str(num)
+	if num < 0:
+		nstr = nstr.replace( '-', '_' )
+	fmtName = '_commonVal' + nstr
 	return fmtName
 
 def is_common_fmt_name( fmtName ):

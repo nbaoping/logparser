@@ -24,6 +24,10 @@ def create_parser_from_type( args ):
 		parser = ErrorlogParser()
 	elif logType == 'regex':
 		parser = RegexParser(fmt)
+	elif logType == 'regex_split':
+		parser = RegexParser(fmt, 'split')
+	elif logType == 'regex_find':
+		parser = RegexParser(fmt, 'find')
 	
 	if parser != None:
 		parser.formatter = args.formatter

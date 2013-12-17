@@ -130,6 +130,7 @@ class SMXactCtx( TranslogCtx ):
 		register_token( '%sm_gtp', 'sm_rtspg_tps', SMXactCtx.__parse_int, self )
 		register_token( '%sm_ucp', 'sm_uns_cpu', SMXactCtx.__parse_float, self )
 		register_token( '%sm_ume', 'sm_uns_mem', SMXactCtx.__parse_int, self )
+		register_token( '%sm_tdk', 'sm_total_disk', SMXactCtx.__parse_string, self )
 
 	def __parse_string( self, field, logInfo, fmt ):
 		return field
@@ -165,6 +166,7 @@ class SMXactCtx( TranslogCtx ):
 			loadList.append( load )
 			total += load
 		loadList.append( total )
+		logInfo.sm_total_disk = total
 		dstr = ''
 		idx = 0
 		for load in loadList:
