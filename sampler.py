@@ -138,7 +138,7 @@ class Sampler( object ):
 		self.__flush_buffer()
 
 	def __add_sample( self, idx, value ):
-		logging.debug( 'add sample, idx:'+str(idx)+',value:'+str(value) )
+		logging.debug( 'add sample,idx:'+str(idx)+',tailIdx:'+str(self.tailIdx)+',value:'+str(value) )
 		if idx >= self.__total:
 			return 1
 
@@ -159,18 +159,21 @@ class Sampler( object ):
 		return self.size() == 0
 
 	def __flush_buffer( self ):
-		logging.info( 'minTime:'+str_seconds(self.minTime)+',maxTime:'+str_seconds(self.maxTime)+\
-				',total samplers:'+str(self.totalCount1)+',list len:'+str(len(self.slist1)) )
+		logging.info( 'minTime:'+str_seconds(self.minTime)+',maxTime:'+str_seconds(self.maxTime)+ \
+				',totalCount1:'+str(self.totalCount1)+',totalCount2:'+str(self.totalCount2)+\
+				',list len:'+str(len(self.slist1)) )
 		curList = self.slist1
 		#must call before change the status of the sampler
-		if not self.is_empty():
+		if self.totalCount1 > 0:
 			self.flush_cb( self.cbobj, self, curList )
+		else:
+			logging.info( 'the curList is empty, no need to flush' )
 		if self.pace > 0:
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2
 		self.slist2 = curList
-		self.totalCount1 = 0
 		self.totalCount1 = self.totalCount2
+		self.totalCount2 = 0
 		self.__clear_buffer( curList )
 
 	def __clear_buffer( self, blist ):
@@ -310,7 +313,7 @@ class MutableSampler( BaseObject ):
 		self.__flush_buffer()
 
 	def __add_sample( self, idx, value ):
-		logging.debug( 'add sample'+str(idx)+',value:'+str(value) )
+		logging.debug( 'add sample,idx:'+str(idx)+',tailIdx:'+str(self.tailIdx)+',value:'+str(value) )
 		if idx >= self.__total:
 			return 1
 		size = self.__total / 2
@@ -335,17 +338,20 @@ class MutableSampler( BaseObject ):
 
 	def __flush_buffer( self ):
 		logging.info( 'minTime:'+str_seconds(self.minTime)+',maxTime:'+str_seconds(self.maxTime)+ \
-				',total samplers:'+str(self.totalCount1)+',list len:'+str(len(self.slist1)) )
+				',totalCount1:'+str(self.totalCount1)+',totalCount2:'+str(self.totalCount2)+\
+				',list len:'+str(len(self.slist1)) )
 		curList = self.slist1
 		#must call before change the status of the sampler
-		if not self.is_empty():
+		if self.totalCount1 > 0:
 			self.flush_cb( self.cbobj, self, curList )
+		else:
+			logging.info( 'the curList is empty, no need to flush' )
 		if self.pace > 0:
 			self.startTime += self.pace * self.__total / 2
 		self.slist1 = self.slist2
 		self.slist2 = curList
-		self.totalCount1 = 0
-		self.totalCount2 = self.totalCount1
+		self.totalCount1 = self.totalCount2
+		self.totalCount2 = 0
 		self.__clear_buffer( curList )
 
 	def __clear_buffer( self, blist ):
@@ -364,8 +370,8 @@ class MutableSampler( BaseObject ):
 			idx += 1
 
 	def __str__( self ):
-		ss = 'startTime:' + str(self.startTime) + '\t'
-		ss += 'endTime:' + str(self.endTime) + '\t'
+		ss = 'startTime:' + str(self.startTime) + '->'+str_seconds(self.startTime)+'\t'
+		ss += 'endTime:' + str(self.endTime) + '->'+str_seconds(self.endTime)+'\t'
 		ss += 'pace:' + str(self.pace)
 		return ss
 

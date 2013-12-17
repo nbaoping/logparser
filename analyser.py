@@ -613,7 +613,7 @@ class XactRateAnalyser( Analyser ):
 		pace = self.pace
 		if pace < 0:
 			pace = 1
-		value = float( segs[1] )
+		value = float( segs[1] ) * pace
 
 		return (seconds, value)
 

@@ -268,7 +268,7 @@ class XactParser:
 			count += 1
 			path = item[1]
 			tstr = str_seconds( item[0] )
-			logging.info( 'analyse the '+str(count)+'th file--> ['+tstr+']'+path )
+			logging.info( 'analyse the '+str(count)+'th file--> ['+tstr+'],'+path )
 			start = time.time()
 			lineCount = self.__analyse_file( path, parser, anlyHandler )
 			totalLineCount += lineCount
