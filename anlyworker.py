@@ -80,7 +80,7 @@ class AnlyWorker( object ):
 	def do_task( self, tid, task, args ):
 		logging.info( '%%%%%%%%%%%%%%%%%%%%%%%%%%% '+str(tid)+',args:'+str(args) )
 	
-		anlyFactory = AnalyserFactory()
+		anlyFactory = AnalyserFactory( args.curTimeStr )
 		anlyList = anlyFactory.create_from_args( args, task.startTime, task.endTime )
 		self.anlyList = anlyList
 		parser = create_parser_from_type( args )

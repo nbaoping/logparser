@@ -217,7 +217,7 @@ class Analyser( BaseObject ):
 		return member in self.__dict__
 
 	def __str__( self ):
-		ss = 'anly type:' + self.atype + ', output file:' +str(self.fout)
+		ss = 'anly type:' + self.atype + ', output file:' +self.outPath+',pace:'+str(self.pace)
 		return ss
 
 

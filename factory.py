@@ -32,7 +32,7 @@ class OutputCfg( BaseObject ):
 class AnalyserFactory:
 	anlyMap = dict()
 
-	def __init__( self ):
+	def __init__( self, xmlTimeStr=None ):
 		self.__standardMap = {
 				'bandwidth' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_bandwidth),
 				'status' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_status),
@@ -46,6 +46,7 @@ class AnalyserFactory:
 				'output' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common),
 				'filter' : (AnalyserFactory.__parse_dummy, AnalyserFactory.__create_common)
 				}
+		self.xmlTimeStr = xmlTimeStr
 
 	def __get_parse_func( self, anlyType ):
 		if anlyType in self.__standardMap:
@@ -145,7 +146,10 @@ class AnalyserFactory:
 				str(gstime)+',etime:'+str(getime)+',insertValue:'+str(insertValue)+',outPath:'+str(outPath) )
 		count = 0
 		total = 0
-		curTimeStr = cur_timestr() + '_'
+		if self.xmlTimeStr is None:
+			curTimeStr = cur_timestr() + '_'
+		else:
+			curTimeStr = self.xmlTimeStr + '_'
 		curTimeStr = curTimeStr.replace( '/', '' )
 		curTimeStr = curTimeStr.replace( ':', '' )
 		for node in anlyNodes:
