@@ -431,7 +431,7 @@ class RawOutputHelper( AnalyserHelper ):
 
 		(valList, offset) = self.__read_fmt_list( vstr, offset, split )
 		item = (sampleTime, valList)
-		return ( sampleValue, [item], offset)
+		return ( sampleTime, [item], offset)
 
 	def __write_fmt_list( self, bufio, vlist, split ):
 		num = 0

@@ -924,8 +924,8 @@ class SingleAnalyser( Analyser ):
 			return (vtime, valList)
 
 		self.__helper.parser = self.parser
-		(vtime, valList, offset) = self.__helper.value_str( vstr, offset, split )
-		return (vtime, valList)
+		(vtime, itemList, offset) = self.__helper.value_str( vstr, offset, split )
+		return (vtime, itemList)
 
 	def on_close( self ):
 		logging.info( 'close'+str(self.__class__)+str(self) )
