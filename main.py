@@ -71,6 +71,8 @@ def parse_args():
 def main():
 	if not sys.version.startswith( '2.7' ):
 		base.NEW_VERSION = False
+		#for old version, the funcName may not support
+		base.LOGGING_FORMAT = '%(asctime)s %(levelname)5s: %(filename)s:%(lineno)s-> %(message)s'
 	
 	args = parse_args()
 	if not args:
