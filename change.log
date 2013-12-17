@@ -2,6 +2,47 @@
 ===============================================================================
 
 
+version 3.2.5 2013/12/11
+
+Features:
+1. add model debug level control in the code
+	add debug levels: debug, info, warning, error, critical
+2. add support to merge from 'tmp/' directory directly
+3. add 'split' and 'findAll' in regular parsing, including formatter and regexparser
+
+
+Bugs:
+1. fmtName is like 'CACHE_MISS' in map's output will make merge failed
+	FIX: replace split '_' to ':'
+2. merge fails when map output has child average output
+	RC: parse map head fails
+3. invalid file header of the map output's child output when it's the last log field of the log line
+	RC: log line doesn't get stripped before parsing when using multiple cores
+4. sometimes processes exit before merging
+	#defensive fix
+	using feature 2: merge from 'tmp/' directly, since the 'tmp/' is complete even the bug happens
+5. RawOutputHelper cannot support merge
+6. only needs list the log files not walk all files recursively in log directory
+7. one more out lines in output file when pace is -1
+	RC: when is empty, the sampler flush still
+	FIX: no flush_cb when is empty
+8. for XactRateAnalyser, no anly_negative_pace function when pace is -1
+9. when merging directly from tmp/, if may not sort right when the analyser has no inter-count
+	FIX: add anlyId support to identy each analyser by sequence
+10. merge not work for RawOutputHelper
+11. [FATAL] in sampler, when flush the second list, it is always empty
+	RC: wrong assignment to set the second sample count to the current list
+	FIX: give the right assignment
+12. in XactRateAnalyser, it's wrong when using multiple processes optimization
+	RC: forget to multiple the pace when decoding
+	FIX: multiple the pace
+13. the logparser cannot work after the debug level feature
+	RC: old version python does not support funcname in log format
+14. merging directly from tmp/ fails when using different core numbers
+
+===============================================================================
+
+
 version 3.2.4 2013/12/03
 Features:
 1. add block value support, like ifblock

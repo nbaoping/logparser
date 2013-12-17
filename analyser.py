@@ -218,6 +218,7 @@ class Analyser( BaseObject ):
 
 	def __str__( self ):
 		ss = 'anly type:' + self.atype + ', output file:' +self.outPath+',pace:'+str(self.pace)
+		ss += ',startTime:' + str_seconds(self.startTime) + ',endTime:'+str_seconds(self.endTime)
 		return ss
 
 

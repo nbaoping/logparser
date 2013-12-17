@@ -1,7 +1,7 @@
 <!-- translog is the root element -->
 <translog>
   <!-- startTime means we only calculate the logs starting from this time -->
-  <startTime>2013/11/10-19:00:00</startTime>
+  <!--startTime>2013/11/10-19:00:00</startTime-->
  <!-- analyser is the basic unit that defines how to parse and what to output-->
   <analyser>
  <!-- the type defines the analyser type

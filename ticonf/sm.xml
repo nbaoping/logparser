@@ -1,0 +1,42 @@
+
+<translog>
+  <formatter>
+    <field>
+      <expValue>(@recvdTime)+3600</expValue>
+      <fmtName>recvdTime</fmtName>
+      <type>int</type>
+    </field>
+  <field>
+    <!-- convert the memory to GB -->
+    <expValue>(@sm_web_mem)/1024.0/1024.0/1024.0</expValue>
+      <fmtName>sm_web_mem</fmtName>
+      <type>float</type>
+    </field>
+  </formatter>
+  <analyser>
+    <outputs>
+      <output>
+        <fmtName>sm_cpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_mem</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_total_disk</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_web_cpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_web_mem</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_web_sessions</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_web_upstreams</fmtName>
+      </output>
+    </outputs>
+    <pace>2</pace>
+  </analyser>
+</translog>

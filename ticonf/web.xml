@@ -1,0 +1,119 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- pace using the translog will influence every analyser
+   unless analyser has its onw pace -->
+  <pace>1</pace>
+  <formatter>
+    <filters>
+      <id>ft1</id>
+      <filter>
+        <fmtName>description</fmtName>
+        <keyword>HIT</keyword>
+      </filter>
+    </filters>
+    <filters>
+      <!-- use to check if it's HLS segment -->
+      <id>ft2</id>
+      <filter>
+        <fmtName>urlAll</fmtName>
+        <keyword>.ts</keyword>
+      </filter>
+    </filters>
+    <filters>
+      <!-- use to check if it's HSS segment -->
+      <id>ft3</id>
+      <filter>
+        <fmtName>urlAll</fmtName>
+        <keyword>qualitylevels</keyword>
+      </filter>
+    </filters>
+
+
+    <field>
+      <blockValue>
+        <if con="@ft1">
+          <value>CACHE_HIT</value>
+        </if>
+        <else>
+          <value>CACHE_MISS</value>
+        </else>
+      </blockValue>
+      <fmtName>cacheStatus</fmtName>
+    </field>
+
+    <field>
+      <value>(@urlAll)</value>
+      <fmtName>urlAll</fmtName>
+      <type>lowercase</type>
+    </field>
+    <field>
+      <blockValue>
+        <if con="@ft3">
+          <expValue>(@bytesSentAll)*8/2/1024</expValue>
+        </if>
+        <elif con="@ft2">
+          <expValue>(@bytesSentAll)*8/10/1024</expValue>
+        </elif>
+        <else>
+          <value>0</value>
+        </else>
+      </blockValue>
+      <fmtName>qualitylevels</fmtName>
+      <type>int</type>
+    </field>
+  </formatter>
+  <!-- analyser is the basic unit that defines how to parse and what to output-->
+  <analyser>
+    <type>counter</type>
+    <type>activeSessions</type>
+    <outputs>
+      <output>
+        <fmtName>status</fmtName>
+        <expType>map</expType>
+      </output>
+    </outputs>
+  </analyser>
+  <analyser>
+    <type>bandwidth</type>
+    <outputs>
+      <output>
+        <fmtName>cacheStatus</fmtName>
+        <expType>map</expType>
+      </output>
+    </outputs>
+    <pace>10</pace>
+  </analyser>
+  <analyser>
+    <outputs>
+      <output>
+        <fmtName>servTime</fmtName>
+        <expType>average</expType>
+      </output>
+    </outputs>
+    <filters>
+      <filter>
+        <fmtName>bytesSentAll</fmtName>
+        <high>10000000</high>
+      </filter>
+    </filters>
+    <pace>5</pace>
+  </analyser>
+  <analyser>
+    <outputs>
+      <output>
+        <fmtName>qualitylevels</fmtName>
+        <expType>average</expType>
+      </output>
+    </outputs>
+    <filters>
+      <filter>
+        <fmtName>qualitylevels</fmtName>
+        <notExp>
+          <equal>0</equal>
+        </notExp>
+      </filter>
+    </filters>
+    <pace>5</pace>
+  </analyser>
+</translog>
+

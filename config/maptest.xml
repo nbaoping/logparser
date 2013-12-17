@@ -1,0 +1,15 @@
+<translog>
+	<pace>1</pace>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>status</fmtName>
+				<expType>map</expType>
+				<output>
+					<fmtName>servTime</fmtName>
+					<expType>average</expType>
+				</output>
+			</output>
+		</outputs>
+	</analyser>
+</translog>

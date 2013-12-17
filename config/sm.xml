@@ -1,30 +1,40 @@
 
 <translog>
-		<formatter>
-			<field>
-				<expValue>(%Z)+3600</expValue>
-				<fmtName>recvdTime</fmtName>
-				<type>int</type>
-			</field>
-		</formatter>
-	<!--
-	<analyser>
-		<outputs>
-			<output>
-				<fmtName>servTime</fmtName>
-			</output>
-			<output>
-				<fmtName>servTime</fmtName>
-				<expType>max</expType>
-			</output>
-			<output>
-				<fmtName>status</fmtName>
-			</output>
-		</outputs>
-		<type>consumed</type>
-		<pace>1</pace>
-	</analyser>
-	-->
+	<formatter>
+		<field>
+			<expValue>(%Z)+3600</expValue>
+			<fmtName>recvdTime</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<value>(%sm_pdk)</value>
+			<fieldFmt>
+				<split>\|</split>
+				<field>
+					<value>($-1)</value>
+					<fmtName>totalDisk</fmtName>
+				</field>
+				<field>
+					<value>($-12)</value>
+					<fmtName>diskUsage1</fmtName>
+				</field>
+			</fieldFmt>
+		</field>
+		<field>
+			<value>(%sm_pdk)</value>
+			<fieldFmt>
+				<find>[^|]+</find>
+				<field>
+					<value>($-1)</value>
+					<fmtName>totalDiskF</fmtName>
+				</field>
+				<field>
+					<value>($-12)</value>
+					<fmtName>diskUsage1F</fmtName>
+				</field>
+			</fieldFmt>
+		</field>
+	</formatter>
 	<analyser>
 		<outputs>
 			<output>
@@ -50,6 +60,9 @@
 			</output>
 			<output>
 				<fmtName>sm_web_upstreams</fmtName>
+			</output>
+			<output>
+				<fmtName>totalDisk</fmtName>
 			</output>
 			<output>
 				<fmtName>sm_perdisk</fmtName>

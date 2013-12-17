@@ -1,8 +1,7 @@
 
 <translog>
-	<startTime>2013/11/26-02:00:00</startTime>
-	<endTime>2013/11/26-12:00:00</endTime>
 	<!--outPath>../hlstest/output/web</outPath-->
+	<pace>10</pace>
 	<formatter>
 		<filters>
 			<id>ft1</id>
@@ -33,17 +32,18 @@
 			<output>
 				<fmtName>cacheStatus</fmtName>
 				<expType>map</expType>
+				<output>
+					<fmtName>servTime</fmtName>
+					<expType>average</expType>
+				</output>
 			</output>
 		</outputs>
-		<pace>5</pace>
 	</analyser>
 	<analyser>
 		<type>activeSessions</type>
-		<pace>5</pace>
 	</analyser>
 	<analyser>
 		<type>bandwidth</type>
-		<pace>10</pace>
 	</analyser>
 	<analyser>
 		<outputs>
@@ -52,6 +52,5 @@
 				<expType>map</expType>
 			</output>
 		</outputs>
-		<pace>5</pace>
 	</analyser>
 </translog>

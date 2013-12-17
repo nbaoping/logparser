@@ -1,14 +1,6 @@
 <translog>
 	<analyser>
-		<type>assemble</type>
-		<pace>1</pace>
-		<!--
-		<filters>
-			<filter>
-				<fmtName>originLine</fmtName>
-				<keyword>0x80cf710</keyword>
-			</filter>
-		</filters>
-		-->
+		<type>xactrate</type>
+		<pace>-1</pace>
 	</analyser>
 </translog>
