@@ -1,11 +1,13 @@
 
 <translog>
+	<startTime>2014/01/31-05:00:00</startTime>
+	<endTime>2014/01/31-12:00:00</endTime>
   <formatter>
-    <field>
+    <!--field>
       <expValue>(@recvdTime)+3600</expValue>
       <fmtName>recvdTime</fmtName>
       <type>int</type>
-    </field>
+    </field-->
   <field>
     <!-- convert the memory to GB -->
     <expValue>(@sm_web_mem)/1024.0/1024.0/1024.0</expValue>
@@ -19,7 +21,7 @@
         <fmtName>sm_cpu</fmtName>
       </output>
       <output>
-        <fmtName>sm_mem</fmtName>
+        <fmtName>sm_web_sessions</fmtName>
       </output>
       <output>
         <fmtName>sm_total_disk</fmtName>
@@ -28,13 +30,34 @@
         <fmtName>sm_web_cpu</fmtName>
       </output>
       <output>
+        <fmtName>sm_ds_cpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_ms_rtsp</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_fms_connections</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_wmt_mlcpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_wmt_ccpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_wmt_unicasts</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_uns_cpu</fmtName>
+      </output>
+      <output>
         <fmtName>sm_web_mem</fmtName>
       </output>
       <output>
-        <fmtName>sm_web_sessions</fmtName>
+        <fmtName>sm_web_upstreams</fmtName>
       </output>
       <output>
-        <fmtName>sm_web_upstreams</fmtName>
+        <fmtName>sm_mem</fmtName>
       </output>
     </outputs>
     <pace>2</pace>

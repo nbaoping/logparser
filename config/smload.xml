@@ -1,0 +1,39 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- pace using the translog will influence every analyser
+   unless analyser has its onw pace -->
+  <pace>1</pace>
+  <!--startTime>2013/08/05-02:50:00</startTime-->
+  <formatter>
+	  <strict>1</strict>
+	  <field>
+		  <value>(@originLine)</value>
+		  <fieldFmt>
+			  <match>.+[-][&gt;]\s(.+)\sload\s+(\d+)</match>
+			  <field>
+				  <value>($1)</value>
+				  <fmtName>statType</fmtName>
+			  </field>
+			  <field>
+				  <value>($2)</value>
+				  <fmtName>load</fmtName>
+				  <type>int</type>
+			  </field>
+		  </fieldFmt>
+	  </field>
+  </formatter>
+  <!-- analyser is the basic unit that defines how to parse and what to output-->
+  <analyser>
+    <outputs>
+      <output>
+        <fmtName>statType</fmtName>
+		<expType>map</expType>
+		<output>
+			<fmtName>load</fmtName>
+			<expType>average</expType>
+		</output>
+      </output>
+    </outputs>
+  </analyser>
+</translog>
+

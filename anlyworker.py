@@ -13,6 +13,7 @@ from factory import *
 from anlyhandler import *
 from logparser import *
 from regexformat import *
+from errorlog import *
 
 def create_parser_from_type( args ):
 	parser = None

@@ -1,0 +1,15 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- startTime means we only calculate the logs starting from this time -->
+  <startTime>2013/11/10-19:00:00</startTime>
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+  <analyser>
+ <!-- the type defines the analyser type
+here the counter type stat how many requests during one sample pace -->
+    <type>counter</type>
+ <!-- the pace means that how long we will take a sample
+        take a 1 second to make sure we get the TPS -->
+    <pace>1</pace>
+  </analyser>
+</translog>
+

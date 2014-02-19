@@ -1,0 +1,30 @@
+
+
+<translog>
+	<pace>5</pace>
+	<formatter>
+		<field>
+			<value>(@wi_url)</value>
+			<fieldFmt>
+				<match>http://(.*?)/\S*</match>
+				<field>
+					<value>($1)</value>
+					<fmtName>ofqdn</fmtName>
+				</field>
+			</fieldFmt>
+		</field>
+	</formatter>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>ofqdn</fmtName>
+				<expType>map</expType>
+				<output>
+					<fmtName>wi_read</fmtName>
+					<expType>timeAverage</expType>
+					<unitRate>0.0000076294</unitRate>
+				</output>
+			</output>
+		</outputs>
+	</analyser>
+</translog>
