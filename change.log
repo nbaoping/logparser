@@ -4,6 +4,10 @@
 
 version 3.2.6 2013/12/20-
 
+Features:
+1. add 'func' support for field format
+	E.g. <func args="0;2">substr</func>
+
 Bugs:
 1. merging directly not right when set start time in xml
 	#TODO

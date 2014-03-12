@@ -1,0 +1,131 @@
+<!-- translog is the root element -->
+<translog>
+  <!--startTime>2014/02/17-00:00:00</startTime-->
+  <pace>-1</pace>
+
+  <formatter>
+	  <!--strict>1</strict-->
+		<!--logTime>
+		  <value>($3)-($4)</value>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d-%H:%M:%S</fmt>
+			</timeFmt>
+		</logTime-->
+	  <field>
+		  <value>1000000</value>
+		  <fmtName>recvdTime</fmtName>
+		  <type>int</type>
+	  </field>
+	  <field>
+		  <value>($1)</value>
+		  <fmtName>contentType</fmtName>
+	  </field>
+	  <field>
+		  <value>($2)</value>
+		  <fmtName>priority</fmtName>
+		  <type>float</type>
+	  </field>
+	  <field>
+		  <value>($5)</value>
+		  <fmtName>fileSize</fmtName>
+		  <type>int</type>
+	  </field>
+	  <field>
+		  <value>($6)</value>
+		  <fmtName>hitCount</fmtName>
+		  <type>int</type>
+	  </field>
+	  <field>
+		  <value>($7)</value>
+		  <fmtName>url</fmtName>
+	  </field>
+	  <field>
+		  <value>($8)</value>
+		  <fmtName>diskPath</fmtName>
+	  </field>
+    <field>
+      <value>(@diskPath)</value>
+      <fieldFmt>
+		  <match>/(.*?)/.*?/(.*?)/.*?/.*?/(.*?)/.*</match>
+        <field>
+          <value>($1)</value>
+          <fmtName>disk</fmtName>
+        </field>
+        <field>
+          <value>($2)</value>
+          <fmtName>fqdn</fmtName>
+        </field>
+        <field>
+          <value>(@disk)_(@fqdn)</value>
+          <fmtName>diskFqdn</fmtName>
+        </field>
+        <field>
+          <value>($3)</value>
+          <fmtName>hashVal</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+		  <value>(@hashVal)</value>
+		  <func args="0;2">substr</func>
+          <fmtName>dir1</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+		  <value>(@hashVal)</value>
+		  <func args="0;4">substr</func>
+          <fmtName>dir2</fmtName>
+        </field>
+      </fieldFmt>
+    </field>
+  </formatter>
+
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+ <analyser>
+   <outputs>
+   <output>
+	   <expType>count</expType>
+   </output>
+   </outputs>
+   </analyser>
+ <analyser>
+   <outputs>
+     <output>
+       <fmtName>diskFqdn</fmtName>
+	   <expType>map</expType>
+   </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>diskFqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>hashVal</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>diskFqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>dir1</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>diskFqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>dir2</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+ </outputs>
+
+  </analyser>
+</translog>
+

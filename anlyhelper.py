@@ -580,7 +580,6 @@ class OutCountHelper( AnalyserHelper ):
 	
 	def update_value( self, oldValue, sampleValue ):
 		value = oldValue + sampleValue
-
 		return value
 
 	def exclude_value( self, value ):

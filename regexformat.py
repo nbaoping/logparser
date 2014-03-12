@@ -13,6 +13,7 @@ import logging
 from base import *
 from logparser import *
 from filter import *
+from fieldfunc import *
 
 
 class RegexParser( LogParser ):
@@ -383,6 +384,8 @@ class FmtField( BaseObject ):
 		super(FmtField, self).__init__()
 		self.filters = FmtFilters(None)	#make sure all filters can be linked
 		self.fieldValue = None
+		self.fieldFunc = None
+		self.funcArgList = None
 		self.fmtName = None
 		self.fieldType = 'string'
 		self.unitRate = 1
@@ -402,7 +405,23 @@ class FmtField( BaseObject ):
 		if value is None:
 			logging.debug( 'error, failed to format field' )
 			return False
+		if self.fieldFunc is not None:
+			argList = self.__parse_arg_list( self.funcArgList, logInfo )
+			value = self.fieldFunc( value, argList )
 		return self.__fmt_value( logInfo, self.fmtName, value )
+
+	def __parse_arg_list( self, funcArgList, logInfo ):
+		if funcArgList is None or len(funcArgList) == 0:
+			return None
+
+		argList = list()
+		for (bvalue,isBasic) in funcArgList:
+			arg = bvalue
+			if isBasic:
+				arg = bvalue.form_value( logInfo )
+			argList.append( arg )
+
+		return argList
 
 	def __fmt_value( self, logInfo, fmtName, value ):
 		ftype = self.fieldType
@@ -551,6 +570,8 @@ class LogFormatter( BaseObject ):
 		filters = FmtFilters( parentFilters )
 		field =  FmtField()
 		fieldValue = None
+		fieldFunc = None
+		funcArgList = None
 		for cnode in node.childNodes:
 			name = cnode.nodeName
 			if name.startswith( '#' ):
@@ -564,6 +585,12 @@ class LogFormatter( BaseObject ):
 			elif name == 'blockValue':
 				bparser = BlockParser( filters )
 				fieldValue = bparser.parse_block( cnode )
+			elif name == 'func':
+				fieldFunc = get_field_func( nodeValue )
+				if has_attr( cnode, 'args' ):
+					astr = get_attrvalue( cnode, 'args' )
+					funcArgList = self.__parse_func_arg_list( astr )
+					funcArgList = fmt_func_arg_list( nodeValue, funcArgList )
 			elif name == 'filters':
 				bfilter = BaseFilter()
 				ret = bfilter.parse_xml( cnode )
@@ -588,9 +615,32 @@ class LogFormatter( BaseObject ):
 				field.unitRate = float(nodeValue)
 
 		field.fieldValue = fieldValue
+		field.fieldFunc = fieldFunc
+		field.funcArgList = funcArgList
 		field.filters = filters
 		field.init_field()
 		return field
+
+	def __parse_func_arg_list( self, astr ):
+		segs = astr.split( ';' )
+		if len(segs) == 0:
+			return None
+
+		argList = list()
+		for item in segs:
+			arg = item
+			if len(item) == 0:
+				arg = None
+			val = BasicValue( arg, False )
+			isBasic = True
+			try:
+				val = val.form_value( None )
+				isBasic = False
+			except:
+				pass
+			argList.append( (val, isBasic) )
+
+		return argList
 
 	def __parse_time_fmt_node( self, node ):
 		timeFmt = TimeFmt()

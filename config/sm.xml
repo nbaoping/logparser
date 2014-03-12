@@ -2,7 +2,7 @@
 <translog>
 	<formatter>
 		<field>
-			<expValue>(%Z)+3600</expValue>
+			<expValue>(%Z)-3*3600</expValue>
 			<fmtName>recvdTime</fmtName>
 			<type>int</type>
 		</field>
@@ -20,7 +20,7 @@
 				</field>
 			</fieldFmt>
 		</field>
-		<field>
+		<!--field>
 			<value>(%sm_pdk)</value>
 			<fieldFmt>
 				<find>[^|]+</find>
@@ -33,7 +33,7 @@
 					<fmtName>diskUsage1F</fmtName>
 				</field>
 			</fieldFmt>
-		</field>
+		</field-->
 	</formatter>
 	<analyser>
 		<outputs>

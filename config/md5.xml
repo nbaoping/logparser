@@ -27,10 +27,16 @@
         <field>
           <!-- 'value' is the composition of one or more log fields which will be formatted to a new log field -->
 		  <value>($1)</value>
+		  <func>md5</func>
           <!-- set the 'fmtName' for the new log field -->
           <fmtName>seName</fmtName>
           <!-- if the 'type' is not set, take the default 'string' type, so the 'value' is directly assigned to the new log field 'seName' value -->
-        </field>
+	  </field>
+	  <field>
+		  <value>(@seName)</value>
+		  <func args='0;2'>substr</func>
+		  <fmtName>dir1</fmtName>
+	  </field>
         <field>
           <!-- just the same as above field -->
           <value>($2)</value>

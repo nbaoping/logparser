@@ -1,0 +1,10 @@
+<translog>
+	<pace>-1</pace>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>wi_url</fmtName>
+			</output>
+		</outputs>
+	</analyser>
+</translog>

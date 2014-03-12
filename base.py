@@ -117,6 +117,9 @@ def func_name():
 def raise_virtual( func ):
 	raise Exception( 'derived must implement '+func+' virtual function' )
 
+def has_attr(node, attrname):
+	return node.hasAttribute( attrname )
+
 def get_attrvalue(node, attrname):
      return node.getAttribute(attrname).encode('utf-8','ignore')
 
