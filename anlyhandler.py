@@ -790,7 +790,9 @@ class AnlyHandler( BaseObject ):
 	def parse_log( self, line, force = False ):
 		logInfo = self.__parse_line( line )
 		if logInfo is None:
+			logging.error( '*******'+line )
 			return False
+
 		for anly in self.anlyList:
 			anly.analyse_log( logInfo )
 
@@ -806,8 +808,8 @@ class AnlyHandler( BaseObject ):
 				logging.debug( 'formatted info:'+str(logInfo) )
 			return logInfo
 		except:
-			logging.debug( line )
-			logging.debug( '\n'+traceback.format_exc() )
+			logging.error( line )
+			logging.error( '\n'+traceback.format_exc() )
 
 		return None
 
@@ -1088,6 +1090,7 @@ class AnlyHandler( BaseObject ):
 		return taskList
 
 	def __align_file_offset( self, path, offset ):
+		logging.debug( 'align offset:'+str(offset) )
 		fin = open( path, 'r' )
 		fin.seek( offset, 0 )
 		ntime = -1
@@ -1098,9 +1101,11 @@ class AnlyHandler( BaseObject ):
 				ntime = logInfo.recvdTime
 				break
 			except:
+				traceback.print_exc()
 				offset += len(line)
 
 		fin.close()
+		logging.debug( 'aligned offset:'+str(offset) )
 		return (offset, ntime )
 
 

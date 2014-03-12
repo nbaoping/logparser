@@ -167,7 +167,7 @@ class XactParser:
 				ss = tmp
 			else:
 				ss += ', ' + tmp
-		logging.debug( '\t', ss )
+		logging.debug( '\t'+ss )
 
 	def __sample_files_old( self, fileList, anlyList ):
 		stime = -1
@@ -220,7 +220,7 @@ class XactParser:
 		sidx = -1
 		eidx = 0
 		size = len(fileList)
-		logging.debug( str(fileList[0][0])+str(fileList[-1][0]) )
+		logging.debug( str(fileList[0][0])+', '+str(fileList[-1][0]) )
 		while eidx < size:
 			time = fileList[eidx][0]
 			if stime > 0 and sidx < 0 and time > stime:

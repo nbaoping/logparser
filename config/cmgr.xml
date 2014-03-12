@@ -1,0 +1,113 @@
+<!-- translog is the root element -->
+<translog>
+  <!-- startTime means we only calculate the logs starting from this time -->
+  <startTime>2014/02/17-00:00:00</startTime>
+  <!-- pace using the translog will influence every analyser
+     unless analyser has its onw pace -->
+  <pace>-1</pace>
+
+  <!-- the formatter is used to get any info from the parsed log fields -->
+  <formatter>
+    <!-- when strict is 1, all the logs that fail to be formatted will be skipped; or, no log will be skipped -->
+    <strict>1</strict>
+	<!-- one field is stands for one parsed log field -->
+	<field>
+		<value>1</value>
+		<func args="0;23">rand</func>
+		<fmtName>disk</fmtName>
+	</field>
+    <field>
+      <!-- an example HSS url -->
+      <!--http://se-rm4-10.se.pctvvod.mediasetpremium.alice.cdn.interbusiness.it/asset04/2013/10/pctv_47579.ism/qualitylevels(1600000)/fragments(video=9840000000)-->
+    <!-- 'value' is the composition of one or more log fields which will be formatted to a new log field -->
+    <!-- the '%u' stands for the 'urlAll' log field -->
+      <value>(%u)</value>
+      <!-- fieldFmt is used to format the 'value' -->
+      <fieldFmt>
+        <!-- 'lower' will make the url to lowercase first, 'upper' to uppercase first -->
+        <case>lower</case>
+        <!-- match contains the regulat expression that used to match the url. All the parts in parentheses can be retrieved -->
+		<match>http://(\S+\.se\.)?(.*?)/(.*/)(.*)</match>
+        <!-- field here is used to format the retrieved parts from the regulat expression -->
+        <field>
+          <!-- just the same as above field -->
+          <value>($2)</value>
+          <fmtName>fqdn</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+          <value>($3)</value>
+          <fmtName>filePath</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+		  <value>(@filePath)</value>
+		  <func>md5</func>
+          <fmtName>hashVal</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+		  <value>(@hashVal)</value>
+		  <func args="0;2">substr</func>
+          <fmtName>dir1</fmtName>
+        </field>
+        <field>
+          <!-- just the same as above field -->
+		  <value>(@hashVal)</value>
+		  <func args="2;4">substr</func>
+          <fmtName>dir2</fmtName>
+        </field>
+      </fieldFmt>
+    </field>
+  </formatter>
+
+ <!-- analyser is the basic unit that defines how to parse and what to output-->
+ <analyser>
+   <outputs>
+     <output>
+       <fmtName>fqdn</fmtName>
+	   <expType>map</expType>
+	   <sort>1</sort>
+     </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>fqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>hashVal</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>fqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>dir1</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+   </outputs>
+   <outputs>
+     <output>
+       <fmtName>fqdn</fmtName>
+	   <expType>map</expType>
+	   <output>
+		   <fmtName>dir2</fmtName>
+		   <expType>amount</expType>
+	   </output>
+     </output>
+ </outputs>
+
+ <filters>
+	 <filter>
+		 <fmtName>disk</fmtName>
+		 <equal>0</equal>
+	 </filter>
+ </filters>
+
+  </analyser>
+</translog>
+

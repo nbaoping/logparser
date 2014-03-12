@@ -46,6 +46,7 @@ class LogParser( object ):
 class LogInfo( object ):
 	def __init__( self ):
 		self.servTime = 0
+		self.recvdTime = 0
 		self._commonIndex = 0
 	
 	def set_member( self, mname, value ):
