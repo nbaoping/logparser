@@ -92,6 +92,8 @@ class SMXactCtx( TranslogCtx ):
 		register_token( '%sm_fdk', 'sm_fail_disk', SMXactCtx.__parse_string, self )
 		register_token( '%sm_pdk', 'sm_perdisk', SMXactCtx.__parse_disk_load, self )
 		register_token( '%sm_bnd', 'sm_bandwidth', SMXactCtx.__parse_interface_usage, self )
+		register_token( '%sm_bndin', 'sm_bandwidth_in', SMXactCtx.__parse_string, self )
+		register_token( '%sm_bndout', 'sm_bandwidth_out', SMXactCtx.__parse_string, self )
 		register_token( '%sm_fdc', 'sm_fdcount', SMXactCtx.__parse_int, self )
 		register_token( '%sm_tsv', 'sm_tcp_server', SMXactCtx.__parse_int, self )
 		register_token( '%sm_tcl', 'sm_tcp_client', SMXactCtx.__parse_int, self )
@@ -184,6 +186,15 @@ class SMXactCtx( TranslogCtx ):
 			iusage = int( isegs[1] )
 			ousage = int( isegs[2] )
 			usageList.append( (iusage, ousage) )
+		
+		inband = 0
+		outband = 0
+		for (iu, ou) in usageList:
+			inband += iu
+			outband += ou
+
+		logInfo.sm_bandwidth_in = inband
+		logInfo.sm_bandwidth_out = outband
 
 		istr = ''
 		ostr = ''
@@ -195,7 +206,7 @@ class SMXactCtx( TranslogCtx ):
 			istr += str(item[0])
 			ostr += str(item[1])
 			idx += 1
-		return istr + ';' + ostr
+		return istr + '^' + ostr
 
 
 class WEXactCtx( TranslogCtx ):
