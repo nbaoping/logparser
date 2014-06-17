@@ -24,7 +24,6 @@ Bugs:
 	workaround: set the min sample num to 1000
 4. no originLine for other log parsers expect LogParser
 5. for regexformat, when parsing expection, the variable value is not init
-6. 
 
 ===============================================================================
 
