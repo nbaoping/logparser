@@ -251,7 +251,8 @@ class InputArgs( BaseObject ):
 			level = logging.ERROR
 		elif mode == 'critical':
 			level = logging.CRITICAL
-
+		
+		print 'set debug mode:', mode, 'with level:', level
 		init_logging( level )
 
 

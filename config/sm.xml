@@ -1,11 +1,13 @@
 
 <translog>
+	<startTime>2014/04/19-00:00:00</startTime>
+	<pace>2</pace>
 	<formatter>
-		<field>
+		<!--field>
 			<expValue>(%Z)-3*3600</expValue>
 			<fmtName>recvdTime</fmtName>
 			<type>int</type>
-		</field>
+		</field-->
 		<field>
 			<value>(%sm_pdk)</value>
 			<fieldFmt>
@@ -13,6 +15,7 @@
 				<field>
 					<value>($-1)</value>
 					<fmtName>totalDisk</fmtName>
+					<type>float</type>
 				</field>
 				<field>
 					<value>($-12)</value>
@@ -38,36 +41,61 @@
 	<analyser>
 		<outputs>
 			<output>
+				<fmtName>sm_disk</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
 				<fmtName>sm_cpu</fmtName>
+				<expType>average</expType>
 			</output>
 			<output>
 				<fmtName>sm_mem</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_kmem</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_disk</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_web_cpu</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_web_requests</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_web_sessions</fmtName>
-			</output>
-			<output>
-				<fmtName>sm_web_upstreams</fmtName>
+				<expType>average</expType>
 			</output>
 			<output>
 				<fmtName>totalDisk</fmtName>
+				<expType>average</expType>
 			</output>
 			<output>
-				<fmtName>sm_perdisk</fmtName>
+				<fmtName>sm_web_cpu</fmtName>
+				<expType>average</expType>
 			</output>
+			<output>
+				<fmtName>sm_wmt_mlcpu</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_wmt_ccpu</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_uns_cpu</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_ds_cpu</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_kmem</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_web_requests</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_web_sessions</fmtName>
+				<expType>average</expType>
+			</output>
+			<output>
+				<fmtName>sm_web_upstreams</fmtName>
+				<expType>average</expType>
+			</output>
+			<!--output>
+				<fmtName>sm_perdisk</fmtName>
+				<expType>average</expType>
+			</output-->
 		</outputs>
-		<pace>2</pace>
 	</analyser>
 </translog>

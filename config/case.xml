@@ -1,0 +1,259 @@
+
+<translog>
+	<pace>2592000</pace>
+	<formatter>
+		<field>
+			<value>($2)</value>
+			<fmtName>customer</fmtName>
+			<type>stripLower</type>
+		</field>
+		<field>
+			<expValue>($5)</expValue>
+			<fmtName>highSev</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<value>($6)</value>
+			<fmtName>caseStatus</fmtName>
+			<type>stripLower</type>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($7)')&gt;5">
+					<value>($7)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>openDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($9)')&gt;5">
+					<value>($9)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>tacCloseDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($12)')&gt;5">
+					<value>($12)</value>
+				</if>
+				<else>
+					<value>($7)</value>
+				</else>
+			</blockValue>
+			<fmtName>incomingDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<expValue>(@incomingDate)</expValue>
+			<fmtName>recvdTime</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($14)')&gt;5">
+					<value>($14)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>deCloseDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+
+		<field>
+			<expValue>((@tacCloseDate)-(@openDate))/3600/24</expValue>
+			<fmtName>tacDuration</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<expValue>((@deCloseDate)-(@openDate))/3600/24</expValue>
+			<fmtName>deDuration</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<value>($20)</value>
+			<fmtName>caseOwner</fmtName>
+			<type>stripLower</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="'(@caseOwner)'=='hai rong'">
+					<value>hairong</value>
+				</if>
+				<elif con="'(@caseOwner)'=='yorma'">
+					<value>york</value>
+				</elif>
+				<elif con="'(@caseOwner)'=='wanxing'">
+					<value>wanxiang</value>
+				</elif>
+				<else>
+					<value>(@caseOwner)</value>
+				</else>
+			</blockValue>
+			<fmtName>caseOwner</fmtName>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="'(@customer)'=='telecom argentina'">
+					<value>ta</value>
+				</if>
+				<else>
+					<value>(@customer)</value>
+				</else>
+			</blockValue>
+			<fmtName>customer</fmtName>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($21)')&gt;8">
+					<value>1</value>
+				</if>
+				<else>
+					<value>0</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($23)')&gt;8">
+					<expValue>(@totalBugs)+1</expValue>
+				</if>
+				<else>
+					<value>(@totalBugs)</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($25)')&gt;8">
+					<expValue>(@totalBugs)+1</expValue>
+				</if>
+				<else>
+					<value>(@totalBugs)</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+
+
+	</formatter>
+	<analyser>
+		<type>counter</type>
+		<outputs>
+			<output>
+				<fmtName>highSev</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<outputs>
+			<output>
+				<fmtName>caseStatus</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<outputs>
+			<output>
+				<fmtName>totalBugs</fmtName>
+				<expType>sum</expType>
+			</output>
+		</outputs>
+	<!-- 2 months -->
+	<!--pace>5184000</pace-->
+	<pace>2592000</pace>
+</analyser>
+<analyser>
+	<pace>2592000</pace>
+	<outputs>
+		<output>
+			<fmtName>deDuration</fmtName>
+			<expType>average</expType>
+		</output>
+	</outputs>
+	<filters>
+		<filter>
+			<fmtName>deDuration</fmtName>
+			<low>1</low>
+		</filter>
+	</filters>
+</analyser>
+
+<analyser>
+	<outputs>
+		<output>
+			<fmtName>customer</fmtName>
+			<expType>map</expType>
+			<mapKeys>ti;telstra;ft;dt;bt;sbb;yousee</mapKeys>
+		</output>
+	</outputs>
+</analyser>
+<analyser>
+	<outputs>
+		<output>
+			<fmtName>customer</fmtName>
+			<expType>map</expType>
+			<notMapKeys>ti;telstra;ft;dt;bt;sbb;yousee</notMapKeys>
+		</output>
+	</outputs>
+</analyser>
+
+
+<analyser>
+	<pace>2592000</pace>
+	<outputs>
+		<output>
+			<fmtName>caseOwner</fmtName>
+			<expType>mapsplit</expType>
+			<expTypeArgs>[,/]</expTypeArgs>
+			<mapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</mapKeys>
+		</output>
+	</outputs>
+</analyser>
+
+<analyser>
+	<pace>2592000</pace>
+	<outputs>
+		<output>
+			<fmtName>caseOwner</fmtName>
+			<expType>mapsplit</expType>
+			<expTypeArgs>[,/]</expTypeArgs>
+			<notMapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</notMapKeys>
+		</output>
+	</outputs>
+</analyser>
+</translog>

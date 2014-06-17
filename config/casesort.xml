@@ -1,0 +1,149 @@
+
+<translog>
+	<formatter>
+		<field>
+			<value>($2)</value>
+			<fmtName>customer</fmtName>
+			<type>stripLower</type>
+		</field>
+		<field>
+			<expValue>($5)</expValue>
+			<fmtName>highSev</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<value>($6)</value>
+			<fmtName>caseStatus</fmtName>
+			<type>stripLower</type>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($7)')&gt;5">
+					<value>($7)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>openDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($9)')&gt;5">
+					<value>($9)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>tacCloseDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<blockValue>
+				<if con="len('($12)')&gt;5">
+					<value>($12)</value>
+				</if>
+				<else>
+					<value>($7)</value>
+				</else>
+			</blockValue>
+			<fmtName>incomingDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+		<field>
+			<expValue>(@incomingDate)</expValue>
+			<fmtName>recvdTime</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($14)')&gt;5">
+					<value>($14)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>deCloseDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+
+		<field>
+			<expValue>((@tacCloseDate)-(@openDate))/3600/24</expValue>
+			<fmtName>tacDuration</fmtName>
+			<type>int</type>
+		</field>
+		<field>
+			<expValue>((@deCloseDate)-(@openDate))/3600/24</expValue>
+			<fmtName>deDuration</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<value>($20)</value>
+			<fmtName>caseOwner</fmtName>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($21)')&gt;8">
+					<value>1</value>
+				</if>
+				<else>
+					<value>0</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($23)')&gt;8">
+					<expValue>(@totalBugs)+1</expValue>
+				</if>
+				<else>
+					<value>(@totalBugs)</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+		<field>
+			<blockValue>
+				<if con="len('($25)')&gt;8">
+					<expValue>(@totalBugs)+1</expValue>
+				</if>
+				<else>
+					<value>(@totalBugs)</value>
+				</else>
+			</blockValue>
+			<fmtName>totalBugs</fmtName>
+			<type>int</type>
+		</field>
+
+
+
+	</formatter>
+<analyser>
+	<pace>-1</pace>
+	<type>assemble</type>
+</analyser>
+</translog>
+

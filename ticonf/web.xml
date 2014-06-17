@@ -3,7 +3,8 @@
   <!-- pace using the translog will influence every analyser
    unless analyser has its onw pace -->
   <pace>1</pace>
-  <!--startTime>2013/08/05-02:50:00</startTime-->
+  <startTime>2014/04/19-00:00:00</startTime>
+  <!--endTime>2014/01/31-11:00:00</endTime-->
   <formatter>
     <filters>
       <id>ft1</id>

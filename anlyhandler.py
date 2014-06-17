@@ -806,9 +806,10 @@ class AnlyHandler( BaseObject ):
 			if parser.formatter is not None:
 				logInfo = parser.formatter.fmt_log( logInfo )
 				logging.debug( 'formatted info:'+str(logInfo) )
+			logInfo.originLine = line
 			return logInfo
 		except:
-			logging.error( line )
+			logging.error( line+',========'+str(logInfo) )
 			logging.error( '\n'+traceback.format_exc() )
 
 		return None

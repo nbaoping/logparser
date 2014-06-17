@@ -6,6 +6,7 @@
 #*********************************************************************************************#
 
 import logging
+import sys
 
 from base import *
 
@@ -203,8 +204,10 @@ class MutableSampler( BaseObject ):
 		num = args.bufTime / args.pace
 		if num > args.numThres:
 			num = args.numThres
-		elif num < 1:
+		elif args.pace < 0:
 			num = 1
+		else:
+			num = 1000
 		self.__total = num * 2
 		self.__buf1 = [0] * num
 		self.__buf2 = [0] * num
@@ -212,6 +215,7 @@ class MutableSampler( BaseObject ):
 		self.slist2 = self.__buf2
 		self.__init_list( self.slist1, True )
 		self.__init_list( self.slist2, True )
+
 
 	def reset( self, args ):
 		self.args = args

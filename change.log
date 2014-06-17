@@ -7,10 +7,24 @@ version 3.2.6 2013/12/20-
 Features:
 1. add 'func' support for field format
 	E.g. <func args="0;2">substr</func>
+2. add mapsplit expType
+3. add mapKeys and notMapKeys for 'map' output
+	mapKeys: only key in mapKeys is allowed
+	notMapKeys: if key not in mapKeys, it's allowed
+4. in field format, add 'strip', 'stripLower', 'stripUpper' data type
+
 
 Bugs:
 1. merging directly not right when set start time in xml
 	#TODO
+2. merge not right for some points when using bandwidth analyser
+	#TODO
+3. cannot dump for multiple times when map output
+	#TODO
+	workaround: set the min sample num to 1000
+4. no originLine for other log parsers expect LogParser
+5. for regexformat, when parsing expection, the variable value is not init
+6. 
 
 ===============================================================================
 

@@ -20,7 +20,10 @@ class OutputCfg( BaseObject ):
 	def __init__( self ):
 		self.idName = ''
 		self.fmtName = None
-		self.exptype = 'raw'
+		self.expType = 'raw'
+		self.expTypeArgs = None
+		self.mapKeys = None
+		self.haveMapKeys = None
 		self.sort = False
 		self.split = True
 		self.unitRate = 1
@@ -66,7 +69,9 @@ class AnalyserFactory:
 		outdir = os.path.join( args.path, RES_DIR )
 		if args.configPath is not None:
 			args.outdir = outdir
-			return self.__create_from_config( args )
+			analysers = self.__create_from_config( args )
+			logging.debug( 'total parsed analysers:'+str(len(analysers)) )
+			return analysers
 		analysers = list()
 		num = 0
 		if args.analyseType == 0:		#bandwidth 
@@ -90,7 +95,8 @@ class AnalyserFactory:
 				analysers.append( anly )
 			else:
 				logging.error( 'no create function for analyser'+str(config) )
-
+		
+		logging.info( 'total parsed analysers:'+str(len(analysers)) )
 		return analysers
 
 	def __parse_gloabl_config( self, rootNode ):
@@ -298,8 +304,16 @@ class AnalyserFactory:
 				ocfg.fmtName = std_fmt_name( value )
 				ocfg.idName += ocfg.fmtName
 			elif name == 'expType':
-				ocfg.exptype = value
+				ocfg.expType = value
 				ocfg.idName += '_' + value
+			elif name == 'expTypeArgs':
+				ocfg.expTypeArgs = value
+			elif name == 'mapKeys':
+				ocfg.mapKeys = value
+				ocfg.haveMapKeys = True
+			elif name == 'notMapKeys':
+				ocfg.mapKeys = value
+				ocfg.haveMapKeys = False
 			elif name == 'sort':
 				val = int( value )
 				ocfg.sort = val > 0
@@ -325,19 +339,19 @@ class AnalyserFactory:
 		
 		return ocfg
 
-	#in raw mode, only raw exptype is allowed
+	#in raw mode, only raw expType is allowed
 	def __check_raw_in_list( self, outList ):
 		rawList = list()
 		ridList = list()
 		for ocfg in outList:
-			if ocfg.exptype == 'raw':
+			if ocfg.expType == 'raw':
 				rawList.append( ocfg )
 			else:
 				ridList.append( ocfg )
 
 		if len(rawList) > 0:
 			for ocfg in ridList:
-				logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.exptype) )
+				logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.expType) )
 			return rawList
 
 		return outList
@@ -358,9 +372,9 @@ class AnalyserFactory:
 					ocfg.fmtName = std_fmt_name( ocfg.fmtName )
 				tlist = get_xmlnode( inode, 'expType' )
 				if len(tlist) > 0:
-					ocfg.exptype = get_nodevalue( tlist[0] )
+					ocfg.expType = get_nodevalue( tlist[0] )
 				else:
-					ocfg.exptype  = 'raw'
+					ocfg.expType  = 'raw'
 
 				slist = get_xmlnode( inode, 'split' )
 				if len(slist) > 0:
@@ -380,10 +394,10 @@ class AnalyserFactory:
 					ocfg.unitRate = 1
 
 				logging.debug( ocfg )
-				if ocfg.exptype == 'raw':
+				if ocfg.expType == 'raw':
 					hasRaw = True
 				elif hasRaw:
-					logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.exptype) )
+					logging.warn( '***********only raw ouput is allowed, will engore the output type'+str(ocfg.expType) )
 					continue
 				ilist.append( ocfg )
 			
@@ -456,7 +470,7 @@ class AnalyserFactory:
 			helper = CounterHelper()
 		elif config.type == 'output':
 			ocfg = config.outList[0]
-			if ocfg.exptype == 'raw':
+			if ocfg.expType == 'raw':
 				#for raw type, all the others are raw types
 				helper = RawOutputHelper( config.outList )
 			else:

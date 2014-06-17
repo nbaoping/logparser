@@ -1,0 +1,114 @@
+<!-- translog is the root element -->
+<translog>
+	<startTime>2014/04/05-00:00:00</startTime>
+	<pace>1</pace>
+	<!-- the formatter is used to get any info from the parsed log fields -->
+	<formatter>
+		<!-- when strict is 1, all the logs that fail to be formatted will be skipped; or, no log will be skipped -->
+		<strict>1</strict>
+		<!-- one field is stands for one parsed log field -->
+		<field>
+			<value>(@description)/(@status)</value>
+			<fmtName>response</fmtName>
+		</field>
+		<field>
+			<!-- an example HSS url -->
+			<!--http://se-rm4-10.se.pctvvod.mediasetpremium.alice.cdn.interbusiness.it/asset04/2013/10/pctv_47579.ism/qualitylevels(1600000)/fragments(video=9840000000)-->
+			<!-- 'value' is the composition of one or more log fields which will be formatted to a new log field -->
+			<!-- the '%u' stands for the 'urlAll' log field -->
+			<value>(%u)</value>
+			<!-- fieldFmt is used to format the 'value' -->
+			<fieldFmt>
+				<!-- 'lower' will make the url to lowercase first, 'upper' to uppercase first -->
+				<case>lower</case>
+				<!-- match contains the regulat expression that used to match the url. All the parts in parentheses can be retrieved -->
+				<match>http://(\S+\.se\.)?(\S+?)/.*</match>
+				<!-- field here is used to format the retrieved parts from the regulat expression -->
+				<field>
+					<!-- 'value' is the composition of one or more log fields which will be formatted to a new log field -->
+					<value>($1)</value>
+					<!-- set the 'fmtName' for the new log field -->
+					<fmtName>seName</fmtName>
+					<!-- if the 'type' is not set, take the default 'string' type, so the 'value' is directly assigned to the new log field 'seName' value -->
+				</field>
+				<field>
+					<!-- just the same as above field -->
+					<value>($2)</value>
+					<fmtName>hostName</fmtName>
+				</field>
+			</fieldFmt>
+		</field>
+	</formatter>
+
+	<!-- analyser is the basic unit that defines how to parse and what to output-->
+	<analyser>
+		<!-- using the outputs means the customized analyser -->
+		<outputs>
+			<!-- basic unit of customized outputs, defines what to output -->
+			<output>
+				<fmtName>hostName</fmtName>
+				<expType>map</expType>
+				<sort>1</sort>
+			</output>
+		</outputs>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<!-- using the outputs means the customized analyser -->
+		<outputs>
+			<!-- basic unit of customized outputs, defines what to output -->
+			<output>
+				<fmtName>hostName</fmtName>
+				<expType>map</expType>
+				<sort>1</sort>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>status</fmtName>
+				<equal>500</equal>
+			</filter>
+			<notExp>
+				<filter>
+					<fmtName>description</fmtName>
+					<keyword>NONE_</keyword>
+				</filter>
+			</notExp>
+		</filters>
+		<pace>-1</pace>
+	</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<expType>count</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>status</fmtName>
+				<equal>500</equal>
+			</filter>
+			<filter>
+				<fmtName>description</fmtName>
+				<keyword>MISS</keyword>
+			</filter>
+		</filters>
+		<pace>1</pace>
+	</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>response</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>status</fmtName>
+				<equal>500</equal>
+			</filter>
+		</filters>
+		<pace>60</pace>
+	</analyser>
+</translog>
+

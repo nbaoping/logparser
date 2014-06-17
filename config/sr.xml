@@ -1,0 +1,33 @@
+<translog>
+	<pace>1</pace>
+	<formatter>
+		<field>
+			<value>(@sr_server),(@sr_method)</value>
+			<fmtName>route_server</fmtName>
+		</field>
+	</formatter>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>sr_server</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+		<outputs>
+			<output>
+				<fmtName>sr_method</fmtName>
+				<expType>map</expType>
+			</output>
+		</outputs>
+	</analyser>
+	<analyser>
+		<pace>-1</pace>
+		<outputs>
+			<output>
+				<fmtName>route_server</fmtName>
+				<expType>map</expType>
+				<sort>1</sort>
+			</output>
+		</outputs>
+	</analyser>
+</translog>

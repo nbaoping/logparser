@@ -31,6 +31,7 @@ class XactParser:
 		logType = args.type
 
 		anlyList = self.anlyFactory.create_from_args( args, -1, -1)
+		logging.debug( 'parsed analysers:'+str(len(anlyList)) )
 		self.anlyList = anlyList
 		parser = create_parser_from_type( args )
 		if parser == None:
@@ -167,7 +168,7 @@ class XactParser:
 				ss = tmp
 			else:
 				ss += ', ' + tmp
-		logging.debug( '\t'+ss )
+		logging.debug( '\t'+str(ss) )
 
 	def __sample_files_old( self, fileList, anlyList ):
 		stime = -1

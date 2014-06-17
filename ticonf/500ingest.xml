@@ -1,0 +1,22 @@
+<!-- translog is the root element -->
+<translog>
+	<startTime>2014/04/02-09:55:00</startTime>
+	<endTime>2014/04/02-10:17:00</endTime>
+	<pace>1</pace>
+	<!-- the formatter is used to get any info from the parsed log fields -->
+
+	<analyser>
+		<outputs>
+			<output>
+				<expType>count</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>wi_status</fmtName>
+				<equal>500</equal>
+			</filter>
+		</filters>
+	</analyser>
+</translog>
+

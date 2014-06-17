@@ -1,13 +1,8 @@
 
 <translog>
+	<startTime>2014/04/02-09:00:00</startTime>
 	<analyser>
 		<type>assemble</type>
 		<pace>1</pace>
-		<filters>
-			<filter>
-				<fmtName>status</fmtName>
-				<equal>200</equal>
-			</filter>
-		</filters>
 	</analyser>
 </translog>

@@ -68,6 +68,7 @@ class RegexParser( LogParser ):
 
 	def __parse_split( self, line ):
 		res = self.regex.split( line )
+		logging.debug( 'regex split line:'+line+', res:'+str(res)+', with pattern:'+self.pattern )
 		if res is None:
 			return None
 
@@ -197,6 +198,7 @@ class BasicValue( FieldValue ):
 			except:
 				logging.debug( '\n'+traceback.format_exc() )
 				logging.debug( 'fieldStr:'+fieldStr )
+				value = ''
 		else:
 			value = fieldStr
 		
@@ -401,6 +403,7 @@ class FmtField( BaseObject ):
 			self.fieldType = 'float'
 
 	def fmt_field( self, logInfo ):
+		logging.debug( 'fmt field:'+str(self) )
 		value = self.fieldValue.form_value( logInfo )
 		if value is None:
 			logging.debug( 'error, failed to format field' )
@@ -429,6 +432,14 @@ class FmtField( BaseObject ):
 			value = int(value) * self.unitRate
 		elif ftype == 'float':
 			value = float(value) * self.unitRate
+		elif ftype == 'strip':
+			value = value.strip()
+		elif ftype == 'stripUpper':
+			value = value.strip()
+			value = value.upper()
+		elif ftype == 'stripLower':
+			value = value.strip()
+			value = value.lower()
 		elif ftype == 'lowercase':
 			value = value.lower()
 		elif ftype == 'uppercase':

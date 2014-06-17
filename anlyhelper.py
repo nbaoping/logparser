@@ -2,6 +2,7 @@ from operator import itemgetter
 from StringIO import StringIO
 import traceback
 import logging
+import re
 
 from base import *
 
@@ -459,7 +460,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutTimeAverageHelper, self).__init__( False )
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.pace = ocfg.pace
 		self.unitRate = ocfg.unitRate
 		self.insertValue = ocfg.insertValue
@@ -490,7 +491,7 @@ class OutTimeAverageHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -514,7 +515,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutTimeActiveHelper, self).__init__( False )
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.pace = ocfg.pace
 		self.unitRate = ocfg.unitRate
 		self.insertValue = ocfg.insertValue
@@ -541,7 +542,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -568,7 +569,7 @@ class OutTimeActiveHelper( AnalyserHelper ):
 class OutCountHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutCountHelper, self).__init__()
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 		self.pace = ocfg.pace
 	
@@ -586,7 +587,7 @@ class OutCountHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.exptype
+		return self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -614,7 +615,7 @@ class OutSumHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutSumHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 	
 	def get_value( self, logInfo ):
@@ -633,7 +634,7 @@ class OutSumHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -659,7 +660,7 @@ class OutMaxHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutMaxHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 	
 	def get_value( self, logInfo ):
@@ -687,7 +688,7 @@ class OutMaxHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -712,7 +713,7 @@ class OutMinHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutMinHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 	
 	def get_value( self, logInfo ):
@@ -740,7 +741,7 @@ class OutMinHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -765,7 +766,7 @@ class OutAverageHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutAverageHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 	
 	def get_value( self, logInfo ):
@@ -786,7 +787,7 @@ class OutAverageHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype + ';count'
+		return self.fmtName + '_' + self.expType + ';count'
 
 	#parse head info from string
 	def head_str( self, hstr, offset, psplit ):
@@ -832,7 +833,7 @@ class OutAmountHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutAmountHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
 	
 	def get_value( self, logInfo ):
@@ -855,7 +856,7 @@ class OutAmountHelper( AnalyserHelper ):
 		return False
 
 	def str_head( self ):
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
 		if value is None:
@@ -873,23 +874,23 @@ class OutAmountHelper( AnalyserHelper ):
 
 
 def create_base_helper( ocfg ):
-	exptype = ocfg.exptype
+	expType = ocfg.expType
 	helper = None
-	if exptype == 'sum':
+	if expType == 'sum':
 		helper = OutSumHelper( ocfg )
-	elif exptype == 'max':
+	elif expType == 'max':
 		helper = OutMaxHelper( ocfg )
-	elif exptype == 'min':
+	elif expType == 'min':
 		helper = OutMinHelper( ocfg )
-	elif exptype == 'average':
+	elif expType == 'average':
 		helper = OutAverageHelper( ocfg )
-	elif exptype == 'timeAverage':
+	elif expType == 'timeAverage':
 		helper = OutTimeAverageHelper( ocfg )
-	elif exptype == 'timeActive':
+	elif expType == 'timeActive':
 		helper = OutTimeActiveHelper( ocfg )
-	elif exptype == 'count':
+	elif expType == 'count':
 		helper = OutCountHelper( ocfg )
-	elif exptype == 'amount':
+	elif expType == 'amount':
 		helper = OutAmountHelper( ocfg )
 	
 	if helper is not None:
@@ -898,13 +899,29 @@ def create_base_helper( ocfg ):
 
 
 class OutMapHelper( AnalyserHelper ):
-	def __init__( self, ocfg ):
+	def __init__( self, ocfg, mapType=None ):
 		super(OutMapHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
+		self.expTypeArgs = ocfg.expTypeArgs
+		self.cfgMapKeys = ocfg.mapKeys
+		self.haveMapKeys = ocfg.haveMapKeys
+		if self.cfgMapKeys:
+			segs = self.cfgMapKeys.split( ';' )
+			kmap = dict()
+			for seg in segs:
+				key = seg.strip()
+				if key:
+					kmap[key] = 1
+			self.cfgMapKeys = kmap
+		self.mapType = mapType
+		self.regex = None
+		if self.mapType == 'split':
+			self.regex = re.compile( self.expTypeArgs )
 		self.sortOut = ocfg.sort
 		self.pace = ocfg.pace
 		self.insertValue = ocfg.insertValue
+
 		self.keyMap = dict()
 		self.keyList = None		#used to string the value
 		self.curKeyList = None	#used to decode the value
@@ -922,7 +939,7 @@ class OutMapHelper( AnalyserHelper ):
 					self.isSingleType = False
 	
 	def __create_output_helper( self, ocfg ):
-		exptype = ocfg.exptype
+		expType = ocfg.expType
 		helper = create_base_helper( ocfg )
 		logging.debug( str(ocfg)+str(helper) )
 
@@ -966,7 +983,59 @@ class OutMapHelper( AnalyserHelper ):
 
 		return value
 
+	def __update_with_key( self, oldValue, key, newValue ):
+		if self.cfgMapKeys:
+			if self.haveMapKeys:
+				if key not in self.cfgMapKeys:
+					return oldValue
+			else:
+				if key in self.cfgMapKeys:
+					return oldValue
+
+		if self.helperList is None:
+			count = newValue
+			if key in oldValue:
+				count += oldValue[key]
+			else:
+				self.keyMap[key] = 1
+			oldValue[key] = count
+		else:
+			newValList = newValue
+			if key not in oldValue:
+				valList = list()
+				idx = 0
+				for helper in self.helperList:
+					val = helper.init_value( newValList[idx] )
+					valList.append( val )
+					idx += 1
+				oldValue[key] = valList
+				self.keyMap[key] = 1
+
+			oldValList = oldValue[key]
+			idx = 0
+			for helper in self.helperList:
+				newValue = newValList[idx]
+				if newValue is not None:
+					val = helper.update_value( oldValList[idx], newValue )
+					oldValList[idx] = val
+				idx += 1
+
+		return oldValue
+
 	def update_value( self, oldValue, sampleValue ):
+		(key, newValue) = sampleValue
+		if self.mapType == 'split':
+			segs = self.regex.split( key )
+			for seg in segs:
+				subKey = seg.strip()
+				if subKey:
+					self.__update_with_key( oldValue, subKey, newValue )
+		else:
+			self.__update_with_key( oldValue, key, newValue )
+
+		return oldValue
+
+	def update_value1( self, oldValue, sampleValue ):
 		value = oldValue
 		if self.helperList is None:
 			(key, count) = sampleValue
@@ -1168,12 +1237,12 @@ class OutputHelper( AnalyserHelper ):
 	def __init__( self, ocfg ):
 		super(OutputHelper, self).__init__()
 		self.fmtName = ocfg.fmtName
-		self.exptype = ocfg.exptype
+		self.expType = ocfg.expType
 		self.insertValue = ocfg.insertValue
-		if self.exptype == 'map':
+		if self.expType == 'map':
 			self.keyMap = dict()
 			self.split = ocfg.split
-		elif self.exptype == 'raw':
+		elif self.expType == 'raw':
 			raise Exception( 'not support raw type in OutputsHelper' )
 	
 	def get_value( self, logInfo ):
@@ -1181,39 +1250,39 @@ class OutputHelper( AnalyserHelper ):
 		return value
 
 	def init_value( self, value ):
-		exptype = self.exptype
-		if exptype == 'sum':
+		expType = self.expType
+		if expType == 'sum':
 			return 0
-		elif exptype == 'max':
+		elif expType == 'max':
 			return 'max'
-		elif exptype == 'min':
+		elif expType == 'min':
 			return 'min'
-		elif exptype == 'average':
+		elif expType == 'average':
 			return (0, 0)
-		elif exptype == 'map':
+		elif expType == 'map':
 			return dict()
 		return list()
 	
 	def update_value( self, oldValue, sampleValue ):
-		exptype = self.exptype
+		expType = self.expType
 		value = oldValue
-		if exptype == 'sum':
+		if expType == 'sum':
 			value = oldValue + sampleValue
-		elif exptype == 'max':
+		elif expType == 'max':
 			if oldValue == 'max':
 				value = sampleValue
 			elif sampleValue > oldValue:
 				value = sampleValue
-		elif exptype == 'min':
+		elif expType == 'min':
 			if oldValue == 'min':
 				value = sampleValue
 			elif sampleValue < oldValue:
 				value = sampleValue
-		elif exptype == 'average':
+		elif expType == 'average':
 			total = oldValue[0] + sampleValue
 			count = oldValue[1] + 1
 			value = (total, count)
-		elif exptype == 'map':
+		elif expType == 'map':
 			count = 1
 			if sampleValue in oldValue:
 				count += oldValue[sampleValue]
@@ -1229,18 +1298,18 @@ class OutputHelper( AnalyserHelper ):
 	def exclude_value( self, value ):
 		if self.insertValue is None:
 			#need to exclude the one that is not sampled
-			exptype = self.exptype
-			if exptype == 'max':
+			expType = self.expType
+			if expType == 'max':
 				if value == 'max':
 					return True
-			elif exptype == 'min':
+			elif expType == 'min':
 				if value == 'min':
 					return True
 
 		return False
 
 	def str_head( self ):
-		if self.exptype == 'map' and self.split:
+		if self.expType == 'map' and self.split:
 			split = self.get_split()
 			hstr = ''
 			idx = 0
@@ -1251,32 +1320,32 @@ class OutputHelper( AnalyserHelper ):
 				hstr += str(key)
 				idx += 1
 			return hstr
-		return self.fmtName + '_' + self.exptype
+		return self.fmtName + '_' + self.expType
 
 	def str_value( self, value ):
-		exptype = self.exptype
-		if exptype == 'sum':
+		expType = self.expType
+		if expType == 'sum':
 			return str(value)
-		elif exptype == 'max':
+		elif expType == 'max':
 			if value == 'max':
 				if self.insertValue is not None:
 					return self.insertValue
 				return '-1'
 			return str(value)
-		elif exptype == 'min':
+		elif expType == 'min':
 			if value == 'min':
 				if self.insertValue is not None:
 					return self.insertValue
 				return '-1'
 			return str(value)
-		elif exptype == 'average':
+		elif expType == 'average':
 			count = value[1]
 			total = value[0]
 			if count == 0:
 				return '0'
 			avg = round(total * 1.0 / count, 3)
 			return str(avg)
-		elif exptype == 'map':
+		elif expType == 'map':
 			if not self.split:
 				return str(value)
 			else:
@@ -1313,10 +1382,12 @@ class OutputsHelper( AnalyserHelper ):
 		self.helperList = helperList
 
 	def __create_output_helper( self, ocfg ):
-		exptype = ocfg.exptype
+		expType = ocfg.expType
 		helper = None
-		if exptype == 'map':
+		if expType == 'map':
 			helper = OutMapHelper( ocfg )
+		elif expType == 'mapsplit':
+			helper = OutMapHelper( ocfg, 'split' )
 
 		if helper is None:
 			helper = create_base_helper( ocfg )
@@ -1376,8 +1447,8 @@ class OutputsHelper( AnalyserHelper ):
 		for helper in self.helperList:
 			tstr = helper.str_head()
 			if tstr is None:
-				if helper.exptype != 'raw':
-					tstr = helper.fmtName + '_' + helper.exptype
+				if helper.expType != 'raw':
+					tstr = helper.fmtName + '_' + helper.expType
 				else:
 					tstr = helper.fmtName
 			else:

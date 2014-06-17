@@ -1,35 +1,12 @@
 
 <translog>
 	<analyser>
-		<type>assemble</type>
-		<pace>1</pace>
+		<type>counter</type>
+		<pace>60</pace>
 		<filters>
 			<filter>
 				<fmtName>originLine</fmtName>
-				<orExp>
-					<keyword>10.79.53.134</keyword>
-					<keyword>0x80bc858</keyword>
-					<keyword>0x80cdb68</keyword>
-					<keyword>0x80cded8</keyword>
-					<keyword>0x80cdf20</keyword>
-				</orExp>
-			</filter>
-		</filters>
-	</analyser>
-	<analyser>
-		<type>assemble</type>
-		<pace>1</pace>
-		<filters>
-			<filter>
-				<fmtName>originLine</fmtName>
-				<orExp>
-					<keyword>10.79.53.134</keyword>
-					<keyword>0x80bc858</keyword>
-					<keyword>0x80cdb68</keyword>
-					<keyword>0x80cded8</keyword>
-					<keyword>0x80cdf20</keyword>
-					<keyword>[41]</keyword>
-				</orExp>
+				<keyword>ManagedCacheDataSource.cpp:2270</keyword>
 			</filter>
 		</filters>
 	</analyser>
