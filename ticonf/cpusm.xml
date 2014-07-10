@@ -1,7 +1,7 @@
 
 <translog>
-	<startTime>2014/03/22-09:20:00</startTime>
-	<endTime>2014/03/22-09:50:00</endTime>
+	<!--startTime>2014/03/22-09:20:00</startTime>
+	<endTime>2014/03/22-09:50:00</endTime-->
   <formatter>
     <!--field>
       <expValue>(@recvdTime)+3600</expValue>
@@ -13,6 +13,9 @@
     <outputs>
       <output>
         <fmtName>sm_cpu</fmtName>
+      </output>
+      <output>
+        <fmtName>sm_mem</fmtName>
       </output>
       <output>
         <fmtName>sm_bandwidth</fmtName>

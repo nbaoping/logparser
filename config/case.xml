@@ -1,5 +1,7 @@
 
 <translog>
+	<startTime>2014/03/15-00:00:00</startTime>
+	<!-- 1 months -->
 	<pace>2592000</pace>
 	<formatter>
 		<field>
@@ -170,90 +172,137 @@
 			<type>int</type>
 		</field>
 
+		<field>
+			<blockValue>
+				<if con="len('($27)')&gt;5">
+					<value>($27)</value>
+				</if>
+				<else>
+					<value>1970/1/1</value>
+				</else>
+			</blockValue>
+			<fmtName>resolvedDate</fmtName>
+			<timeFmt>
+				<match>(.*)</match>
+				<fmt>%Y/%m/%d</fmt>
+			</timeFmt>
+		</field>
+
+		<field>
+			<expValue>((@resolvedDate)-(@incomingDate))/3600/24</expValue>
+			<fmtName>resolvedDuration</fmtName>
+			<type>int</type>
+		</field>
+
 
 
 	</formatter>
+
 	<analyser>
+		<!-- case num per month -->
 		<type>counter</type>
 		<outputs>
+			<!-- case severity distribution per month -->
 			<output>
 				<fmtName>highSev</fmtName>
 				<expType>map</expType>
 			</output>
 		</outputs>
 		<outputs>
-			<output>
-				<fmtName>caseStatus</fmtName>
-				<expType>map</expType>
-			</output>
-		</outputs>
-		<outputs>
+			<!-- total related bugs per month -->
 			<output>
 				<fmtName>totalBugs</fmtName>
 				<expType>sum</expType>
 			</output>
 		</outputs>
-	<!-- 2 months -->
-	<!--pace>5184000</pace-->
-	<pace>2592000</pace>
-</analyser>
-<analyser>
-	<pace>2592000</pace>
-	<outputs>
-		<output>
-			<fmtName>deDuration</fmtName>
-			<expType>average</expType>
-		</output>
-	</outputs>
-	<filters>
-		<filter>
-			<fmtName>deDuration</fmtName>
-			<low>1</low>
-		</filter>
-	</filters>
-</analyser>
+	</analyser>
+	<analyser>
+		<!-- case num with new bugs per month -->
+		<type>counter</type>
+		<filters>
+			<filter>
+				<fmtName>resolvedDuration</fmtName>
+				<low>1</low>
+			</filter>
+			<filter>
+				<fmtName>totalBugs</fmtName>
+				<low>1</low>
+			</filter>
+		</filters>
+	</analyser>
 
-<analyser>
-	<outputs>
-		<output>
-			<fmtName>customer</fmtName>
-			<expType>map</expType>
-			<mapKeys>ti;telstra;ft;dt;bt;sbb;yousee</mapKeys>
-		</output>
-	</outputs>
-</analyser>
-<analyser>
-	<outputs>
-		<output>
-			<fmtName>customer</fmtName>
-			<expType>map</expType>
-			<notMapKeys>ti;telstra;ft;dt;bt;sbb;yousee</notMapKeys>
-		</output>
-	</outputs>
-</analyser>
+	<analyser>
+		<!-- case average duration (currently, only for cases with new bug) per month -->
+		<outputs>
+			<output>
+				<fmtName>resolvedDuration</fmtName>
+				<expType>average</expType>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>resolvedDuration</fmtName>
+				<low>1</low>
+			</filter>
+		</filters>
+	</analyser>
+
+	<analyser>
+		<!-- stat DE distribution involved in 1/2 highSev cases -->
+		<outputs>
+			<output>
+				<fmtName>caseOwner</fmtName>
+				<expType>mapsplit</expType>
+				<expTypeArgs>[,/]</expTypeArgs>
+			</output>
+		</outputs>
+		<filters>
+			<filter>
+				<fmtName>highSev</fmtName>
+				<high>2</high>
+			</filter>
+		</filters>
+	</analyser>
+
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>customer</fmtName>
+				<expType>map</expType>
+				<mapKeys>ti;telstra;ft;dt;bt;sbb;yousee</mapKeys>
+			</output>
+		</outputs>
+	</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>customer</fmtName>
+				<expType>map</expType>
+				<notMapKeys>ti;telstra;ft;dt;bt;sbb;yousee</notMapKeys>
+			</output>
+		</outputs>
+	</analyser>
 
 
-<analyser>
-	<pace>2592000</pace>
-	<outputs>
-		<output>
-			<fmtName>caseOwner</fmtName>
-			<expType>mapsplit</expType>
-			<expTypeArgs>[,/]</expTypeArgs>
-			<mapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</mapKeys>
-		</output>
-	</outputs>
-</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>caseOwner</fmtName>
+				<expType>mapsplit</expType>
+				<expTypeArgs>[,/]</expTypeArgs>
+				<mapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</mapKeys>
+			</output>
+		</outputs>
+	</analyser>
 
-<analyser>
-	<pace>2592000</pace>
-	<outputs>
-		<output>
-			<fmtName>caseOwner</fmtName>
-			<expType>mapsplit</expType>
-			<expTypeArgs>[,/]</expTypeArgs>
-			<notMapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</notMapKeys>
-		</output>
-	</outputs>
-</analyser>
+	<analyser>
+		<outputs>
+			<output>
+				<fmtName>caseOwner</fmtName>
+				<expType>mapsplit</expType>
+				<expTypeArgs>[,/]</expTypeArgs>
+				<notMapKeys>john;wanxiang;xingli;york;zhilin;yunping;hairong;philip;neil;kai;long lei</notMapKeys>
+			</output>
+		</outputs>
+	</analyser>
 </translog>
