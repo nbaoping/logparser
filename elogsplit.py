@@ -3,6 +3,7 @@ import sys
 import logging
 
 from base import *
+from elogreorder import *
 
 def parse_module_name( fileName ):
 	idx = fileName.rfind( '.' )
@@ -41,9 +42,16 @@ def split_error_files( logDir ):
 			os.rename( ipath, opath )
 
 
+def reorder_error_files( logDir ):
+	for fileName in os.listdir(logDir):
+		ipath = os.path.join( logDir, fileName )
+		if os.path.isdir(ipath):
+			reorder_elog_edir( ipath, False )
+
 if __name__ == '__main__':
 	logDir = sys.argv[1]
 	split_error_files( logDir )
+	reorder_error_files( logDir )
 			
 
 

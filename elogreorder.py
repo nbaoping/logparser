@@ -5,7 +5,6 @@ from operator import itemgetter
 
 
 __LOG_TFMT = '%m/%d/%Y %H:%M:%S'
-__OUT_TFMT = '%Y%m%d-%H%M%S'
 
 def get_file_time( path ):
 	fin = open( path, 'r' )
@@ -58,7 +57,7 @@ def reorder_logs( loglist, ipath, cover ):
 	count = 0
 	for item in loglist:
 		count += 1
-		tstr = str_seconds( item[0], __OUT_TFMT ) + '.' + str( item[3])
+		tstr = str_seconds( item[0], '%Y%m%d-%H:%M:%S' ) + '.' + str( item[3] )
 		ifile = os.path.join( item[1], item[2] )
 		nfname = tstr + '_' + item[2]
 		if not cover:
@@ -66,6 +65,10 @@ def reorder_logs( loglist, ipath, cover ):
 		ofile = os.path.join( opath, nfname )
 		print 'rename file:', ifile, 'to', ofile
 		os.rename( ifile, ofile )
+
+def reorder_elog_edir( ipath, cover ):
+	loglist = get_ordered_list( ipath )
+	reorder_logs( loglist, ipath, cover )
 
 if __name__ == '__main__':
 	ipath = sys.argv[1]
